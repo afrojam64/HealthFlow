@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title th:text="${title}">Estado de tu cita</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+<nav class="navbar navbar-dark bg-dark">
+    <div class="container">
+        <span class="navbar-brand">HealthFlow</span>
+    </div>
+</nav>
+
+<main class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-7">
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+
+                    <h3 class="mb-2" th:text="${title}">Estado de tu cita</h3>
+
+                    <div class="alert alert-info">
+                        <div><strong>Estado:</strong> <span th:text="${appointment.status}">PEND</span></div>
+                        <!-- <div class="mt-1"><strong>Fecha/Hora (UTC):</strong> <span th:text="${appointment.dateTime}">...</span></div>-->
+                        <div class="mt-1"><strong>Fecha/Hora (Bogotá):</strong> <span th:text="${#temporals.format(dateTimeLocal, 'yyyy-MM-dd HH:mm')}"></span></div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex">
+                        <!-- Mostrar Confirmar solo si NO está cancelada y NO está confirmada -->
+                        <a class="btn btn-success"
+                           th:if="${appointment.status.name() == 'PEND'}"
+                           th:href="${confirmUrl}" target="_blank">
+                            Confirmar
+                        </a>
+
+                        <!-- Mostrar Cancelar si NO está cancelada y NO está atendida -->
+                        <a class="btn btn-outline-danger"
+                           th:if="${appointment.status.name() != 'CANCELADA' and appointment.status.name() != 'ATENDIDA'}"
+                           th:href="${cancelUrl}" target="_blank">
+                            Cancelar
+                        </a>
+
+                        <a class="btn btn-outline-primary" th:href="${icsUrl}" target="_blank">
+                            Descargar .ICS
+                        </a>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <div class="small text-muted">
+                        Si ya confirmaste o cancelaste, actualiza esta página para ver el nuevo estado.
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

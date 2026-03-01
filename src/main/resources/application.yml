@@ -1,0 +1,32 @@
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: on_param
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/healthflow
+    username: postgres
+    password: TmX85col1978
+  jpa:
+    hibernate:
+      ddl-auto: update
+    flyway:
+      enabled: true
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+
+healthflow:
+  timezone: America/Bogota
+  publicBaseUrl: http://localhost:8080
+  appointment:
+    slotMinutes: 30
+    minLeadMinutes: 120
+  seed:
+    enabled: true
