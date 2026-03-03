@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Agenda - ' + ${username}">Agenda - HealthFlow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --primary: #2A7F6E;
+            --primary-light: #E8F5F2;
+        }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        .header-bar {
+            background: white;
+            padding: 1rem 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .schedule-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+        .day-schedule {
+            background: var(--primary-light);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+        }
+        .day-schedule:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(42,127,110,0.15);
+        }
+        .btn-save {
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-save:hover {
+            background: #1E5F51;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(42,127,110,0.3);
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid py-4">
+    <!-- Header con título y botón volver -->
+    <div class="header-bar">
+        <div>
+            <h2 class="mb-0">
+                <i class="bi bi-calendar-week text-primary me-2"></i>
+                Configuración de Agenda
+            </h2>
+            <p class="text-muted mb-0 mt-1">
+                <i class="bi bi-person-circle me-1"></i>
+                <span th:text="${username}">Dr. García</span>
+            </p>
+        </div>
+        <a href="/dashboard" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Volver al Dashboard
+        </a>
+    </div>
+
+    <!-- Tarjeta principal -->
+    <div class="schedule-card">
+        <h4 class="mb-4">
+            <i class="bi bi-clock-history text-primary me-2"></i>
+            Horario Semanal
+        </h4>
+        <p class="text-muted mb-4">Define tus horas de atención para cada día de la semana.</p>
+
+        <!-- Lunes -->
+        <div class="day-schedule">
+            <div class="row align-items-center">
+                <div class="col-md-2">
+                    <h5 class="mb-0">Lunes</h5>
+                </div>
+                <div class="col-md-8">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <label class="form-label">Inicio jornada</label>
+                            <input type="time" class="form-control" value="09:00">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Fin jornada</label>
+                            <input type="time" class="form-control" value="17:00">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" checked>
+                                <label class="form-check-label">Disponible</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Martes -->
+        <div class="day-schedule">
+            <div class="row align-items-center">
+                <div class="col-md-2">
+                    <h5 class="mb-0">Martes</h5>
+                </div>
+                <div class="col-md-8">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <input type="time" class="form-control" value="09:00">
+                        </div>
+                        <div class="col-md-5">
+                            <input type="time" class="form-control" value="17:00">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" checked>
+                                <label class="form-check-label">Disponible</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Miércoles -->
+        <div class="day-schedule">
+            <div class="row align-items-center">
+                <div class="col-md-2">
+                    <h5 class="mb-0">Miércoles</h5>
+                </div>
+                <div class="col-md-8">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <input type="time" class="form-control" value="09:00">
+                        </div>
+                        <div class="col-md-5">
+                            <input type="time" class="form-control" value="17:00">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" checked>
+                                <label class="form-check-label">Disponible</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Jueves -->
+        <div class="day-schedule">
+            <div class="row align-items-center">
+                <div class="col-md-2">
+                    <h5 class="mb-0">Jueves</h5>
+                </div>
+                <div class="col-md-8">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <input type="time" class="form-control" value="09:00">
+                        </div>
+                        <div class="col-md-5">
+                            <input type="time" class="form-control" value="17:00">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" checked>
+                                <label class="form-check-label">Disponible</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Viernes -->
+        <div class="day-schedule">
+            <div class="row align-items-center">
+                <div class="col-md-2">
+                    <h5 class="mb-0">Viernes</h5>
+                </div>
+                <div class="col-md-8">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <input type="time" class="form-control" value="09:00">
+                        </div>
+                        <div class="col-md-5">
+                            <input type="time" class="form-control" value="17:00">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" checked>
+                                <label class="form-check-label">Disponible</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sábado -->
+        <div class="day-schedule">
+            <div class="row align-items-center">
+                <div class="col-md-2">
+                    <h5 class="mb-0">Sábado</h5>
+                </div>
+                <div class="col-md-8">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <input type="time" class="form-control" value="09:00">
+                        </div>
+                        <div class="col-md-5">
+                            <input type="time" class="form-control" value="13:00">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox">
+                                <label class="form-check-label">Disponible</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Domingo -->
+        <div class="day-schedule">
+            <div class="row align-items-center">
+                <div class="col-md-2">
+                    <h5 class="mb-0">Domingo</h5>
+                </div>
+                <div class="col-md-8">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <input type="time" class="form-control" value="09:00" disabled>
+                        </div>
+                        <div class="col-md-5">
+                            <input type="time" class="form-control" value="13:00" disabled>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox">
+                                <label class="form-check-label">Disponible</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botón guardar -->
+        <div class="text-center mt-5">
+            <button class="btn-save">
+                <i class="bi bi-check-circle me-2"></i>
+                Guardar Configuración
+            </button>
+        </div>
+    </div>
+
+    <!-- Sección de excepciones (vacía por ahora) -->
+    <div class="schedule-card mt-4">
+        <h5 class="mb-3">
+            <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+            Excepciones y Bloqueos
+        </h5>
+        <p class="text-muted mb-3">Próximamente podrás agregar bloqueos por vacaciones, días festivos, etc.</p>
+        <button class="btn btn-outline-primary" disabled>
+            <i class="bi bi-plus-circle me-1"></i> Agregar Excepción
+        </button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

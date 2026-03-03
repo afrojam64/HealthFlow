@@ -1,60 +1,102 @@
 package com.healthflow.web;
 
+import com.healthflow.domain.AppointmentStatus;
 import com.healthflow.repo.AppointmentRepository;
+import com.healthflow.repo.PatientRepository;
+import com.healthflow.repo.ProfessionalRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.format.TextStyle;
+import java.util.Locale;
 
 @Controller
 public class DashboardController {
 
     private final AppointmentRepository appointmentRepository;
+    private final PatientRepository patientRepository;
+    private final ProfessionalRepository professionalRepository;
     private final ZoneId zoneId;
 
     public DashboardController(
             AppointmentRepository appointmentRepository,
+            PatientRepository patientRepository,
+            ProfessionalRepository professionalRepository,
             @org.springframework.beans.factory.annotation.Value("${healthflow.timezone:America/Bogota}") String tz) {
         this.appointmentRepository = appointmentRepository;
+        this.patientRepository = patientRepository;
+        this.professionalRepository = professionalRepository;
         this.zoneId = ZoneId.of(tz);
     }
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
-        // Obtener el usuario actual
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // Obtener estadísticas reales
+        DashboardStats stats = getStats();
+
+        // Formatear fecha actual
+        LocalDate today = LocalDate.now(zoneId);
+        String fechaFormateada = today.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + ", " +
+                today.getDayOfMonth() + " de " +
+                today.getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + " de " +
+                today.getYear();
+
+        model.addAttribute("title", "Dashboard - HealthFlow");
         model.addAttribute("username", username);
+        model.addAttribute("stats", stats);
+        model.addAttribute("fechaActual", fechaFormateada);
 
-        // Obtener citas de hoy (esto lo mejoraremos cuando tengamos el profesional asociado al usuario)
-        // Por ahora, mostramos un placeholder
-        model.addAttribute("citasHoy", 0);
-
-        return "dashboard";
+        return "fragments/layout";
     }
 
-    // Este endpoint será útil cuando tengamos la relación User-Profesional
     @GetMapping("/api/dashboard/stats")
-    @org.springframework.web.bind.annotation.ResponseBody
+    @ResponseBody
     public DashboardStats getStats() {
-        // Por ahora, retornamos estadísticas de ejemplo
-        // TODO: Implementar cuando tengamos la relación User-Profesional
-
         LocalDate today = LocalDate.now(zoneId);
-        ZonedDateTime startOfDay = today.atStartOfDay(zoneId);
-        ZonedDateTime endOfDay = today.plusDays(1).atStartOfDay(zoneId);
+        LocalDate weekAgo = today.minusDays(7);
+        LocalDate monthAgo = today.minusDays(30);
+
+        // Para Appointment usamos OffsetDateTime
+        OffsetDateTime startOfDay = today.atStartOfDay(zoneId).toOffsetDateTime();
+        OffsetDateTime endOfDay = today.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
+        OffsetDateTime startOfWeek = weekAgo.atStartOfDay(zoneId).toOffsetDateTime();
+
+        // Para Patient usamos LocalDateTime
+        LocalDateTime startOfMonth = monthAgo.atStartOfDay();
+
+        // CORREGIDO: Usar los métodos con los tipos correctos
+        long citasHoy = appointmentRepository.countByFechaHoraBetween(startOfDay, endOfDay);
+        long citasSemana = appointmentRepository.countByFechaHoraAfter(startOfWeek);
+        long pacientesNuevos = patientRepository.countByCreatedAtAfter(startOfMonth);
+        long totalProfesionales = professionalRepository.count();
+
+        // CORREGIDO: Usar AppointmentStatus.ATENDIDA en lugar de String
+        long citasAtendidas = appointmentRepository.countByEstado(AppointmentStatus.ATENDIDA);
+
+        int ocupacion = totalProfesionales > 0 ?
+                (int) ((citasAtendidas * 100) / (totalProfesionales * 10)) : 0;
 
         return new DashboardStats(
-                5,  // citas hoy (hardcoded por ahora)
-                12, // citas semana
-                3,  // pacientes nuevos
-                85  // ocupación %
+                citasHoy,
+                citasSemana,
+                pacientesNuevos,
+                ocupacion
         );
     }
 
-    public record DashboardStats(long citasHoy, long citasSemana, long pacientesNuevos, int ocupacion) {}
+    public record DashboardStats(
+            long citasHoy,
+            long citasSemana,
+            long pacientesNuevos,
+            int ocupacion
+    ) {}
 }

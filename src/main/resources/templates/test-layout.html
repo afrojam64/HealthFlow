@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <!-- Este template usa el layout -->
+    <div th:replace="~{fragments/layout :: head}"></div>
+</head>
+<body>
+<!-- Usamos el layout con fragmentos específicos -->
+<div th:replace="~{fragments/layout :: layout(
+        sidebarFragment=~{::sidebar},
+        contentFragment=~{::content},
+        scriptsFragment=~{::scripts}
+    )}">
+
+    <!-- Fragmento del sidebar específico para esta prueba -->
+    <th:block id="sidebar">
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="#" class="nav-link active">
+                    <i class="bi bi-speedometer2"></i>
+                    Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="bi bi-calendar-week"></i>
+                    Agenda
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="bi bi-people"></i>
+                    Pacientes
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="bi bi-file-text"></i>
+                    Consultas
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="bi bi-graph-up"></i>
+                    Reportes
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="bi bi-gear"></i>
+                    Configuración
+                </a>
+            </li>
+            <li class="nav-item mt-4">
+                <a href="#" class="nav-link">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Cerrar Sesión
+                </a>
+            </li>
+        </ul>
+    </th:block>
+
+    <!-- Contenido principal de prueba -->
+    <th:block id="content">
+        <div class="container-fluid">
+            <h1 class="h2 mb-4">Bienvenido a HealthFlow</h1>
+
+            <!-- Cards de prueba -->
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <div class="card card-health">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle mb-2 text-muted">Citas Hoy</h6>
+                                    <h2 class="card-title mb-0 text-primary-custom">12</h2>
+                                </div>
+                                <i class="bi bi-calendar-day fs-1 text-primary-custom"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="card card-health">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle mb-2 text-muted">Pacientes</h6>
+                                    <h2 class="card-title mb-0 text-success">158</h2>
+                                </div>
+                                <i class="bi bi-people fs-1 text-success"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="card card-health">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle mb-2 text-muted">Ocupación</h6>
+                                    <h2 class="card-title mb-0 text-warning">75%</h2>
+                                </div>
+                                <i class="bi bi-pie-chart fs-1 text-warning"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="card card-health">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle mb-2 text-muted">Ingresos</h6>
+                                    <h2 class="card-title mb-0 text-info">$2.4M</h2>
+                                </div>
+                                <i class="bi bi-cash-stack fs-1 text-info"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de prueba -->
+            <div class="card card-health mt-4">
+                <div class="card-header">
+                    Próximas Citas
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th>Hora</th>
+                            <th>Paciente</th>
+                            <th>Médico</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>09:00</td>
+                            <td>Juan Pérez</td>
+                            <td>Dra. Laura Pérez</td>
+                            <td><span class="badge bg-success">Confirmada</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary-custom">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>10:00</td>
+                            <td>María López</td>
+                            <td>Dr. Andrés Gómez</td>
+                            <td><span class="badge bg-warning">Pendiente</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary-custom">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>11:00</td>
+                            <td>Carlos Rodríguez</td>
+                            <td>Dra. Sofía Ruiz</td>
+                            <td><span class="badge bg-info">En espera</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary-custom">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <!-- Scripts adicionales -->
+    <th:block id="scripts">
+        <script>
+            console.log('Vista de prueba cargada correctamente');
+        </script>
+    </th:block>
+</div>
+</body>
+</html>

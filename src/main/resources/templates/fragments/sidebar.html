@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<!-- Sidebar para Administrador -->
+<th:block th:fragment="adminSidebar">
+    <ul class="nav-menu">
+        <li class="nav-item">
+            <a href="/dashboard" class="nav-link" th:classappend="${#request.requestURI == '/dashboard'} ? 'active' : ''">
+                <i class="bi bi-speedometer2"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/admin/professionals" class="nav-link" th:classappend="${#request.requestURI.startsWith('/admin/professionals')} ? 'active' : ''">
+                <i class="bi bi-people"></i>
+                <span>Profesionales</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/admin/agenda" class="nav-link" th:classappend="${#request.requestURI == '/admin/agenda'} ? 'active' : ''">
+                <i class="bi bi-calendar-week"></i>
+                <span>Disponibilidad</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/admin/appointments" class="nav-link">
+                <i class="bi bi-calendar-check"></i>
+                <span>Citas</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/admin/patients" class="nav-link">
+                <i class="bi bi-person-heart"></i>
+                <span>Pacientes</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/admin/reports" class="nav-link">
+                <i class="bi bi-file-text"></i>
+                <span>Reportes RIPS</span>
+            </a>
+        </li>
+        <li class="nav-item mt-4">
+            <hr class="border-light opacity-25">
+        </li>
+        <li class="nav-item">
+            <a href="/admin/users" class="nav-link">
+                <i class="bi bi-person-badge"></i>
+                <span>Usuarios</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/admin/config" class="nav-link">
+                <i class="bi bi-gear"></i>
+                <span>Configuración</span>
+            </a>
+        </li>
+    </ul>
+</th:block>
+
+<!-- Sidebar para Médico -->
+<th:block th:fragment="doctorSidebar">
+    <ul class="nav-menu">
+        <li class="nav-item">
+            <a href="/dashboard" class="nav-link" th:classappend="${#request.requestURI == '/dashboard'} ? 'active' : ''">
+                <i class="bi bi-speedometer2"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/doctor/agenda" class="nav-link" th:classappend="${#request.requestURI == '/doctor/agenda'} ? 'active' : ''">
+                <i class="bi bi-calendar-week"></i>
+                <span>Mi Agenda</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/doctor/appointments" class="nav-link">
+                <i class="bi bi-calendar-check"></i>
+                <span>Mis Citas</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/doctor/patients" class="nav-link">
+                <i class="bi bi-people"></i>
+                <span>Mis Pacientes</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/doctor/clinical" class="nav-link">
+                <i class="bi bi-file-text"></i>
+                <span>Historia Clínica</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/doctor/reports" class="nav-link">
+                <i class="bi bi-graph-up"></i>
+                <span>Reportes</span>
+            </a>
+        </li>
+    </ul>
+</th:block>
+
+<!-- Sidebar para Asistente -->
+<th:block th:fragment="assistantSidebar">
+    <ul class="nav-menu">
+        <li class="nav-item">
+            <a href="/dashboard" class="nav-link" th:classappend="${#request.requestURI == '/dashboard'} ? 'active' : ''">
+                <i class="bi bi-speedometer2"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/assistant/agenda" class="nav-link">
+                <i class="bi bi-calendar-week"></i>
+                <span>Agenda General</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/assistant/appointments" class="nav-link">
+                <i class="bi bi-calendar-check"></i>
+                <span>Citas</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/assistant/patients" class="nav-link">
+                <i class="bi bi-person-heart"></i>
+                <span>Pacientes</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/assistant/register" class="nav-link">
+                <i class="bi bi-person-plus"></i>
+                <span>Registrar Paciente</span>
+            </a>
+        </li>
+    </ul>
+</th:block>
+
+<!-- Sidebar por defecto (usuario sin rol específico) -->
+<th:block th:fragment="userSidebar">
+    <ul class="nav-menu">
+        <li class="nav-item">
+            <a href="/dashboard" class="nav-link active">
+                <i class="bi bi-speedometer2"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="bi bi-person"></i>
+                <span>Mi Perfil</span>
+            </a>
+        </li>
+    </ul>
+</th:block>
+</body>
+</html>

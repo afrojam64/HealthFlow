@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<div class="container-fluid" th:fragment="content">
+    <!-- Título y bienvenida -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">
+            <i class="bi bi-speedometer2 text-primary-custom me-2"></i>
+            Dashboard
+        </h1>
+        <div>
+                <span class="text-muted">
+                    <i class="bi bi-calendar3 me-1"></i>
+                    <span th:text="${#dates.format(new java.util.Date(), 'EEEE, d MMMM yyyy')}"></span>
+                </span>
+        </div>
+    </div>
+
+    <!-- Cards de estadísticas -->
+    <div class="row g-4 mb-4">
+        <!-- Citas Hoy -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card card-health h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted text-uppercase small">Citas Hoy</span>
+                            <h2 class="display-6 mt-2 mb-0 text-primary-custom"
+                                th:text="${stats?.citasHoy} ?: 0">5</h2>
+                        </div>
+                        <div class="bg-primary-custom bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-calendar-day fs-1 text-primary-custom"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                            <span class="text-success">
+                                <i class="bi bi-arrow-up"></i> 12%
+                            </span>
+                        <span class="text-muted ms-2">vs ayer</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Citas Semana -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card card-health h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted text-uppercase small">Citas Semana</span>
+                            <h2 class="display-6 mt-2 mb-0 text-success"
+                                th:text="${stats?.citasSemana} ?: 12">12</h2>
+                        </div>
+                        <div class="bg-success bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-calendar-week fs-1 text-success"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                            <span class="text-success">
+                                <i class="bi bi-arrow-up"></i> 8%
+                            </span>
+                        <span class="text-muted ms-2">vs semana ant</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pacientes Nuevos -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card card-health h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted text-uppercase small">Pacientes Nuevos</span>
+                            <h2 class="display-6 mt-2 mb-0 text-info"
+                                th:text="${stats?.pacientesNuevos} ?: 3">3</h2>
+                        </div>
+                        <div class="bg-info bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-person-plus fs-1 text-info"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                            <span class="text-success">
+                                <i class="bi bi-arrow-up"></i> 5
+                            </span>
+                        <span class="text-muted ms-2">este mes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ocupación -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card card-health h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted text-uppercase small">Ocupación</span>
+                            <h2 class="display-6 mt-2 mb-0 text-warning"
+                                th:text="${stats?.ocupacion} ?: 85 + '%'">85%</h2>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-pie-chart fs-1 text-warning"></i>
+                        </div>
+                    </div>
+                    <div class="progress mt-3" style="height: 8px;">
+                        <div class="progress-bar bg-warning"
+                             th:style="'width: ' + (${stats?.ocupacion} ?: 85) + '%'"
+                             th:attr="aria-valuenow=${stats?.ocupacion} ?: 85"
+                             aria-valuemin="0"
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Próximas Citas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-health">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history me-2 text-primary-custom"></i>
+                        Próximas Citas
+                    </h5>
+                    <a href="#" class="btn btn-sm btn-primary-custom">
+                        Ver todas
+                        <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                            <tr>
+                                <th>Fecha/Hora</th>
+                                <th>Paciente</th>
+                                <th>Médico</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <!-- Aquí irían las citas dinámicas -->
+                            <tr th:if="${appointments?.isEmpty() ?: true}">
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <i class="bi bi-calendar-x fs-4 d-block mb-2"></i>
+                                    No hay citas próximas
+                                </td>
+                            </tr>
+                            <!-- Ejemplo estático (luego se reemplazará con datos reales) -->
+                            <tr>
+                                <td>09:00 AM - Hoy</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-person-circle me-2 fs-4"></i>
+                                        <div>
+                                            <strong>Juan Pérez</strong>
+                                            <br>
+                                            <small class="text-muted">CC 100000001</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>Dra. Laura Pérez</td>
+                                <td>
+                                    <span class="badge bg-success">Confirmada</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary-custom me-1">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script para cargar estadísticas -->
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/dashboard/stats')
+                .then(response => response.json())
+                .then(data => {
+                    // Actualizar cards con datos reales
+                    // Por ahora solo mostramos en consola
+                    console.log('Estadísticas cargadas:', data);
+                })
+                .catch(error => console.error('Error cargando estadísticas:', error));
+        });
+    </script>
+</div>
+</body>
+</html>

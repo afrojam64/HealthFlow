@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface ProfessionalRepository extends JpaRepository<Professional, UUID> {
     Optional<Professional> findByUserId(UUID id);
+
+    long count();
 }
