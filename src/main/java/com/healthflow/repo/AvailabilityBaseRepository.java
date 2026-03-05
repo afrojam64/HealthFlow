@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface AvailabilityBaseRepository extends JpaRepository<AvailabilityBase, UUID> {
   List<AvailabilityBase> findByProfessionalIdAndDayOfWeek(UUID professionalId, int dayOfWeek);
+
+    List<AvailabilityBase> findByProfessionalIdOrderByDayOfWeekAsc(UUID professionalId);
 }

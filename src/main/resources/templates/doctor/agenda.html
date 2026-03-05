@@ -3,288 +3,614 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="'Agenda - ' + ${username}">Agenda - HealthFlow</title>
+    <title th:text="${title}">Agenda - HealthFlow</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         :root {
             --primary: #2A7F6E;
+            --primary-dark: #1E5F51;
             --primary-light: #E8F5F2;
+            --gray-50: #F9FAFB;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-600: #4B5563;
+            --gray-800: #1F2937;
         }
         body {
-            background-color: #f8f9fa;
             font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--gray-50);
         }
         .header-bar {
             background: white;
-            padding: 1rem 2rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 1.5rem 2rem;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
             margin-bottom: 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border: 1px solid var(--gray-200);
         }
-        .schedule-card {
+        .month-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .month-nav h2 {
+            font-size: 1.8rem;
+            font-weight: 500;
+            color: #1e293b;
+        }
+        .month-nav button {
             background: white;
-            border-radius: 20px;
-            padding: 2rem;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.05);
-            margin-bottom: 2rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 40px;
+            padding: 8px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        .day-schedule {
+        .month-nav button:hover {
             background: var(--primary-light);
-            border-radius: 12px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            transition: all 0.3s;
         }
-        .day-schedule:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(42,127,110,0.15);
+        .calendar {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 32px;
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
         }
-        .btn-save {
+        .calendar th {
+            text-align: center;
+            padding: 16px 8px;
+            font-weight: 600;
+            color: var(--gray-600);
+            background: var(--primary-light);
+            border-bottom: 2px solid var(--primary);
+        }
+        .calendar td {
+            border: 1px solid var(--gray-200);
+            text-align: center;
+            vertical-align: middle;
+            padding: 14px 4px;
+        }
+        .calendar .week-row:hover {
+            background-color: var(--primary-light);
+            cursor: pointer;
+        }
+        .week-checkbox {
+            transform: scale(1.3);
+            cursor: pointer;
+        }
+        .day-number {
+            font-weight: 500;
+            color: var(--gray-800);
+        }
+        .week-selector-cell {
+            text-align: center;
+            vertical-align: middle;
+            background: var(--gray-100);
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .selected-count {
             background: var(--primary);
             color: white;
-            padding: 0.75rem 2rem;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            transition: all 0.3s;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-size: 1rem;
+            display: inline-block;
+            margin-bottom: 20px;
         }
-        .btn-save:hover {
-            background: #1E5F51;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(42,127,110,0.3);
+        .config-section {
+            background: white;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            border: 1px solid var(--gray-200);
+        }
+        .config-option {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .config-option label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            color: var(--gray-800);
+            cursor: pointer;
+        }
+        .time-inputs {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .time-inputs input {
+            padding: 10px 16px;
+            border: 1px solid var(--gray-200);
+            border-radius: 40px;
+            font-size: 1rem;
+            width: 120px;
+        }
+        .time-inputs input:focus {
+            outline: 2px solid var(--primary);
+            border-color: transparent;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 16px;
+            width: 100%;
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        .btn-secondary {
+            background: white;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover {
+            background: var(--primary-light);
+        }
+        .per-day-panel {
+            margin-top: 24px;
+            border-top: 2px dashed var(--gray-200);
+            padding-top: 24px;
+        }
+        .per-day-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .per-day-table th {
+            text-align: left;
+            padding: 12px 8px;
+            color: var(--gray-600);
+            font-weight: 600;
+        }
+        .per-day-table td {
+            padding: 8px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .per-day-table input[type="time"] {
+            padding: 6px 12px;
+            border: 1px solid var(--gray-200);
+            border-radius: 40px;
+            width: 130px;
+        }
+        .badge-week {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 0.8rem;
         }
     </style>
 </head>
 <body>
-<div class="container-fluid py-4">
-    <!-- Header con título y botón volver -->
+<div class="container-fluid py-4 px-5">
+    <!-- Header con información del médico -->
     <div class="header-bar">
         <div>
-            <h2 class="mb-0">
+            <h2 class="mb-1">
                 <i class="bi bi-calendar-week text-primary me-2"></i>
-                Configuración de Agenda
+                Mi Agenda
             </h2>
-            <p class="text-muted mb-0 mt-1">
+            <p class="text-muted mb-0">
                 <i class="bi bi-person-circle me-1"></i>
-                <span th:text="${username}">Dr. García</span>
+                <span th:text="${professionalName}">Dr. García</span>
             </p>
         </div>
-        <a href="/dashboard" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i> Volver al Dashboard
+        <a href="/dashboard" class="btn btn-outline-secondary rounded-pill px-4">
+            <i class="bi bi-arrow-left me-1"></i> Dashboard
         </a>
     </div>
 
-    <!-- Tarjeta principal -->
-    <div class="schedule-card">
-        <h4 class="mb-4">
-            <i class="bi bi-clock-history text-primary me-2"></i>
-            Horario Semanal
-        </h4>
-        <p class="text-muted mb-4">Define tus horas de atención para cada día de la semana.</p>
+    <!-- Navegación de mes -->
+    <div class="month-nav">
+        <button id="prevMonthBtn" onclick="cambiarMes(-1)">← <span th:text="${prevMonthName}">Febrero</span></button>
+        <h2 id="monthTitle" th:text="${currentMonthName} + ' ' + ${currentYear}">Marzo 2026</h2>
+        <button id="nextMonthBtn" onclick="cambiarMes(1)"><span th:text="${nextMonthName}">Abril</span> →</button>
+    </div>
 
-        <!-- Lunes -->
-        <div class="day-schedule">
-            <div class="row align-items-center">
-                <div class="col-md-2">
-                    <h5 class="mb-0">Lunes</h5>
-                </div>
-                <div class="col-md-8">
-                    <div class="row">
-                        <div class="col-md-5">
-                            <label class="form-label">Inicio jornada</label>
-                            <input type="time" class="form-control" value="09:00">
-                        </div>
-                        <div class="col-md-5">
-                            <label class="form-label">Fin jornada</label>
-                            <input type="time" class="form-control" value="17:00">
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" checked>
-                                <label class="form-check-label">Disponible</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <!-- Calendario mensual -->
+    <table class="calendar">
+        <thead>
+        <tr>
+            <th>Lunes</th>
+            <th>Martes</th>
+            <th>Miércoles</th>
+            <th>Jueves</th>
+            <th>Viernes</th>
+            <th>Sábado</th>
+            <th>Domingo</th>
+            <th>Seleccionar</th>
+        </tr>
+        </thead>
+        <tbody id="calendarBody">
+        <!-- Las filas se generarán dinámicamente con JavaScript -->
+        </tbody>
+    </table>
+
+    <!-- Contador de semanas seleccionadas -->
+    <div class="selected-count" id="selectedCount">Semanas seleccionadas: 0</div>
+
+    <!-- Panel de configuración -->
+    <div class="config-section">
+        <div class="config-option">
+            <label>
+                <input type="checkbox" id="sameFranjaCheckbox">
+                <span>Aplicar misma franja horaria a todos los días de las semanas seleccionadas</span>
+            </label>
+            <div class="time-inputs" id="timeInputs" style="display: none;">
+                <span>Hora Inicio</span>
+                <input type="time" id="startTime" value="09:00">
+                <span>Hora Fin</span>
+                <input type="time" id="endTime" value="17:00">
             </div>
         </div>
 
-        <!-- Martes -->
-        <div class="day-schedule">
-            <div class="row align-items-center">
-                <div class="col-md-2">
-                    <h5 class="mb-0">Martes</h5>
-                </div>
-                <div class="col-md-8">
-                    <div class="row">
-                        <div class="col-md-5">
-                            <input type="time" class="form-control" value="09:00">
-                        </div>
-                        <div class="col-md-5">
-                            <input type="time" class="form-control" value="17:00">
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" checked>
-                                <label class="form-check-label">Disponible</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Botón para mostrar configuración por día -->
+        <button class="btn-secondary" id="showPerDayBtn" style="display: none;">Configurar por día</button>
 
-        <!-- Miércoles -->
-        <div class="day-schedule">
-            <div class="row align-items-center">
-                <div class="col-md-2">
-                    <h5 class="mb-0">Miércoles</h5>
-                </div>
-                <div class="col-md-8">
-                    <div class="row">
-                        <div class="col-md-5">
-                            <input type="time" class="form-control" value="09:00">
-                        </div>
-                        <div class="col-md-5">
-                            <input type="time" class="form-control" value="17:00">
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" checked>
-                                <label class="form-check-label">Disponible</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Jueves -->
-        <div class="day-schedule">
-            <div class="row align-items-center">
-                <div class="col-md-2">
-                    <h5 class="mb-0">Jueves</h5>
-                </div>
-                <div class="col-md-8">
-                    <div class="row">
-                        <div class="col-md-5">
-                            <input type="time" class="form-control" value="09:00">
-                        </div>
-                        <div class="col-md-5">
-                            <input type="time" class="form-control" value="17:00">
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" checked>
-                                <label class="form-check-label">Disponible</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Viernes -->
-        <div class="day-schedule">
-            <div class="row align-items-center">
-                <div class="col-md-2">
-                    <h5 class="mb-0">Viernes</h5>
-                </div>
-                <div class="col-md-8">
-                    <div class="row">
-                        <div class="col-md-5">
-                            <input type="time" class="form-control" value="09:00">
-                        </div>
-                        <div class="col-md-5">
-                            <input type="time" class="form-control" value="17:00">
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" checked>
-                                <label class="form-check-label">Disponible</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sábado -->
-        <div class="day-schedule">
-            <div class="row align-items-center">
-                <div class="col-md-2">
-                    <h5 class="mb-0">Sábado</h5>
-                </div>
-                <div class="col-md-8">
-                    <div class="row">
-                        <div class="col-md-5">
-                            <input type="time" class="form-control" value="09:00">
-                        </div>
-                        <div class="col-md-5">
-                            <input type="time" class="form-control" value="13:00">
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox">
-                                <label class="form-check-label">Disponible</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Domingo -->
-        <div class="day-schedule">
-            <div class="row align-items-center">
-                <div class="col-md-2">
-                    <h5 class="mb-0">Domingo</h5>
-                </div>
-                <div class="col-md-8">
-                    <div class="row">
-                        <div class="col-md-5">
-                            <input type="time" class="form-control" value="09:00" disabled>
-                        </div>
-                        <div class="col-md-5">
-                            <input type="time" class="form-control" value="13:00" disabled>
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox">
-                                <label class="form-check-label">Disponible</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- Panel de configuración por día -->
+        <div id="perDayPanel" class="per-day-panel" style="display: none;">
+            <h5 class="mb-3">Configuración individual por día</h5>
+            <table class="per-day-table">
+                <thead>
+                <tr>
+                    <th>Semana</th>
+                    <th>Día</th>
+                    <th>Fecha</th>
+                    <th>Hora Inicio</th>
+                    <th>Hora Fin</th>
+                    <th>Habilitar</th>
+                </tr>
+                </thead>
+                <tbody id="perDayRows">
+                <!-- Se llenará con JavaScript -->
+                </tbody>
+            </table>
         </div>
 
         <!-- Botón guardar -->
-        <div class="text-center mt-5">
-            <button class="btn-save">
-                <i class="bi bi-check-circle me-2"></i>
-                Guardar Configuración
-            </button>
-        </div>
-    </div>
-
-    <!-- Sección de excepciones (vacía por ahora) -->
-    <div class="schedule-card mt-4">
-        <h5 class="mb-3">
-            <i class="bi bi-exclamation-triangle text-warning me-2"></i>
-            Excepciones y Bloqueos
-        </h5>
-        <p class="text-muted mb-3">Próximamente podrás agregar bloqueos por vacaciones, días festivos, etc.</p>
-        <button class="btn btn-outline-primary" disabled>
-            <i class="bi bi-plus-circle me-1"></i> Agregar Excepción
-        </button>
+        <button class="btn-primary" id="saveBtn">Guardar disponibilidad</button>
     </div>
 </div>
 
+<script>
+    // Variables globales
+    let currentYear = [[${currentYear}]];
+    let currentMonth = [[${currentMonth}]]; // 0 = Enero, 1 = Febrero, ...
+    const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+    // Elementos del DOM
+    const calendarBody = document.getElementById('calendarBody');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    const sameFranjaCheckbox = document.getElementById('sameFranjaCheckbox');
+    const timeInputsDiv = document.getElementById('timeInputs');
+    const showPerDayBtn = document.getElementById('showPerDayBtn');
+    const perDayPanel = document.getElementById('perDayPanel');
+    const perDayRows = document.getElementById('perDayRows');
+    const saveBtn = document.getElementById('saveBtn');
+    const prevMonthBtn = document.getElementById('prevMonthBtn');
+    const nextMonthBtn = document.getElementById('nextMonthBtn');
+
+    // Generar calendario
+    function generarCalendario(year, month) {
+        // Obtener primer día del mes (0 = Domingo, ...)
+        let firstDay = new Date(year, month, 1).getDay(); // 0 domingo, 1 lunes, ...
+        // Ajustar para que lunes sea 0
+        let startOffset = (firstDay === 0) ? 6 : firstDay - 1;
+
+        let daysInMonth = new Date(year, month + 1, 0).getDate();
+        let weeks = [];
+        let week = [];
+        let dayCount = 1;
+
+        // Rellenar días vacíos antes del primer día
+        for (let i = 0; i < startOffset; i++) {
+            week.push(null);
+        }
+
+        // Llenar días del mes
+        for (let d = 1; d <= daysInMonth; d++) {
+            week.push(d);
+            if (week.length === 7) {
+                weeks.push(week);
+                week = [];
+            }
+        }
+        // Si quedan días, completar la última semana con null
+        if (week.length > 0) {
+            while (week.length < 7) {
+                week.push(null);
+            }
+            weeks.push(week);
+        }
+
+        // Generar HTML
+        let html = '';
+        weeks.forEach((week, index) => {
+            html += '<tr class="week-row">';
+            week.forEach(day => {
+                html += `<td class="day-number">${day !== null ? day : ''}</td>`;
+            });
+            // Checkbox de selección de semana
+            let weekStartDate = new Date(year, month, week[0] || 1);
+            let weekStartStr = weekStartDate.toISOString().split('T')[0];
+            html += `<td class="week-selector-cell"><input type="checkbox" class="week-checkbox" data-week="${weekStartStr}"></td>`;
+            html += '</tr>';
+        });
+        calendarBody.innerHTML = html;
+
+        // Actualizar nombres de meses en navegación
+        let prevMonth = month - 1;
+        let prevYear = year;
+        if (prevMonth < 0) {
+            prevMonth = 11;
+            prevYear--;
+        }
+        let nextMonth = month + 1;
+        let nextYear = year;
+        if (nextMonth > 11) {
+            nextMonth = 0;
+            nextYear++;
+        }
+        prevMonthBtn.innerHTML = `← ${monthNames[prevMonth]}`;
+        nextMonthBtn.innerHTML = `${monthNames[nextMonth]} →`;
+
+        // Actualizar el título del mes
+        document.getElementById('monthTitle').innerText = monthNames[month] + ' ' + year;
+
+        // Reasignar eventos a los checkboxes
+        document.querySelectorAll('.week-checkbox').forEach(cb => cb.addEventListener('change', updateSelectedCount));
+        updateSelectedCount();
+    }
+
+    // Cambiar mes
+    function cambiarMes(delta) {
+        currentMonth += delta;
+        if (currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+        } else if (currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
+        }
+        generarCalendario(currentYear, currentMonth);
+    }
+
+    // Actualizar contador de semanas seleccionadas
+    function updateSelectedCount() {
+        const checkboxes = document.querySelectorAll('.week-checkbox');
+        const selected = Array.from(checkboxes).filter(cb => cb.checked).length;
+        selectedCountSpan.textContent = `Semanas seleccionadas: ${selected}`;
+
+        if (selected > 0) {
+            if (!sameFranjaCheckbox.checked) {
+                showPerDayBtn.style.display = 'inline-block';
+            } else {
+                showPerDayBtn.style.display = 'none';
+            }
+        } else {
+            showPerDayBtn.style.display = 'none';
+            perDayPanel.style.display = 'none';
+        }
+    }
+
+    // Mostrar/ocultar inputs de hora según checkbox de franja única
+    sameFranjaCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            timeInputsDiv.style.display = 'flex';
+            showPerDayBtn.style.display = 'none';
+            perDayPanel.style.display = 'none';
+        } else {
+            timeInputsDiv.style.display = 'none';
+            const selected = document.querySelectorAll('.week-checkbox:checked').length;
+            if (selected > 0) {
+                showPerDayBtn.style.display = 'inline-block';
+            }
+        }
+    });
+
+    // Botón "Configurar por día"
+    showPerDayBtn.addEventListener('click', function() {
+        const checkboxes = document.querySelectorAll('.week-checkbox:checked');
+        if (checkboxes.length === 0) {
+            alert('Selecciona al menos una semana.');
+            return;
+        }
+
+        let html = '';
+        checkboxes.forEach(cb => {
+            let weekStart = cb.getAttribute('data-week');
+            let weekDate = new Date(weekStart + 'T00:00:00');
+            for (let i = 0; i < 7; i++) {
+                let dayDate = new Date(weekDate);
+                dayDate.setDate(weekDate.getDate() + i);
+                let dayName = dayNames[i];
+                let dateStr = dayDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                // Determinar si el día es laborable por defecto (podríamos poner lunes-viernes marcados, sáb-domingo no)
+                let defaultChecked = (i < 5); // lunes a viernes marcados, sábado y domingo no
+                html += `
+                <tr>
+                    <td><span class="badge-week">Sem ${weekDate.toLocaleDateString('es-ES')}</span></td>
+                    <td>${dayName}</td>
+                    <td>${dateStr}</td>
+                    <td><input type="time" class="perDayStart" value="09:00" ${!defaultChecked ? 'disabled' : ''}></td>
+                    <td><input type="time" class="perDayEnd" value="17:00" ${!defaultChecked ? 'disabled' : ''}></td>
+                    <td><input type="checkbox" class="day-enabled" ${defaultChecked ? 'checked' : ''}></td>
+                </tr>
+            `;
+            }
+        });
+        perDayRows.innerHTML = html;
+        perDayPanel.style.display = 'block';
+
+        // Añadir evento a cada checkbox para habilitar/deshabilitar los campos de hora
+        document.querySelectorAll('.day-enabled').forEach((chk, index) => {
+            chk.addEventListener('change', function() {
+                // Encontrar los inputs de tiempo en la misma fila
+                let row = this.closest('tr');
+                let startInput = row.querySelector('.perDayStart');
+                let endInput = row.querySelector('.perDayEnd');
+                if (startInput && endInput) {
+                    startInput.disabled = !this.checked;
+                    endInput.disabled = !this.checked;
+                    // Opcional: limpiar valores si se deshabilita
+                    if (!this.checked) {
+                        startInput.value = '';
+                        endInput.value = '';
+                    }
+                }
+            });
+        });
+    });
+
+    // Botón guardar
+    saveBtn.addEventListener('click', function() {
+        const checkboxes = document.querySelectorAll('.week-checkbox:checked');
+        if (checkboxes.length === 0) {
+            mostrarModal('Error', 'Selecciona al menos una semana.', 'bg-danger');
+            return;
+        }
+
+        const semanas = Array.from(checkboxes).map(cb => cb.getAttribute('data-week'));
+        const mismaFranja = sameFranjaCheckbox.checked;
+        const request = { semanas, mismaFranja };
+
+        if (mismaFranja) {
+            const start = document.getElementById('startTime').value;
+            const end = document.getElementById('endTime').value;
+            if (!start || !end) {
+                mostrarModal('Error', 'Completa las horas de inicio y fin.', 'bg-danger');
+                return;
+            }
+            request.horaInicio = start;
+            request.horaFin = end;
+        } else {
+            if (perDayPanel.style.display !== 'block') {
+                mostrarModal('Error', 'Primero configura los horarios por día usando el botón "Configurar por día".', 'bg-danger');
+                return;
+            }
+            const dias = [];
+            const rows = document.querySelectorAll('#perDayRows tr');
+            let allFilled = true;
+            for (let row of rows) {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 6) {
+                    const enabledCheckbox = cells[5].querySelector('input[type="checkbox"]');
+                    if (enabledCheckbox && enabledCheckbox.checked) {
+                        const fechaTexto = cells[2].innerText;
+                        const partes = fechaTexto.split('/');
+                        const fechaISO = `${partes[2]}-${partes[1]}-${partes[0]}`;
+                        const startInput = cells[3].querySelector('input');
+                        const endInput = cells[4].querySelector('input');
+                        if (startInput && endInput) {
+                            if (!startInput.value || !endInput.value) {
+                                allFilled = false;
+                                startInput.style.border = !startInput.value ? '2px solid red' : '';
+                                endInput.style.border = !endInput.value ? '2px solid red' : '';
+                            } else {
+                                dias.push({
+                                    fecha: fechaISO,
+                                    horaInicio: startInput.value,
+                                    horaFin: endInput.value
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            if (!allFilled) {
+                mostrarModal('Error', 'Todos los campos de hora de los días habilitados deben estar completos.', 'bg-danger');
+                return;
+            }
+            request.dias = dias;
+        }
+
+        console.log('Enviando request:', JSON.stringify(request));
+
+        fetch('/doctor/agenda/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => { throw new Error(text); });
+                }
+                return response.text();
+            })
+            .then(message => {
+                mostrarModal('Éxito', message, 'bg-success');
+                // Opcional: recargar la página o limpiar selecciones
+            })
+            .catch(error => {
+                mostrarModal('Error', 'Error al guardar: ' + error.message, 'bg-danger');
+                console.error(error);
+            });
+    });
+
+    // Función para mostrar el modal
+    function mostrarModal(titulo, mensaje, colorClase) {
+        const modalHeader = document.getElementById('modalHeader');
+        const modalTitle = document.getElementById('mensajeModalLabel');
+        const modalBody = document.getElementById('modalBody');
+
+        modalHeader.className = 'modal-header ' + colorClase + ' text-white';
+        modalTitle.textContent = titulo;
+        modalBody.textContent = mensaje;
+
+        const modal = new bootstrap.Modal(document.getElementById('mensajeModal'));
+        modal.show();
+    }
+
+    // Inicializar calendario
+    generarCalendario(currentYear, currentMonth);
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Modal para mensajes -->
+<div class="modal fade" id="mensajeModal" tabindex="-1" aria-labelledby="mensajeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" id="modalHeader">
+                <h5 class="modal-title" id="mensajeModalLabel">Mensaje</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                Texto del mensaje
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>
