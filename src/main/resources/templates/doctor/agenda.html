@@ -86,6 +86,9 @@
             transform: scale(1.3);
             cursor: pointer;
         }
+        .week-checkbox:disabled {
+            cursor: not-allowed;
+        }
         .day-number {
             font-weight: 500;
             color: var(--gray-800);
@@ -299,163 +302,183 @@
     </div>
 </div>
 
-<script>
-    // Variables globales
-    let currentYear = [[${currentYear}]];
-    let currentMonth = [[${currentMonth}]]; // 0 = Enero, 1 = Febrero, ...
-    const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+<script th:inline="javascript"> // <-- MODIFICADO
+// Variables globales
+let currentYear = /*[[${currentYear}]]*/ 2026;
+let currentMonth = /*[[${currentMonth}]]*/ 2; // 0 = Enero, 1 = Febrero, ...
+const startOfCurrentWeekStr = /*[[${startOfCurrentWeek}]]*/ '2026-03-02'; // <-- AÑADIDO
+const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
-    // Elementos del DOM
-    const calendarBody = document.getElementById('calendarBody');
-    const selectedCountSpan = document.getElementById('selectedCount');
-    const sameFranjaCheckbox = document.getElementById('sameFranjaCheckbox');
-    const timeInputsDiv = document.getElementById('timeInputs');
-    const showPerDayBtn = document.getElementById('showPerDayBtn');
-    const perDayPanel = document.getElementById('perDayPanel');
-    const perDayRows = document.getElementById('perDayRows');
-    const saveBtn = document.getElementById('saveBtn');
-    const prevMonthBtn = document.getElementById('prevMonthBtn');
-    const nextMonthBtn = document.getElementById('nextMonthBtn');
+// Elementos del DOM
+const calendarBody = document.getElementById('calendarBody');
+const selectedCountSpan = document.getElementById('selectedCount');
+const sameFranjaCheckbox = document.getElementById('sameFranjaCheckbox');
+const timeInputsDiv = document.getElementById('timeInputs');
+const showPerDayBtn = document.getElementById('showPerDayBtn');
+const perDayPanel = document.getElementById('perDayPanel');
+const perDayRows = document.getElementById('perDayRows');
+const saveBtn = document.getElementById('saveBtn');
+const prevMonthBtn = document.getElementById('prevMonthBtn');
+const nextMonthBtn = document.getElementById('nextMonthBtn');
 
-    // Generar calendario
-    function generarCalendario(year, month) {
-        // Obtener primer día del mes (0 = Domingo, ...)
-        let firstDay = new Date(year, month, 1).getDay(); // 0 domingo, 1 lunes, ...
-        // Ajustar para que lunes sea 0
-        let startOffset = (firstDay === 0) ? 6 : firstDay - 1;
+// Generar calendario
+function generarCalendario(year, month) {
+    // Obtener primer día del mes (0 = Domingo, ...)
+    let firstDay = new Date(year, month, 1).getDay(); // 0 domingo, 1 lunes, ...
+    // Ajustar para que lunes sea 0
+    let startOffset = (firstDay === 0) ? 6 : firstDay - 1;
 
-        let daysInMonth = new Date(year, month + 1, 0).getDate();
-        let weeks = [];
-        let week = [];
-        let dayCount = 1;
+    let daysInMonth = new Date(year, month + 1, 0).getDate();
+    let weeks = [];
+    let week = [];
+    let dayCount = 1;
 
-        // Rellenar días vacíos antes del primer día
-        for (let i = 0; i < startOffset; i++) {
+    // Rellenar días vacíos antes del primer día
+    for (let i = 0; i < startOffset; i++) {
+        week.push(null);
+    }
+
+    // Llenar días del mes
+    for (let d = 1; d <= daysInMonth; d++) {
+        week.push(d);
+        if (week.length === 7) {
+            weeks.push(week);
+            week = [];
+        }
+    }
+    // Si quedan días, completar la última semana con null
+    if (week.length > 0) {
+        while (week.length < 7) {
             week.push(null);
         }
+        weeks.push(week);
+    }
 
-        // Llenar días del mes
-        for (let d = 1; d <= daysInMonth; d++) {
-            week.push(d);
-            if (week.length === 7) {
-                weeks.push(week);
-                week = [];
-            }
-        }
-        // Si quedan días, completar la última semana con null
-        if (week.length > 0) {
-            while (week.length < 7) {
-                week.push(null);
-            }
-            weeks.push(week);
-        }
-
-        // Generar HTML
-        let html = '';
-        weeks.forEach((week, index) => {
-            html += '<tr class="week-row">';
-            week.forEach(day => {
-                html += `<td class="day-number">${day !== null ? day : ''}</td>`;
-            });
-            // Checkbox de selección de semana
-            let weekStartDate = new Date(year, month, week[0] || 1);
-            let weekStartStr = weekStartDate.toISOString().split('T')[0];
-            html += `<td class="week-selector-cell"><input type="checkbox" class="week-checkbox" data-week="${weekStartStr}"></td>`;
-            html += '</tr>';
+    // Generar HTML
+    let html = '';
+    weeks.forEach((week, index) => {
+        html += '<tr class="week-row">';
+        week.forEach(day => {
+            html += `<td class="day-number">${day !== null ? day : ''}</td>`;
         });
-        calendarBody.innerHTML = html;
 
-        // Actualizar nombres de meses en navegación
-        let prevMonth = month - 1;
-        let prevYear = year;
-        if (prevMonth < 0) {
-            prevMonth = 11;
-            prevYear--;
-        }
-        let nextMonth = month + 1;
-        let nextYear = year;
-        if (nextMonth > 11) {
-            nextMonth = 0;
-            nextYear++;
-        }
-        prevMonthBtn.innerHTML = `← ${monthNames[prevMonth]}`;
-        nextMonthBtn.innerHTML = `${monthNames[nextMonth]} →`;
+        // --- INICIO BLOQUE MODIFICADO ---
+        const firstDayInRow = week.find(d => d); // Encuentra el primer día real en la fila
+        if (firstDayInRow) {
+            const representativeDate = new Date(year, month, firstDayInRow);
+            const representativeDateStr = representativeDate.toISOString().split('T')[0];
 
-        // Actualizar el título del mes
-        document.getElementById('monthTitle').innerText = monthNames[month] + ' ' + year;
+            // Calcula el lunes de esa semana para una comparación precisa
+            const tempDate = new Date(representativeDate);
+            const dayOfWeek = tempDate.getDay();
+            const diff = tempDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            const mondayDate = new Date(tempDate.setDate(diff));
+            const mondayDateStr = mondayDate.toISOString().split('T')[0];
 
-        // Reasignar eventos a los checkboxes
-        document.querySelectorAll('.week-checkbox').forEach(cb => cb.addEventListener('change', updateSelectedCount));
-        updateSelectedCount();
-    }
+            // Compara con la semana actual y añade 'disabled' si es una semana pasada
+            const disabledAttr = mondayDateStr < startOfCurrentWeekStr ? 'disabled' : '';
 
-    // Cambiar mes
-    function cambiarMes(delta) {
-        currentMonth += delta;
-        if (currentMonth < 0) {
-            currentMonth = 11;
-            currentYear--;
-        } else if (currentMonth > 11) {
-            currentMonth = 0;
-            currentYear++;
-        }
-        generarCalendario(currentYear, currentMonth);
-    }
-
-    // Actualizar contador de semanas seleccionadas
-    function updateSelectedCount() {
-        const checkboxes = document.querySelectorAll('.week-checkbox');
-        const selected = Array.from(checkboxes).filter(cb => cb.checked).length;
-        selectedCountSpan.textContent = `Semanas seleccionadas: ${selected}`;
-
-        if (selected > 0) {
-            if (!sameFranjaCheckbox.checked) {
-                showPerDayBtn.style.display = 'inline-block';
-            } else {
-                showPerDayBtn.style.display = 'none';
-            }
+            html += `<td class="week-selector-cell"><input type="checkbox" class="week-checkbox" data-week="${representativeDateStr}" ${disabledAttr}></td>`;
         } else {
-            showPerDayBtn.style.display = 'none';
-            perDayPanel.style.display = 'none';
+            html += `<td class="week-selector-cell"></td>`; // Celda vacía si la fila no tiene días
         }
-    }
+        // --- FIN BLOQUE MODIFICADO ---
 
-    // Mostrar/ocultar inputs de hora según checkbox de franja única
-    sameFranjaCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            timeInputsDiv.style.display = 'flex';
-            showPerDayBtn.style.display = 'none';
-            perDayPanel.style.display = 'none';
-        } else {
-            timeInputsDiv.style.display = 'none';
-            const selected = document.querySelectorAll('.week-checkbox:checked').length;
-            if (selected > 0) {
-                showPerDayBtn.style.display = 'inline-block';
-            }
-        }
+        html += '</tr>';
     });
+    calendarBody.innerHTML = html;
 
-    // Botón "Configurar por día"
-    showPerDayBtn.addEventListener('click', function() {
-        const checkboxes = document.querySelectorAll('.week-checkbox:checked');
-        if (checkboxes.length === 0) {
-            alert('Selecciona al menos una semana.');
-            return;
+    // Actualizar nombres de meses en navegación
+    let prevMonth = month - 1;
+    let prevYear = year;
+    if (prevMonth < 0) {
+        prevMonth = 11;
+        prevYear--;
+    }
+    let nextMonth = month + 1;
+    let nextYear = year;
+    if (nextMonth > 11) {
+        nextMonth = 0;
+        nextYear++;
+    }
+    prevMonthBtn.innerHTML = `← ${monthNames[prevMonth]}`;
+    nextMonthBtn.innerHTML = `${monthNames[nextMonth]} →`;
+
+    // Actualizar el título del mes
+    document.getElementById('monthTitle').innerText = monthNames[month] + ' ' + year;
+
+    // Reasignar eventos a los checkboxes
+    document.querySelectorAll('.week-checkbox').forEach(cb => cb.addEventListener('change', updateSelectedCount));
+    updateSelectedCount();
+}
+
+// Cambiar mes
+function cambiarMes(delta) {
+    currentMonth += delta;
+    if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    } else if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    }
+    generarCalendario(currentYear, currentMonth);
+}
+
+// Actualizar contador de semanas seleccionadas
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.week-checkbox');
+    const selected = Array.from(checkboxes).filter(cb => cb.checked).length;
+    selectedCountSpan.textContent = `Semanas seleccionadas: ${selected}`;
+
+    if (selected > 0) {
+        if (!sameFranjaCheckbox.checked) {
+            showPerDayBtn.style.display = 'inline-block';
+        } else {
+            showPerDayBtn.style.display = 'none';
         }
+    } else {
+        showPerDayBtn.style.display = 'none';
+        perDayPanel.style.display = 'none';
+    }
+}
 
-        let html = '';
-        checkboxes.forEach(cb => {
-            let weekStart = cb.getAttribute('data-week');
-            let weekDate = new Date(weekStart + 'T00:00:00');
-            for (let i = 0; i < 7; i++) {
-                let dayDate = new Date(weekDate);
-                dayDate.setDate(weekDate.getDate() + i);
-                let dayName = dayNames[i];
-                let dateStr = dayDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                // Determinar si el día es laborable por defecto (podríamos poner lunes-viernes marcados, sáb-domingo no)
-                let defaultChecked = (i < 5); // lunes a viernes marcados, sábado y domingo no
-                html += `
+// Mostrar/ocultar inputs de hora según checkbox de franja única
+sameFranjaCheckbox.addEventListener('change', function() {
+    if (this.checked) {
+        timeInputsDiv.style.display = 'flex';
+        showPerDayBtn.style.display = 'none';
+        perDayPanel.style.display = 'none';
+    } else {
+        timeInputsDiv.style.display = 'none';
+        const selected = document.querySelectorAll('.week-checkbox:checked').length;
+        if (selected > 0) {
+            showPerDayBtn.style.display = 'inline-block';
+        }
+    }
+});
+
+// Botón "Configurar por día"
+showPerDayBtn.addEventListener('click', function() {
+    const checkboxes = document.querySelectorAll('.week-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert('Selecciona al menos una semana.');
+        return;
+    }
+
+    let html = '';
+    checkboxes.forEach(cb => {
+        let weekStart = cb.getAttribute('data-week');
+        let weekDate = new Date(weekStart + 'T00:00:00');
+        for (let i = 0; i < 7; i++) {
+            let dayDate = new Date(weekDate);
+            dayDate.setDate(weekDate.getDate() + i);
+            let dayName = dayNames[i];
+            let dateStr = dayDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            // Determinar si el día es laborable por defecto (podríamos poner lunes-viernes marcados, sáb-domingo no)
+            let defaultChecked = (i < 5); // lunes a viernes marcados, sábado y domingo no
+            html += `
                 <tr>
                     <td><span class="badge-week">Sem ${weekDate.toLocaleDateString('es-ES')}</span></td>
                     <td>${dayName}</td>
@@ -465,132 +488,136 @@
                     <td><input type="checkbox" class="day-enabled" ${defaultChecked ? 'checked' : ''}></td>
                 </tr>
             `;
-            }
-        });
-        perDayRows.innerHTML = html;
-        perDayPanel.style.display = 'block';
+        }
+    });
+    perDayRows.innerHTML = html;
+    perDayPanel.style.display = 'block';
 
-        // Añadir evento a cada checkbox para habilitar/deshabilitar los campos de hora
-        document.querySelectorAll('.day-enabled').forEach((chk, index) => {
-            chk.addEventListener('change', function() {
-                // Encontrar los inputs de tiempo en la misma fila
-                let row = this.closest('tr');
-                let startInput = row.querySelector('.perDayStart');
-                let endInput = row.querySelector('.perDayEnd');
-                if (startInput && endInput) {
-                    startInput.disabled = !this.checked;
-                    endInput.disabled = !this.checked;
-                    // Opcional: limpiar valores si se deshabilita
-                    if (!this.checked) {
-                        startInput.value = '';
-                        endInput.value = '';
-                    }
+    // Añadir evento a cada checkbox para habilitar/deshabilitar los campos de hora
+    document.querySelectorAll('.day-enabled').forEach((chk, index) => {
+        chk.addEventListener('change', function() {
+            // Encontrar los inputs de tiempo en la misma fila
+            let row = this.closest('tr');
+            let startInput = row.querySelector('.perDayStart');
+            let endInput = row.querySelector('.perDayEnd');
+            if (startInput && endInput) {
+                startInput.disabled = !this.checked;
+                endInput.disabled = !this.checked;
+                // Opcional: limpiar valores si se deshabilita
+                if (!this.checked) {
+                    startInput.value = '';
+                    endInput.value = '';
                 }
-            });
+            }
         });
     });
+});
 
-    // Botón guardar
-    saveBtn.addEventListener('click', function() {
-        const checkboxes = document.querySelectorAll('.week-checkbox:checked');
-        if (checkboxes.length === 0) {
-            mostrarModal('Error', 'Selecciona al menos una semana.', 'bg-danger');
+// Botón guardar
+saveBtn.addEventListener('click', function() {
+    const checkboxes = document.querySelectorAll('.week-checkbox:checked');
+    if (checkboxes.length === 0) {
+        mostrarModal('Error', 'Selecciona al menos una semana.', 'bg-danger');
+        return;
+    }
+
+    const semanas = Array.from(checkboxes).map(cb => cb.getAttribute('data-week'));
+    const mismaFranja = sameFranjaCheckbox.checked;
+    const request = { semanas, mismaFranja };
+
+    if (mismaFranja) {
+        const start = document.getElementById('startTime').value;
+        const end = document.getElementById('endTime').value;
+        if (!start || !end) {
+            mostrarModal('Error', 'Completa las horas de inicio y fin.', 'bg-danger');
             return;
         }
-
-        const semanas = Array.from(checkboxes).map(cb => cb.getAttribute('data-week'));
-        const mismaFranja = sameFranjaCheckbox.checked;
-        const request = { semanas, mismaFranja };
-
-        if (mismaFranja) {
-            const start = document.getElementById('startTime').value;
-            const end = document.getElementById('endTime').value;
-            if (!start || !end) {
-                mostrarModal('Error', 'Completa las horas de inicio y fin.', 'bg-danger');
-                return;
-            }
-            request.horaInicio = start;
-            request.horaFin = end;
-        } else {
-            if (perDayPanel.style.display !== 'block') {
-                mostrarModal('Error', 'Primero configura los horarios por día usando el botón "Configurar por día".', 'bg-danger');
-                return;
-            }
-            const dias = [];
-            const rows = document.querySelectorAll('#perDayRows tr');
-            let allFilled = true;
-            for (let row of rows) {
-                const cells = row.querySelectorAll('td');
-                if (cells.length >= 6) {
-                    const enabledCheckbox = cells[5].querySelector('input[type="checkbox"]');
-                    if (enabledCheckbox && enabledCheckbox.checked) {
-                        const fechaTexto = cells[2].innerText;
-                        const partes = fechaTexto.split('/');
-                        const fechaISO = `${partes[2]}-${partes[1]}-${partes[0]}`;
-                        const startInput = cells[3].querySelector('input');
-                        const endInput = cells[4].querySelector('input');
-                        if (startInput && endInput) {
-                            if (!startInput.value || !endInput.value) {
-                                allFilled = false;
-                                startInput.style.border = !startInput.value ? '2px solid red' : '';
-                                endInput.style.border = !endInput.value ? '2px solid red' : '';
-                            } else {
-                                dias.push({
-                                    fecha: fechaISO,
-                                    horaInicio: startInput.value,
-                                    horaFin: endInput.value
-                                });
-                            }
+        request.horaInicio = start;
+        request.horaFin = end;
+    } else {
+        if (perDayPanel.style.display !== 'block') {
+            mostrarModal('Error', 'Primero configura los horarios por día usando el botón "Configurar por día".', 'bg-danger');
+            return;
+        }
+        const dias = [];
+        const rows = document.querySelectorAll('#perDayRows tr');
+        let allFilled = true;
+        for (let row of rows) {
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 6) {
+                const enabledCheckbox = cells[5].querySelector('input[type="checkbox"]');
+                if (enabledCheckbox && enabledCheckbox.checked) {
+                    const fechaTexto = cells[2].innerText;
+                    const partes = fechaTexto.split('/');
+                    const fechaISO = `${partes[2]}-${partes[1]}-${partes[0]}`;
+                    const startInput = cells[3].querySelector('input');
+                    const endInput = cells[4].querySelector('input');
+                    if (startInput && endInput) {
+                        if (!startInput.value || !endInput.value) {
+                            allFilled = false;
+                            startInput.style.border = !startInput.value ? '2px solid red' : '';
+                            endInput.style.border = !endInput.value ? '2px solid red' : '';
+                        } else {
+                            dias.push({
+                                fecha: fechaISO,
+                                horaInicio: startInput.value,
+                                horaFin: endInput.value
+                            });
                         }
                     }
                 }
             }
-            if (!allFilled) {
-                mostrarModal('Error', 'Todos los campos de hora de los días habilitados deben estar completos.', 'bg-danger');
-                return;
-            }
-            request.dias = dias;
         }
-
-        console.log('Enviando request:', JSON.stringify(request));
-
-        fetch('/doctor/agenda/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(request)
-        })
-            .then(response => {
-                if (!response.ok) {
-                    return response.text().then(text => { throw new Error(text); });
-                }
-                return response.text();
-            })
-            .then(message => {
-                mostrarModal('Éxito', message, 'bg-success');
-                // Opcional: recargar la página o limpiar selecciones
-            })
-            .catch(error => {
-                mostrarModal('Error', 'Error al guardar: ' + error.message, 'bg-danger');
-                console.error(error);
-            });
-    });
-
-    // Función para mostrar el modal
-    function mostrarModal(titulo, mensaje, colorClase) {
-        const modalHeader = document.getElementById('modalHeader');
-        const modalTitle = document.getElementById('mensajeModalLabel');
-        const modalBody = document.getElementById('modalBody');
-
-        modalHeader.className = 'modal-header ' + colorClase + ' text-white';
-        modalTitle.textContent = titulo;
-        modalBody.textContent = mensaje;
-
-        const modal = new bootstrap.Modal(document.getElementById('mensajeModal'));
-        modal.show();
+        if (!allFilled) {
+            mostrarModal('Error', 'Todos los campos de hora de los días habilitados deben estar completos.', 'bg-danger');
+            return;
+        }
+        request.dias = dias;
     }
 
-    // Inicializar calendario
-    generarCalendario(currentYear, currentMonth);
+    console.log('Enviando request:', JSON.stringify(request));
+
+    fetch('/doctor/agenda/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request)
+    })
+        .then(response => {
+            if (!response.ok) {
+                // Intenta parsear el error como JSON, si falla, usa el texto
+                return response.json().catch(() => response.text()).then(errorBody => {
+                    const errorMessage = errorBody.message || errorBody;
+                    throw new Error(errorMessage);
+                });
+            }
+            return response.text();
+        })
+        .then(message => {
+            mostrarModal('Éxito', message, 'bg-success');
+            // Opcional: recargar la página o limpiar selecciones
+        })
+        .catch(error => {
+            mostrarModal('Error', 'Error al guardar: ' + error.message, 'bg-danger');
+            console.error(error);
+        });
+});
+
+// Función para mostrar el modal
+function mostrarModal(titulo, mensaje, colorClase) {
+    const modalHeader = document.getElementById('modalHeader');
+    const modalTitle = document.getElementById('mensajeModalLabel');
+    const modalBody = document.getElementById('modalBody');
+
+    modalHeader.className = 'modal-header ' + colorClase + ' text-white';
+    modalTitle.textContent = titulo;
+    modalBody.textContent = mensaje;
+
+    const modal = new bootstrap.Modal(document.getElementById('mensajeModal'));
+    modal.show();
+}
+
+// Inicializar calendario
+generarCalendario(currentYear, currentMonth);
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

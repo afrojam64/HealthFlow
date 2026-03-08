@@ -63,6 +63,9 @@ public class DoctorAgendaController {
 
         int prevMonth = currentMonth == 0 ? 11 : currentMonth - 1;
         int nextMonth = currentMonth == 11 ? 0 : currentMonth + 1;
+        
+        // CORREGIDO: Enviar la fecha de inicio de la semana actual a la vista
+        LocalDate startOfCurrentWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
 
         model.addAttribute("title", "Agenda - HealthFlow");
         model.addAttribute("professionalName", professional.getFullName());
@@ -71,6 +74,7 @@ public class DoctorAgendaController {
         model.addAttribute("currentMonthName", monthNames[currentMonth]);
         model.addAttribute("prevMonthName", monthNames[prevMonth]);
         model.addAttribute("nextMonthName", monthNames[nextMonth]);
+        model.addAttribute("startOfCurrentWeek", startOfCurrentWeek); // <-- AÑADIDO
 
         return "doctor/agenda";
     }
@@ -98,6 +102,14 @@ public class DoctorAgendaController {
 
         LocalDate today = LocalDate.now(zoneId);
         LocalTime now = LocalTime.now(zoneId);
+        LocalDate startOfCurrentWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+        // REGLA: No se puede seleccionar una semana pasada para guardarla.
+        for (LocalDate weekStart : weekStarts) {
+            if (weekStart.isBefore(startOfCurrentWeek)) {
+                throw new DomainException("No se puede gestionar la agenda de semanas pasadas.");
+            }
+        }
 
         if (request.getMismaFranja()) {
             if (request.getHoraInicio() == null || request.getHoraInicio().isEmpty() ||
@@ -107,37 +119,29 @@ public class DoctorAgendaController {
             LocalTime startTime = LocalTime.parse(request.getHoraInicio());
             LocalTime endTime = LocalTime.parse(request.getHoraFin());
 
+            // REGLA: Si se edita la semana actual con "Misma Franja" y la hora de inicio ya pasó, forzar configuración manual.
+            boolean isEditingCurrentWeek = weekStarts.stream().anyMatch(ws -> ws.isEqual(startOfCurrentWeek));
+            if (isEditingCurrentWeek && startTime.isBefore(now)) {
+                throw new DomainException("La hora de inicio ya ha pasado para hoy. Por favor, desmarque la opción 'Misma Franja' y configure el horario de hoy manualmente.");
+            }
+
             for (LocalDate weekStart : weekStarts) {
                 weeklyAvailabilityRepository.deleteByProfessional_IdAndWeekStartDate(professional.getId(), weekStart);
                 for (int day = 0; day < 7; day++) {
                     LocalDate currentDay = weekStart.plusDays(day);
-
-                    // REGLA: No procesar días que ya han pasado.
-                    if (currentDay.isBefore(today)) {
-                        continue;
-                    }
-
-                    LocalTime effectiveStartTime = startTime;
-                    // REGLA: Si el día es hoy y la hora de inicio ya pasó, ajustarla a la hora actual.
-                    if (currentDay.isEqual(today) && startTime.isBefore(now)) {
-                        effectiveStartTime = now.withSecond(0).withNano(0); // Truncar para tener horas limpias
-                    }
-
-                    // REGLA: Solo guardar si el bloque de tiempo resultante es válido (fin > inicio).
-                    if (endTime.isAfter(effectiveStartTime)) {
-                        WeeklyAvailability wa = new WeeklyAvailability();
-                        wa.setProfessional(professional);
-                        wa.setWeekStartDate(weekStart);
-                        wa.setDayOfWeek(currentDay.getDayOfWeek().getValue());
-                        wa.setStartTime(effectiveStartTime);
-                        wa.setEndTime(endTime);
-                        wa.setActive(true);
-                        weeklyAvailabilityRepository.save(wa);
-                    }
+                    WeeklyAvailability wa = new WeeklyAvailability();
+                    wa.setProfessional(professional);
+                    wa.setWeekStartDate(weekStart);
+                    wa.setDayOfWeek(currentDay.getDayOfWeek().getValue());
+                    wa.setStartTime(startTime);
+                    wa.setEndTime(endTime);
+                    wa.setActive(true);
+                    weeklyAvailabilityRepository.save(wa);
                 }
             }
             return "Disponibilidad guardada correctamente para " + semanas.size() + " semanas con horario único.";
         } else {
+            // ... (la lógica para "Por Día" se mantiene igual, ya que es más explícita)
             List<DiaConfig> dias = request.getDias();
             if (dias == null || dias.isEmpty()) {
                 throw new DomainException("No se recibieron configuraciones por día.");
@@ -155,7 +159,6 @@ public class DoctorAgendaController {
                 for (DiaConfig dia : entry.getValue()) {
                     LocalDate fecha = LocalDate.parse(dia.getFecha());
 
-                    // REGLA: No se puede configurar un día pasado.
                     if (fecha.isBefore(today)) {
                         throw new DomainException("No se puede gestionar la agenda para días pasados: " + fecha);
                     }
@@ -172,7 +175,6 @@ public class DoctorAgendaController {
                     LocalTime startTime = LocalTime.parse(dia.getHoraInicio());
                     LocalTime endTime = LocalTime.parse(dia.getHoraFin());
 
-                    // REGLA: Para hoy, no se puede configurar una hora que ya pasó.
                     if (fecha.isEqual(today) && startTime.isBefore(now)) {
                         throw new DomainException("No se puede agendar en horas pasadas para el día de hoy.");
                     }
