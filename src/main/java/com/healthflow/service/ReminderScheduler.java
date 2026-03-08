@@ -1,9 +1,10 @@
 package com.healthflow.service;
 
 import com.healthflow.domain.Appointment;
-import com.healthflow.domain.AppointmentStatus;
+import com.healthflow.domain.Patient;
 import com.healthflow.repo.AppointmentRepository;
-import com.healthflow.repo.PatientRepository;
+import com.healthflow.service.DomainException;
+import com.healthflow.service.NotificationService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,16 +18,13 @@ import java.util.List;
 public class ReminderScheduler {
 
     private final AppointmentRepository appointmentRepository;
-    private final PatientRepository patientRepository;
     private final NotificationService notificationService;
     private final ZoneId zoneId;
 
     public ReminderScheduler(AppointmentRepository appointmentRepository,
-                             PatientRepository patientRepository,
                              NotificationService notificationService,
                              @Value("${healthflow.timezone:America/Bogota}") String tz) {
         this.appointmentRepository = appointmentRepository;
-        this.patientRepository = patientRepository;
         this.notificationService = notificationService;
         this.zoneId = ZoneId.of(tz);
     }
@@ -44,8 +42,10 @@ public class ReminderScheduler {
         int sentCount = 0;
         for (Appointment appt : appointments) {
             try {
-                var patient = patientRepository.findById(appt.getPatientId())
-                        .orElseThrow(() -> new DomainException("Paciente no encontrado para cita: " + appt.getId()));
+                Patient patient = appt.getPatient(); // <-- CORREGIDO
+                if (patient == null) {
+                    throw new DomainException("Paciente no encontrado para cita: " + appt.getId());
+                }
 
                 notificationService.sendReminderEmail(patient.getEmail(), appt);
                 appt.setReminderSentAt(OffsetDateTime.now(zoneId));

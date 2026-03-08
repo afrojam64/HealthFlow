@@ -3,8 +3,8 @@ package com.healthflow.api;
 import com.healthflow.api.dto.RescheduleRequest;
 import com.healthflow.domain.Appointment;
 import com.healthflow.domain.AppointmentStatus;
+import com.healthflow.domain.Patient;
 import com.healthflow.repo.AppointmentRepository;
-import com.healthflow.repo.PatientRepository;
 import com.healthflow.service.DomainException;
 import com.healthflow.service.NotificationService;
 import com.healthflow.service.SchedulingService;
@@ -20,16 +20,13 @@ import java.util.UUID;
 public class PublicAppointmentController {
 
     private final AppointmentRepository appointmentRepository;
-    private final PatientRepository patientRepository;
     private final NotificationService notificationService;
     private final SchedulingService schedulingService;
 
     public PublicAppointmentController(AppointmentRepository appointmentRepository,
-                                       PatientRepository patientRepository,
                                        NotificationService notificationService,
                                        SchedulingService schedulingService) {
         this.appointmentRepository = appointmentRepository;
-        this.patientRepository = patientRepository;
         this.notificationService = notificationService;
         this.schedulingService = schedulingService;
     }
@@ -47,8 +44,7 @@ public class PublicAppointmentController {
         appt.setStatus(AppointmentStatus.CONFIRMADA);
         Appointment saved = appointmentRepository.save(appt);
 
-        var patient = patientRepository.findById(saved.getPatientId())
-                .orElseThrow(() -> new DomainException("Paciente no encontrado para esta cita."));
+        Patient patient = saved.getPatient(); // <-- CORREGIDO
 
         notificationService.sendStatusEmail(patient.getEmail(), saved);
 
@@ -68,8 +64,7 @@ public class PublicAppointmentController {
         appt.setStatus(AppointmentStatus.CANCELADA);
         Appointment saved = appointmentRepository.save(appt);
 
-        var patient = patientRepository.findById(saved.getPatientId())
-                .orElseThrow(() -> new DomainException("Paciente no encontrado para esta cita."));
+        Patient patient = saved.getPatient(); // <-- CORREGIDO
 
         notificationService.sendStatusEmail(patient.getEmail(), saved);
 
@@ -97,7 +92,7 @@ public class PublicAppointmentController {
 
         // Validar que el nuevo horario sea válido y esté disponible usando la misma lógica del agendamiento
         // Esto aplica: no pasado, minLeadMinutes, bloqueos/extras y reservas existentes
-        schedulingService.validateRescheduleOrThrow(appt.getProfessionalId(), appt.getId(), newDateTime);
+        schedulingService.validateRescheduleOrThrow(appt.getProfessional().getId(), appt.getId(), newDateTime); // <-- CORREGIDO
 
         // Aplicar cambio
         appt.setDateTime(newDateTime);
@@ -107,8 +102,7 @@ public class PublicAppointmentController {
 
         Appointment saved = appointmentRepository.save(appt);
 
-        var patient = patientRepository.findById(saved.getPatientId())
-                .orElseThrow(() -> new DomainException("Paciente no encontrado para esta cita."));
+        Patient patient = saved.getPatient(); // <-- CORREGIDO
 
         notificationService.sendRescheduleEmail(patient.getEmail(), saved);
 
@@ -120,7 +114,7 @@ public class PublicAppointmentController {
         Appointment appt = appointmentRepository.findByAccessToken(token)
                 .orElseThrow(() -> new DomainException("No encontramos tu cita. Verifica el enlace."));
 
-        return new AppointmentStatusResponse(appt.getStatus().name(), appt.getDateTime(), appt.getProfessionalId());
+        return new AppointmentStatusResponse(appt.getStatus().name(), appt.getDateTime(), appt.getProfessional().getId()); // <-- CORREGIDO
     }
 
     public record AppointmentStatusResponse(String status, OffsetDateTime dateTime, UUID professionalId) {}

@@ -40,9 +40,9 @@ public class AdminProfessionalController {
   @PostMapping("/professionals/{id}/availability")
   @ResponseStatus(HttpStatus.CREATED)
   public AvailabilityBase addAvailability(@PathVariable("id") UUID id, @Valid @RequestBody CreateAvailabilityRequest req) {
-    professionalService.get(id); // valida existencia
+    Professional professional = professionalService.get(id); // valida existencia y captura
     AvailabilityBase ab = new AvailabilityBase();
-    ab.setProfessionalId(id);
+    ab.setProfessional(professional); // <-- CORREGIDO
     ab.setDayOfWeek(req.dayOfWeek());
     ab.setStartTime(req.startTime());
     ab.setEndTime(req.endTime());
@@ -52,9 +52,9 @@ public class AdminProfessionalController {
   @PostMapping("/professionals/{id}/exceptions")
   @ResponseStatus(HttpStatus.CREATED)
   public AgendaException addException(@PathVariable("id") UUID id, @Valid @RequestBody CreateAgendaExceptionRequest req) {
-    professionalService.get(id);
+    Professional professional = professionalService.get(id); // valida existencia y captura
     AgendaException ex = new AgendaException();
-    ex.setProfessionalId(id);
+    ex.setProfessional(professional); // <-- CORREGIDO
     ex.setDate(req.date());
     ex.setStartTime(req.startTime());
     ex.setEndTime(req.endTime());

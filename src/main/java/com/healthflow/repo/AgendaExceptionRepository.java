@@ -8,5 +8,5 @@ import java.util.List;
 import java.util.UUID;
 
 public interface AgendaExceptionRepository extends JpaRepository<AgendaException, UUID> {
-  List<AgendaException> findByProfessionalIdAndDate(UUID professionalId, LocalDate date);
+  List<AgendaException> findByProfessional_IdAndDate(UUID professionalId, LocalDate date);
 }

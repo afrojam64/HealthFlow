@@ -6,15 +6,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "pacientes")
-public class Patient {
-    @Id
-    @Column(columnDefinition = "uuid")
-    private UUID id;
+public class Patient extends BaseEntity {
 
     @NotBlank
     @Column(name = "tipo_doc", nullable = false, length = 2)
@@ -59,18 +54,7 @@ public class Patient {
     @Column(name = "celular", nullable = false, length = 15)
     private String phone;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    void prePersist() {
-        if (id == null) id = UUID.randomUUID();
-        if (createdAt == null) createdAt = LocalDateTime.now();
-    }
-
     // Getters y Setters
-    public UUID getId() { return id; }
-
     public String getDocType() { return docType; }
     public void setDocType(String docType) { this.docType = docType; }
 
@@ -103,7 +87,4 @@ public class Patient {
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

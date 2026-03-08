@@ -19,12 +19,16 @@ public class AvailabilityService {
 
   @Transactional
   public AvailabilityBase addAvailability(AvailabilityBase ab) {
+    if (ab.getProfessional() == null || ab.getProfessional().getId() == null) {
+        throw new DomainException("El profesional es obligatorio");
+    }
     if (!ab.getEndTime().isAfter(ab.getStartTime())) {
       throw new DomainException("hora_fin debe ser mayor que hora_inicio");
     }
 
     // HU01: sin traslapes en el mismo día
-    List<AvailabilityBase> existing = repo.findByProfessionalIdAndDayOfWeek(ab.getProfessionalId(), ab.getDayOfWeek());
+    // CORREGIDO:
+    List<AvailabilityBase> existing = repo.findByProfessional_IdAndDayOfWeek(ab.getProfessional().getId(), ab.getDayOfWeek());
     for (AvailabilityBase e : existing) {
       if (overlaps(ab.getStartTime(), ab.getEndTime(), e.getStartTime(), e.getEndTime())) {
         throw new DomainException("Traslape detectado con disponibilidad existente en el mismo día");
@@ -35,7 +39,8 @@ public class AvailabilityService {
   }
 
   public List<AvailabilityBase> list(UUID professionalId, int dayOfWeek) {
-    return repo.findByProfessionalIdAndDayOfWeek(professionalId, dayOfWeek);
+    // CORREGIDO:
+    return repo.findByProfessional_IdAndDayOfWeek(professionalId, dayOfWeek);
   }
 
   private static boolean overlaps(LocalTime aStart, LocalTime aEnd, LocalTime bStart, LocalTime bEnd) {

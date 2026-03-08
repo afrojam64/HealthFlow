@@ -32,7 +32,7 @@ public class AgendaExceptionService {
   }
 
   public List<AgendaException> list(UUID professionalId, java.time.LocalDate date) {
-    return repo.findByProfessionalIdAndDate(professionalId, date);
+    return repo.findByProfessional_IdAndDate(professionalId, date); // <-- CORREGIDO
   }
 
   public static boolean overlaps(LocalTime aStart, LocalTime aEnd, LocalTime bStart, LocalTime bEnd) {

@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface AvailabilityBaseRepository extends JpaRepository<AvailabilityBase, UUID> {
-  List<AvailabilityBase> findByProfessionalIdAndDayOfWeek(UUID professionalId, int dayOfWeek);
+  List<AvailabilityBase> findByProfessional_IdAndDayOfWeek(UUID professionalId, int dayOfWeek);
 
-    List<AvailabilityBase> findByProfessionalIdOrderByDayOfWeekAsc(UUID professionalId);
+  List<AvailabilityBase> findByProfessional_IdOrderByDayOfWeekAsc(UUID professionalId);
 }

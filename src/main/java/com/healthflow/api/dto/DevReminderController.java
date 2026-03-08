@@ -2,8 +2,8 @@ package com.healthflow.api.dto;
 
 import com.healthflow.domain.Appointment;
 import com.healthflow.domain.AppointmentStatus;
+import com.healthflow.domain.Patient;
 import com.healthflow.repo.AppointmentRepository;
-import com.healthflow.repo.PatientRepository;
 import com.healthflow.service.DomainException;
 import com.healthflow.service.NotificationService;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,16 +17,13 @@ import java.time.ZoneId;
 public class DevReminderController {
 
     private final AppointmentRepository appointmentRepository;
-    private final PatientRepository patientRepository;
     private final NotificationService notificationService;
     private final ZoneId zoneId;
 
     public DevReminderController(AppointmentRepository appointmentRepository,
-                                 PatientRepository patientRepository,
                                  NotificationService notificationService,
                                  @Value("${healthflow.timezone:America/Bogota}") String tz) {
         this.appointmentRepository = appointmentRepository;
-        this.patientRepository = patientRepository;
         this.notificationService = notificationService;
         this.zoneId = ZoneId.of(tz);
     }
@@ -47,8 +44,10 @@ public class DevReminderController {
 
             OffsetDateTime dt = appt.getDateTime();
             if (!dt.isBefore(now) && !dt.isAfter(until)) {
-                var patient = patientRepository.findById(appt.getPatientId())
-                        .orElseThrow(() -> new DomainException("Paciente no encontrado para esta cita."));
+                Patient patient = appt.getPatient(); // <-- CORREGIDO
+                if (patient == null) {
+                    throw new DomainException("Paciente no encontrado para esta cita.");
+                }
 
                 notificationService.sendReminderEmail(patient.getEmail(), appt);
 

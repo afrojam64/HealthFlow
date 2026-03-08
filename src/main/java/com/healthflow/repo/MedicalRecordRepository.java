@@ -12,9 +12,11 @@ import java.util.UUID;
 
 public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, UUID> {
 
-    Optional<MedicalRecord> findByAppointmentId(UUID appointmentId);
+    // CORREGIDO: Renombrado para seguir la convención de navegación de propiedades
+    Optional<MedicalRecord> findByAppointment_Id(UUID appointmentId);
 
-    @Query("SELECT mr FROM MedicalRecord mr WHERE mr.appointment.patientId = :patientId ORDER BY mr.createdAt DESC")
+    // CORREGIDO: La ruta de navegación es a través del objeto anidado appointment.patient.id
+    @Query("SELECT mr FROM MedicalRecord mr WHERE mr.appointment.patient.id = :patientId ORDER BY mr.createdAt DESC")
     List<MedicalRecord> findByPatientIdOrderByCreatedAtDesc(@Param("patientId") UUID patientId);
 
     @Query("SELECT mr FROM MedicalRecord mr WHERE DATE(mr.createdAt) = :date")

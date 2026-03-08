@@ -2,8 +2,8 @@ package com.healthflow.web;
 
 import com.healthflow.domain.Appointment;
 import com.healthflow.domain.AppointmentStatus;
+import com.healthflow.domain.Patient;
 import com.healthflow.repo.AppointmentRepository;
-import com.healthflow.repo.PatientRepository;
 import com.healthflow.service.DomainException;
 import com.healthflow.service.NotificationService;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,18 +20,15 @@ import java.util.UUID;
 public class PublicAppointmentPageController {
 
     private final AppointmentRepository appointmentRepository;
-    private final PatientRepository patientRepository;
     private final NotificationService notificationService;
     private final String publicBaseUrl;
     private final String timezone;
 
     public PublicAppointmentPageController(AppointmentRepository appointmentRepository,
-                                           PatientRepository patientRepository,
                                            NotificationService notificationService,
                                            @Value("${healthflow.publicBaseUrl:http://localhost:8080}") String publicBaseUrl,
                                            @Value("${healthflow.timezone:America/Bogota}") String timezone) {
         this.appointmentRepository = appointmentRepository;
-        this.patientRepository = patientRepository;
         this.notificationService = notificationService;
         this.publicBaseUrl = publicBaseUrl;
         this.timezone = timezone;
@@ -52,8 +49,7 @@ public class PublicAppointmentPageController {
             appt.setStatus(AppointmentStatus.CONFIRMADA);
             Appointment saved = appointmentRepository.save(appt);
 
-            var patient = patientRepository.findById(saved.getPatientId())
-                    .orElseThrow(() -> new DomainException("Paciente no encontrado para esta cita."));
+            Patient patient = saved.getPatient();
 
             notificationService.sendStatusEmail(patient.getEmail(), saved);
 
@@ -67,7 +63,7 @@ public class PublicAppointmentPageController {
         model.addAttribute("token", token.toString());
         model.addAttribute("statusUrl", publicBaseUrl + "/api/public/appointments/" + token);
         model.addAttribute("icsUrl", publicBaseUrl + "/api/public/appointments/" + token + "/calendar.ics");
-        model.addAttribute("cancelUrl", publicBaseUrl + "/public/appointments/" + token + "/cancel"); // la haremos luego
+        model.addAttribute("cancelUrl", publicBaseUrl + "/public/appointments/" + token + "/cancel");
 
         return "public/public-appointment-confirm";
     }
@@ -87,8 +83,7 @@ public class PublicAppointmentPageController {
             appt.setStatus(AppointmentStatus.CANCELADA);
             Appointment saved = appointmentRepository.save(appt);
 
-            var patient = patientRepository.findById(saved.getPatientId())
-                    .orElseThrow(() -> new DomainException("Paciente no encontrado para esta cita."));
+            Patient patient = saved.getPatient();
 
             notificationService.sendStatusEmail(patient.getEmail(), saved);
 

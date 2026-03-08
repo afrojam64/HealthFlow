@@ -82,8 +82,8 @@ public class DataSeeder implements CommandLineRunner {
         );
 
         // Vincular usuarios a profesionales
-        professionals.get(0).setUserId(users.get("dra.perez").getId()); // Dra. Laura Pérez -> dra.perez
-        professionals.get(1).setUserId(users.get("dr.garcia").getId()); // Dr. Andrés Gómez -> dr.garcia
+        professionals.get(0).setUser(users.get("dra.perez")); // Dra. Laura Pérez -> dra.perez
+        professionals.get(1).setUser(users.get("dr.garcia")); // Dr. Andrés Gómez -> dr.garcia
         // Los demás profesionales no tienen usuario asociado (solo existen como entidad)
 
         professionalRepo.saveAll(professionals);
@@ -111,9 +111,9 @@ public class DataSeeder implements CommandLineRunner {
             // Lunes a Viernes (1-5)
             for (int dayOfWeek = 1; dayOfWeek <= 5; dayOfWeek++) {
                 // Mañana: 9:00 - 12:00
-                availabilityRepo.save(createAvailability(p.getId(), dayOfWeek, LocalTime.of(9, 0), LocalTime.of(12, 0)));
+                availabilityRepo.save(createAvailability(p, dayOfWeek, LocalTime.of(9, 0), LocalTime.of(12, 0)));
                 // Tarde: 14:00 - 17:00
-                availabilityRepo.save(createAvailability(p.getId(), dayOfWeek, LocalTime.of(14, 0), LocalTime.of(17, 0)));
+                availabilityRepo.save(createAvailability(p, dayOfWeek, LocalTime.of(14, 0), LocalTime.of(17, 0)));
                 availabilityCount += 2;
             }
         }
@@ -125,7 +125,7 @@ public class DataSeeder implements CommandLineRunner {
 
         // Bloqueo para Dra. Laura Pérez mañana de 10-11
         exceptionRepo.save(createException(
-                professionals.get(0).getId(),
+                professionals.get(0),
                 tomorrow,
                 LocalTime.of(10, 0),
                 LocalTime.of(11, 0),
@@ -134,7 +134,7 @@ public class DataSeeder implements CommandLineRunner {
 
         // Extra para Dr. Andrés Gómez mañana de 18-19
         exceptionRepo.save(createException(
-                professionals.get(1).getId(),
+                professionals.get(1),
                 tomorrow,
                 LocalTime.of(18, 0),
                 LocalTime.of(19, 0),
@@ -143,7 +143,7 @@ public class DataSeeder implements CommandLineRunner {
 
         // Bloqueo todo el día para Dra. Sofía Ruiz el próximo sábado
         exceptionRepo.save(createException(
-                professionals.get(2).getId(),
+                professionals.get(2),
                 nextWeek.with(DayOfWeek.SATURDAY),
                 null, null,
                 ExceptionType.BLOQUEO
@@ -163,8 +163,8 @@ public class DataSeeder implements CommandLineRunner {
 
         // Cita 1: Pendiente
         createAppointment(
-                professionals.get(0).getId(),
-                patients.get(0).getId(),
+                professionals.get(0),
+                patients.get(0),
                 baseTime,
                 AppointmentStatus.PENDIENTE
         );
@@ -172,8 +172,8 @@ public class DataSeeder implements CommandLineRunner {
 
         // Cita 2: Confirmada
         createAppointment(
-                professionals.get(0).getId(),
-                patients.get(1).getId(),
+                professionals.get(0),
+                patients.get(1),
                 baseTime.plusHours(2),
                 AppointmentStatus.CONFIRMADA
         );
@@ -181,8 +181,8 @@ public class DataSeeder implements CommandLineRunner {
 
         // Cita 3: Pendiente
         createAppointment(
-                professionals.get(1).getId(),
-                patients.get(2).getId(),
+                professionals.get(1),
+                patients.get(2),
                 baseTime.plusDays(1),
                 AppointmentStatus.PENDIENTE
         );
@@ -190,8 +190,8 @@ public class DataSeeder implements CommandLineRunner {
 
         // Cita 4: Cancelada
         createAppointment(
-                professionals.get(1).getId(),
-                patients.get(3).getId(),
+                professionals.get(1),
+                patients.get(3),
                 baseTime.plusDays(1).plusHours(2),
                 AppointmentStatus.CANCELADA
         );
@@ -199,8 +199,8 @@ public class DataSeeder implements CommandLineRunner {
 
         // Cita 5: Atendida (con recordatorio enviado)
         Appointment attended = createAppointment(
-                professionals.get(2).getId(),
-                patients.get(4).getId(),
+                professionals.get(2),
+                patients.get(4),
                 baseTime.minusDays(1),
                 AppointmentStatus.ATENDIDA
         );
@@ -287,19 +287,19 @@ public class DataSeeder implements CommandLineRunner {
         return patient;
     }
 
-    private AvailabilityBase createAvailability(UUID professionalId, int dayOfWeek, LocalTime startTime, LocalTime endTime) {
+    private AvailabilityBase createAvailability(Professional professional, int dayOfWeek, LocalTime startTime, LocalTime endTime) {
         AvailabilityBase availability = new AvailabilityBase();
-        availability.setProfessionalId(professionalId);
+        availability.setProfessional(professional);
         availability.setDayOfWeek(dayOfWeek);
         availability.setStartTime(startTime);
         availability.setEndTime(endTime);
         return availability;
     }
 
-    private AgendaException createException(UUID professionalId, LocalDate date, LocalTime startTime,
+    private AgendaException createException(Professional professional, LocalDate date, LocalTime startTime,
                                             LocalTime endTime, ExceptionType type) {
         AgendaException exception = new AgendaException();
-        exception.setProfessionalId(professionalId);
+        exception.setProfessional(professional);
         exception.setDate(date);
         exception.setStartTime(startTime);
         exception.setEndTime(endTime);
@@ -307,11 +307,11 @@ public class DataSeeder implements CommandLineRunner {
         return exception;
     }
 
-    private Appointment createAppointment(UUID professionalId, UUID patientId,
+    private Appointment createAppointment(Professional professional, Patient patient,
                                           OffsetDateTime dateTime, AppointmentStatus status) {
         Appointment appointment = new Appointment();
-        appointment.setProfessionalId(professionalId);
-        appointment.setPatientId(patientId);
+        appointment.setProfessional(professional);
+        appointment.setPatient(patient);
         appointment.setDateTime(dateTime);
         appointment.setStatus(status);
         return appointmentRepo.save(appointment);

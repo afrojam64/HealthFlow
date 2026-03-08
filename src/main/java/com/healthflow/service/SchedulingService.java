@@ -16,6 +16,7 @@ public class SchedulingService {
   private final AgendaExceptionRepository exceptionRepo;
   private final AppointmentRepository appointmentRepo;
   private final PatientRepository patientRepo;
+  private final ProfessionalRepository professionalRepo; // <-- AÑADIDO
   private final NotificationService notificationService;
 
   private final ZoneId zoneId;
@@ -26,7 +27,9 @@ public SchedulingService(
         AvailabilityBaseRepository availabilityRepo,
         AgendaExceptionRepository exceptionRepo,
         AppointmentRepository appointmentRepo,
-        PatientRepository patientRepo, NotificationService notificationService,
+        PatientRepository patientRepo,
+        ProfessionalRepository professionalRepo, // <-- AÑADIDO
+        NotificationService notificationService,
         @Value("${healthflow.timezone:America/Bogota}") String tz,
         @Value("${healthflow.appointment.slotMinutes:30}") int slotMinutes,
         @Value("${healthflow.appointment.minLeadMinutes:120}") int minLeadMinutes
@@ -35,6 +38,7 @@ public SchedulingService(
     this.exceptionRepo = exceptionRepo;
     this.appointmentRepo = appointmentRepo;
     this.patientRepo = patientRepo;
+    this.professionalRepo = professionalRepo; // <-- AÑADIDO
     this.notificationService = notificationService;
     this.zoneId = ZoneId.of(tz);
     this.slotMinutes = slotMinutes;
@@ -49,12 +53,12 @@ public List<OffsetDateTime> getFreeSlots(UUID professionalId, LocalDate date) {
     int dayOfWeekDoc = toDocDayOfWeek(date.getDayOfWeek()); // 0..6
 
     // 1. Obtener horario base y excepciones en una sola query cada uno (ya están optimizados)
-    List<AvailabilityBase> bases = availabilityRepo.findByProfessionalIdAndDayOfWeek(professionalId, dayOfWeekDoc);
+    List<AvailabilityBase> bases = availabilityRepo.findByProfessional_IdAndDayOfWeek(professionalId, dayOfWeekDoc);
     if (bases.isEmpty()) {
         return List.of(); // No hay horario base para este día
     }
 
-    List<AgendaException> exs = exceptionRepo.findByProfessionalIdAndDate(professionalId, date);
+    List<AgendaException> exs = exceptionRepo.findByProfessional_IdAndDate(professionalId, date);
 
     // 2. Verificar si hay bloqueo todo el día
     boolean blockedAllDay = exs.stream()
@@ -174,15 +178,19 @@ public Appointment book(UUID professionalId, Patient patientPayload, OffsetDateT
 
     patient = patientRepo.save(patient);
 
+    // CORREGIDO: Buscar el profesional
+    Professional professional = professionalRepo.findById(professionalId)
+            .orElseThrow(() -> new DomainException("Profesional no encontrado."));
+
     // 4) Crear cita (la concurrencia final la asegura el UNIQUE en DB)
     Appointment appt = new Appointment();
-    appt.setProfessionalId(professionalId);
-    appt.setPatientId(patient.getId());
+    appt.setProfessional(professional); // <-- CORREGIDO
+    appt.setPatient(patient);           // <-- CORREGIDO
     appt.setDateTime(dateTime);
 
     Appointment saved = appointmentRepo.save(appt);
 
-// ENVÍO MOCK (solo imprime en consola)
+    // ENVÍO MOCK (solo imprime en consola)
     notificationService.sendBookingEmail(patient.getEmail(), saved);
 
     return saved;

@@ -70,16 +70,16 @@ public class DashboardController {
         OffsetDateTime endOfDay = today.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime startOfWeek = weekAgo.atStartOfDay(zoneId).toOffsetDateTime();
 
-        // Para Patient usamos LocalDateTime
-        LocalDateTime startOfMonth = monthAgo.atStartOfDay();
+        // CORREGIDO: Para Patient también usamos OffsetDateTime
+        OffsetDateTime startOfMonth = monthAgo.atStartOfDay(zoneId).toOffsetDateTime();
 
-        // CORREGIDO: Usar los métodos con los tipos correctos
+        // Usar los métodos con los tipos correctos
         long citasHoy = appointmentRepository.countByFechaHoraBetween(startOfDay, endOfDay);
         long citasSemana = appointmentRepository.countByFechaHoraAfter(startOfWeek);
         long pacientesNuevos = patientRepository.countByCreatedAtAfter(startOfMonth);
         long totalProfesionales = professionalRepository.count();
 
-        // CORREGIDO: Usar AppointmentStatus.ATENDIDA en lugar de String
+        // Usar AppointmentStatus.ATENDIDA en lugar de String
         long citasAtendidas = appointmentRepository.countByEstado(AppointmentStatus.ATENDIDA);
 
         int ocupacion = totalProfesionales > 0 ?

@@ -13,18 +13,17 @@ import java.util.UUID;
                 @UniqueConstraint(name = "uk_citas_token", columnNames = {"token_acceso"})
         }
 )
-public class Appointment {
-    @Id
-    @Column(columnDefinition = "uuid")
-    private UUID id;
+public class Appointment extends BaseEntity {
 
     @NotNull
-    @Column(name = "paciente_id", nullable = false, columnDefinition = "uuid")
-    private UUID patientId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "paciente_id", nullable = false)
+    private Patient patient;
 
     @NotNull
-    @Column(name = "profesional_id", nullable = false, columnDefinition = "uuid")
-    private UUID professionalId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profesional_id", nullable = false)
+    private Professional professional;
 
     @NotNull
     @Column(name = "fecha_hora", nullable = false)
@@ -47,18 +46,17 @@ public class Appointment {
     private MedicalRecord medicalRecord;
 
     @PrePersist
-    void prePersist() {
-        if (id == null) id = UUID.randomUUID();
+    protected void onCreate() {
+        super.onCreate();
         if (accessToken == null) accessToken = UUID.randomUUID();
     }
 
-    public UUID getId() { return id; }
+    // Getters y Setters
+    public Patient getPatient() { return patient; }
+    public void setPatient(Patient patient) { this.patient = patient; }
 
-    public UUID getPatientId() { return patientId; }
-    public void setPatientId(UUID patientId) { this.patientId = patientId; }
-
-    public UUID getProfessionalId() { return professionalId; }
-    public void setProfessionalId(UUID professionalId) { this.professionalId = professionalId; }
+    public Professional getProfessional() { return professional; }
+    public void setProfessional(Professional professional) { this.professional = professional; }
 
     public OffsetDateTime getDateTime() { return dateTime; }
     public void setDateTime(OffsetDateTime dateTime) { this.dateTime = dateTime; }
