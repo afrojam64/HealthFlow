@@ -8,6 +8,8 @@ import com.healthflow.repo.UserRepository;
 import com.healthflow.repo.WeeklyAvailabilityRepository;
 import com.healthflow.service.DomainException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +23,6 @@ import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Controller
@@ -63,8 +64,7 @@ public class DoctorAgendaController {
 
         int prevMonth = currentMonth == 0 ? 11 : currentMonth - 1;
         int nextMonth = currentMonth == 11 ? 0 : currentMonth + 1;
-        
-        // CORREGIDO: Enviar la fecha de inicio de la semana actual a la vista
+
         LocalDate startOfCurrentWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
 
         model.addAttribute("title", "Agenda - HealthFlow");
@@ -74,7 +74,7 @@ public class DoctorAgendaController {
         model.addAttribute("currentMonthName", monthNames[currentMonth]);
         model.addAttribute("prevMonthName", monthNames[prevMonth]);
         model.addAttribute("nextMonthName", monthNames[nextMonth]);
-        model.addAttribute("startOfCurrentWeek", startOfCurrentWeek); // <-- AÑADIDO
+        model.addAttribute("startOfCurrentWeek", startOfCurrentWeek);
 
         return "doctor/agenda";
     }
@@ -104,7 +104,6 @@ public class DoctorAgendaController {
         LocalTime now = LocalTime.now(zoneId);
         LocalDate startOfCurrentWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
 
-        // REGLA: No se puede seleccionar una semana pasada para guardarla.
         for (LocalDate weekStart : weekStarts) {
             if (weekStart.isBefore(startOfCurrentWeek)) {
                 throw new DomainException("No se puede gestionar la agenda de semanas pasadas.");
@@ -112,23 +111,21 @@ public class DoctorAgendaController {
         }
 
         if (request.getMismaFranja()) {
-            if (request.getHoraInicio() == null || request.getHoraInicio().isEmpty() ||
-                    request.getHoraFin() == null || request.getHoraFin().isEmpty()) {
-                throw new DomainException("Debes proporcionar hora de inicio y fin no vacías.");
-            }
             LocalTime startTime = LocalTime.parse(request.getHoraInicio());
             LocalTime endTime = LocalTime.parse(request.getHoraFin());
 
-            // REGLA: Si se edita la semana actual con "Misma Franja" y la hora de inicio ya pasó, forzar configuración manual.
             boolean isEditingCurrentWeek = weekStarts.stream().anyMatch(ws -> ws.isEqual(startOfCurrentWeek));
             if (isEditingCurrentWeek && startTime.isBefore(now)) {
-                throw new DomainException("La hora de inicio ya ha pasado para hoy. Por favor, desmarque la opción 'Misma Franja' y configure el horario de hoy manualmente.");
+                throw new DomainException("La hora de inicio ya ha pasado para hoy. Por favor, configure el horario de hoy manualmente usando la opción 'Configurar por día'.");
             }
 
             for (LocalDate weekStart : weekStarts) {
                 weeklyAvailabilityRepository.deleteByProfessional_IdAndWeekStartDate(professional.getId(), weekStart);
                 for (int day = 0; day < 7; day++) {
                     LocalDate currentDay = weekStart.plusDays(day);
+                    if (currentDay.isBefore(today)) {
+                        continue; // No guardar disponibilidad para días pasados de la semana actual
+                    }
                     WeeklyAvailability wa = new WeeklyAvailability();
                     wa.setProfessional(professional);
                     wa.setWeekStartDate(weekStart);
@@ -139,9 +136,8 @@ public class DoctorAgendaController {
                     weeklyAvailabilityRepository.save(wa);
                 }
             }
-            return "Disponibilidad guardada correctamente para " + semanas.size() + " semanas con horario único.";
+            return "Disponibilidad guardada correctamente.";
         } else {
-            // ... (la lógica para "Por Día" se mantiene igual, ya que es más explícita)
             List<DiaConfig> dias = request.getDias();
             if (dias == null || dias.isEmpty()) {
                 throw new DomainException("No se recibieron configuraciones por día.");
@@ -160,23 +156,16 @@ public class DoctorAgendaController {
                     LocalDate fecha = LocalDate.parse(dia.getFecha());
 
                     if (fecha.isBefore(today)) {
-                        throw new DomainException("No se puede gestionar la agenda para días pasados: " + fecha);
+                        throw new DomainException("No se puede configurar un día pasado: " + fecha);
                     }
 
-                    if (dia.getActivo() != null && !dia.getActivo()) {
-                        continue;
-                    }
-                    
-                    if (dia.getHoraInicio() == null || dia.getHoraInicio().isEmpty() ||
-                        dia.getHoraFin() == null || dia.getHoraFin().isEmpty()) {
-                        throw new DomainException("Todos los días activos deben tener hora inicio y hora fin.");
-                    }
+                    if (dia.getActivo() != null && !dia.getActivo()) continue;
 
                     LocalTime startTime = LocalTime.parse(dia.getHoraInicio());
                     LocalTime endTime = LocalTime.parse(dia.getHoraFin());
 
                     if (fecha.isEqual(today) && startTime.isBefore(now)) {
-                        throw new DomainException("No se puede agendar en horas pasadas para el día de hoy.");
+                        throw new DomainException("No se puede configurar una hora pasada para el día de hoy.");
                     }
 
                     WeeklyAvailability wa = new WeeklyAvailability();
@@ -189,8 +178,13 @@ public class DoctorAgendaController {
                     weeklyAvailabilityRepository.save(wa);
                 }
             }
-            return "Disponibilidad guardada correctamente para " + dias.size() + " días.";
+            return "Disponibilidad guardada correctamente.";
         }
+    }
+
+    @ExceptionHandler(DomainException.class)
+    public ResponseEntity<Map<String, String>> handleDomainException(DomainException ex) {
+        return new ResponseEntity<>(Map.of("message", ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
     // Clases internas para recibir JSON
