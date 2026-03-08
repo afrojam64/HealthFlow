@@ -5,19 +5,15 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "disponibilidad_semanal")
-public class WeeklyAvailability {
-
-    @Id
-    @Column(columnDefinition = "uuid")
-    private UUID id;
+public class WeeklyAvailability extends BaseEntity {
 
     @NotNull
-    @Column(name = "profesional_id", nullable = false, columnDefinition = "uuid")
-    private UUID professionalId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profesional_id", nullable = false)
+    private Professional professional;
 
     @NotNull
     @Column(name = "fecha_inicio_semana", nullable = false)
@@ -36,16 +32,9 @@ public class WeeklyAvailability {
     @Column(name = "activo")
     private Boolean active = true;
 
-    @PrePersist
-    void prePersist() {
-        if (id == null) id = UUID.randomUUID();
-    }
-
     // Getters y Setters
-    public UUID getId() { return id; }
-
-    public UUID getProfessionalId() { return professionalId; }
-    public void setProfessionalId(UUID professionalId) { this.professionalId = professionalId; }
+    public Professional getProfessional() { return professional; }
+    public void setProfessional(Professional professional) { this.professional = professional; }
 
     public LocalDate getWeekStartDate() { return weekStartDate; }
     public void setWeekStartDate(LocalDate weekStartDate) { this.weekStartDate = weekStartDate; }

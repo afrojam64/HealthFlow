@@ -1,19 +1,24 @@
 package com.healthflow.web;
 
 import com.healthflow.domain.Professional;
+import com.healthflow.domain.User;
 import com.healthflow.domain.WeeklyAvailability;
 import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.repo.UserRepository;
 import com.healthflow.repo.WeeklyAvailabilityRepository;
 import com.healthflow.service.DomainException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,30 +31,33 @@ public class DoctorAgendaController {
     private final ProfessionalRepository professionalRepository;
     private final UserRepository userRepository;
     private final WeeklyAvailabilityRepository weeklyAvailabilityRepository;
+    private final ZoneId zoneId;
 
     public DoctorAgendaController(
             ProfessionalRepository professionalRepository,
             UserRepository userRepository,
-            WeeklyAvailabilityRepository weeklyAvailabilityRepository) {
+            WeeklyAvailabilityRepository weeklyAvailabilityRepository,
+            @Value("${healthflow.timezone:America/Bogota}") String tz) {
         this.professionalRepository = professionalRepository;
         this.userRepository = userRepository;
         this.weeklyAvailabilityRepository = weeklyAvailabilityRepository;
+        this.zoneId = ZoneId.of(tz);
     }
 
     @GetMapping("/agenda")
     public String agenda(Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        var user = userRepository.findByUsername(username)
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new DomainException("Usuario no encontrado"));
 
-        Professional professional = professionalRepository.findByUserId(user.getId())
+        Professional professional = professionalRepository.findByUser(user)
                 .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
 
         String[] monthNames = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
                 "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(zoneId);
         int currentYear = today.getYear();
         int currentMonth = today.getMonthValue() - 1;
 
@@ -73,29 +81,11 @@ public class DoctorAgendaController {
     public String saveAvailability(@RequestBody DisponibilidadRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        var user = userRepository.findByUsername(username)
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new DomainException("Usuario no encontrado"));
 
-        Professional professional = professionalRepository.findByUserId(user.getId())
+        Professional professional = professionalRepository.findByUser(user)
                 .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
-
-        UUID professionalId = professional.getId();
-
-        // LOG: Mostrar la solicitud recibida
-        System.out.println("=== SOLICITUD RECIBIDA ===");
-        System.out.println("Usuario: " + username);
-        System.out.println("Profesional ID: " + professionalId);
-        System.out.println("Semanas: " + request.getSemanas());
-        System.out.println("Misma franja: " + request.getMismaFranja());
-        if (request.getMismaFranja()) {
-            System.out.println("Hora inicio: " + request.getHoraInicio());
-            System.out.println("Hora fin: " + request.getHoraFin());
-        } else {
-            System.out.println("Días recibidos: " + (request.getDias() != null ? request.getDias().size() : 0));
-            if (request.getDias() != null) {
-                request.getDias().forEach(d -> System.out.println("  Fecha: " + d.getFecha() + " -> " + d.getHoraInicio() + " - " + d.getHoraFin()));
-            }
-        }
 
         List<String> semanas = request.getSemanas();
         if (semanas == null || semanas.isEmpty()) {
@@ -106,6 +96,14 @@ public class DoctorAgendaController {
                 .map(LocalDate::parse)
                 .collect(Collectors.toList());
 
+        // REGLA: No se puede modificar la disponibilidad de semanas pasadas
+        LocalDate startOfCurrentWeek = LocalDate.now(zoneId).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        for (LocalDate weekStart : weekStarts) {
+            if (weekStart.isBefore(startOfCurrentWeek)) {
+                throw new DomainException("No se puede gestionar la agenda de semanas pasadas.");
+            }
+        }
+
         if (request.getMismaFranja()) {
             if (request.getHoraInicio() == null || request.getHoraInicio().isEmpty() ||
                     request.getHoraFin() == null || request.getHoraFin().isEmpty()) {
@@ -115,10 +113,10 @@ public class DoctorAgendaController {
             LocalTime endTime = LocalTime.parse(request.getHoraFin());
 
             for (LocalDate weekStart : weekStarts) {
-                weeklyAvailabilityRepository.deleteByProfessionalIdAndWeekStartDate(professionalId, weekStart);
+                weeklyAvailabilityRepository.deleteByProfessional_IdAndWeekStartDate(professional.getId(), weekStart);
                 for (int dayOfWeek = 1; dayOfWeek <= 7; dayOfWeek++) {
                     WeeklyAvailability wa = new WeeklyAvailability();
-                    wa.setProfessionalId(professionalId);
+                    wa.setProfessional(professional);
                     wa.setWeekStartDate(weekStart);
                     wa.setDayOfWeek(dayOfWeek);
                     wa.setStartTime(startTime);
@@ -127,7 +125,6 @@ public class DoctorAgendaController {
                     weeklyAvailabilityRepository.save(wa);
                 }
             }
-            System.out.println("=== GUARDADO EXITOSO (franja única) ===");
             return "Disponibilidad guardada correctamente para " + semanas.size() + " semanas con horario único.";
         } else {
             List<DiaConfig> dias = request.getDias();
@@ -135,7 +132,6 @@ public class DoctorAgendaController {
                 throw new DomainException("No se recibieron configuraciones por día.");
             }
 
-            // Validar que cada día tenga fecha y horas no vacías
             for (DiaConfig dia : dias) {
                 if (dia.getFecha() == null || dia.getFecha().isEmpty() ||
                         dia.getHoraInicio() == null || dia.getHoraInicio().isEmpty() ||
@@ -147,32 +143,31 @@ public class DoctorAgendaController {
             Map<LocalDate, List<DiaConfig>> porSemana = dias.stream()
                     .collect(Collectors.groupingBy(d -> {
                         LocalDate fecha = LocalDate.parse(d.getFecha());
-                        return fecha.minusDays(fecha.getDayOfWeek().getValue() - 1);
+                        return fecha.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
                     }));
 
             for (Map.Entry<LocalDate, List<DiaConfig>> entry : porSemana.entrySet()) {
                 LocalDate weekStart = entry.getKey();
-                weeklyAvailabilityRepository.deleteByProfessionalIdAndWeekStartDate(professionalId, weekStart);
+                weeklyAvailabilityRepository.deleteByProfessional_IdAndWeekStartDate(professional.getId(), weekStart);
                 for (DiaConfig dia : entry.getValue()) {
-                    // Si no está activo, no guardamos
                     if (dia.getActivo() != null && !dia.getActivo()) {
                         continue;
                     }
                     LocalDate fecha = LocalDate.parse(dia.getFecha());
-                    int dayOfWeek = fecha.getDayOfWeek().getValue(); // 1 = lunes, 7 = domingo
+                    int dayOfWeek = fecha.getDayOfWeek().getValue();
                     LocalTime startTime = LocalTime.parse(dia.getHoraInicio());
                     LocalTime endTime = LocalTime.parse(dia.getHoraFin());
                     WeeklyAvailability wa = new WeeklyAvailability();
-                    wa.setProfessionalId(professionalId);
+                    wa.setProfessional(professional);
+
                     wa.setWeekStartDate(weekStart);
                     wa.setDayOfWeek(dayOfWeek);
                     wa.setStartTime(startTime);
                     wa.setEndTime(endTime);
-                    wa.setActive(true); // O podríamos usar el campo activo del DTO, pero aquí lo llamamos "active" en la entidad
+                    wa.setActive(true);
                     weeklyAvailabilityRepository.save(wa);
                 }
             }
-            System.out.println("=== GUARDADO EXITOSO (por día) ===");
             return "Disponibilidad guardada correctamente para " + dias.size() + " días.";
         }
     }
@@ -185,7 +180,6 @@ public class DoctorAgendaController {
         private String horaFin;
         private List<DiaConfig> dias;
 
-        // Getters y Setters
         public List<String> getSemanas() { return semanas; }
         public void setSemanas(List<String> semanas) { this.semanas = semanas; }
         public Boolean getMismaFranja() { return mismaFranja; }
@@ -202,9 +196,8 @@ public class DoctorAgendaController {
         private String fecha;
         private String horaInicio;
         private String horaFin;
-        private Boolean activo;  // Nuevo campo
+        private Boolean activo;
 
-        // Getters y Setters
         public String getFecha() { return fecha; }
         public void setFecha(String fecha) { this.fecha = fecha; }
         public String getHoraInicio() { return horaInicio; }
