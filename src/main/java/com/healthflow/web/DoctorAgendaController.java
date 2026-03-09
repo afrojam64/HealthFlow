@@ -1,18 +1,14 @@
 package com.healthflow.web;
 
-import com.healthflow.domain.Professional;
-import com.healthflow.domain.User;
-import com.healthflow.domain.WeeklyAvailability;
-import com.healthflow.repo.ProfessionalRepository;
-import com.healthflow.repo.UserRepository;
-import com.healthflow.repo.WeeklyAvailabilityRepository;
+import com.healthflow.domain.*;
+import com.healthflow.repo.*;
 import com.healthflow.service.DomainException;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,8 +16,10 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.format.TextStyle;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -48,10 +46,8 @@ public class DoctorAgendaController {
     @GetMapping("/agenda")
     public String agenda(Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new DomainException("Usuario no encontrado"));
-
         Professional professional = professionalRepository.findByUser(user)
                 .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
 
@@ -68,6 +64,7 @@ public class DoctorAgendaController {
         LocalDate startOfCurrentWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
 
         model.addAttribute("title", "Agenda - HealthFlow");
+        model.addAttribute("username", username);
         model.addAttribute("professionalName", professional.getFullName());
         model.addAttribute("currentYear", currentYear);
         model.addAttribute("currentMonth", currentMonth);
@@ -76,7 +73,9 @@ public class DoctorAgendaController {
         model.addAttribute("nextMonthName", monthNames[nextMonth]);
         model.addAttribute("startOfCurrentWeek", startOfCurrentWeek);
 
-        return "doctor/agenda";
+        // No se necesita 'currentPage' si no se usa un layout compartido
+
+        return "doctor/agenda"; // <-- CORRECCIÓN: Devolver el nombre de la vista, no el layout.
     }
 
     @PostMapping("/agenda/save")
@@ -84,10 +83,8 @@ public class DoctorAgendaController {
     @ResponseBody
     public String saveAvailability(@RequestBody DisponibilidadRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new DomainException("Usuario no encontrado"));
-
         Professional professional = professionalRepository.findByUser(user)
                 .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
 
@@ -124,7 +121,7 @@ public class DoctorAgendaController {
                 for (int day = 0; day < 7; day++) {
                     LocalDate currentDay = weekStart.plusDays(day);
                     if (currentDay.isBefore(today)) {
-                        continue; // No guardar disponibilidad para días pasados de la semana actual
+                        continue;
                     }
                     WeeklyAvailability wa = new WeeklyAvailability();
                     wa.setProfessional(professional);
@@ -187,7 +184,6 @@ public class DoctorAgendaController {
         return new ResponseEntity<>(Map.of("message", ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
-    // Clases internas para recibir JSON
     public static class DisponibilidadRequest {
         private List<String> semanas;
         private Boolean mismaFranja;

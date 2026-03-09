@@ -1,180 +1,124 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HealthFlow - Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-</head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/dashboard">
-            <i class="bi bi-heart-pulse-fill"></i> HealthFlow
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-person-circle"></i>
-                        <span th:text="${username}">Usuario</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-person"></i> Mi Perfil</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-gear"></i> Configuración</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <form th:action="@{/logout}" method="post">
-                                <button type="submit" class="dropdown-item">
-                                    <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
-                                </button>
-                            </form>
-                        </li>
-                    </ul>
-                </li>
-            </ul>
+<div th:fragment="content">
+    <!-- Título y bienvenida -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2"><i class="bi bi-speedometer2 text-primary-custom me-2"></i>Dashboard</h1>
+        <div><span class="text-muted"><i class="bi bi-calendar3 me-1"></i><span th:text="${#dates.format(new java.util.Date(), 'EEEE, d MMMM yyyy')}"></span></span></div>
+    </div>
+
+    <!-- Cards de estadísticas -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card card-health h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted text-uppercase small">Citas Hoy</span>
+                            <h2 class="display-6 mt-2 mb-0 text-primary-custom" th:text="${stats.citasHoy}">0</h2>
+                        </div>
+                        <div class="bg-primary-custom bg-opacity-10 p-3 rounded"><i class="bi bi-calendar-day fs-1 text-primary-custom"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card card-health h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted text-uppercase small">Citas Semana</span>
+                            <h2 class="display-6 mt-2 mb-0 text-success" th:text="${stats.citasSemana}">0</h2>
+                        </div>
+                        <div class="bg-success bg-opacity-10 p-3 rounded"><i class="bi bi-calendar-week fs-1 text-success"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card card-health h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted text-uppercase small">Pacientes Nuevos</span>
+                            <h2 class="display-6 mt-2 mb-0 text-info" th:text="${stats.pacientesNuevos}">0</h2>
+                        </div>
+                        <div class="bg-info bg-opacity-10 p-3 rounded"><i class="bi bi-person-plus fs-1 text-info"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card card-health h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted text-uppercase small">Ocupación</span>
+                            <h2 class="display-6 mt-2 mb-0 text-warning" th:text="${stats.ocupacion} + '%'">0%</h2>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 p-3 rounded"><i class="bi bi-pie-chart fs-1 text-warning"></i></div>
+                    </div>
+                    <div class="progress mt-3" style="height: 8px;"><div class="progress-bar bg-warning" th:style="'width: ' + ${stats.ocupacion} + '%'"></div></div>
+                </div>
+            </div>
         </div>
     </div>
-</nav>
 
-<div class="container-fluid mt-4">
+    <!-- Próximas Citas -->
     <div class="row">
-        <!-- Sidebar -->
-        <div class="col-md-2">
-            <div class="list-group">
-                <a href="/dashboard" class="list-group-item list-group-item-action active">
-                    <i class="bi bi-speedometer2"></i> Dashboard
-                </a>
-                <a href="/admin/professionals" class="list-group-item list-group-item-action" sec:authorize="hasRole('ADMIN')">
-                    <i class="bi bi-people"></i> Profesionales
-                </a>
-                <a href="/admin/availability" class="list-group-item list-group-item-action">
-                    <i class="bi bi-calendar-week"></i> Disponibilidad
-                </a>
-                <a href="/appointments" class="list-group-item list-group-item-action">
-                    <i class="bi bi-calendar-check"></i> Citas
-                </a>
-                <a href="/patients" class="list-group-item list-group-item-action">
-                    <i class="bi bi-person-heart"></i> Pacientes
-                </a>
-                <a href="/reports" class="list-group-item list-group-item-action">
-                    <i class="bi bi-file-text"></i> Reportes RIPS
-                </a>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="col-md-10">
-            <h2 class="mb-4">Dashboard</h2>
-
-            <!-- Stats Cards -->
-            <div class="row mt-4">
-                <div class="col-md-3 mb-3">
-                    <div class="card text-white bg-primary">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title">Citas Hoy</h6>
-                                    <h2 class="display-6" id="citasHoy">0</h2>
-                                </div>
-                                <i class="bi bi-calendar-day fs-1"></i>
-                            </div>
-                        </div>
-                    </div>
+        <div class="col-12">
+            <div class="card card-health">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2 text-primary-custom"></i>Próximas Citas</h5>
+                    <a href="#" class="btn btn-sm btn-primary-custom">Ver todas <i class="bi bi-arrow-right ms-1"></i></a>
                 </div>
-
-                <div class="col-md-3 mb-3">
-                    <div class="card text-white bg-success">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title">Citas Semana</h6>
-                                    <h2 class="display-6" id="citasSemana">0</h2>
-                                </div>
-                                <i class="bi bi-calendar-week fs-1"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-3 mb-3">
-                    <div class="card text-white bg-info">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title">Pacientes Nuevos</h6>
-                                    <h2 class="display-6" id="pacientesNuevos">0</h2>
-                                </div>
-                                <i class="bi bi-person-plus fs-1"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-3 mb-3">
-                    <div class="card text-white bg-warning">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title">Ocupación</h6>
-                                    <h2 class="display-6" id="ocupacion">0%</h2>
-                                </div>
-                                <i class="bi bi-pie-chart fs-1"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Appointments -->
-            <div class="row mt-4">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5>Próximas Citas</h5>
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-hover">
-                                <thead>
-                                <tr>
-                                    <th>Fecha/Hora</th>
-                                    <th>Paciente</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted">
-                                        No hay citas próximas
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                            <tr>
+                                <th>Fecha/Hora</th>
+                                <th>Paciente</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${proximasCitas.isEmpty()}">
+                                <td colspan="4" class="text-center py-4 text-muted">
+                                    <i class="bi bi-calendar-x fs-4 d-block mb-2"></i>No hay citas próximas
+                                </td>
+                            </tr>
+                            <tr th:each="cita : ${proximasCitas}">
+                                <td>
+                                    <strong th:text="${#temporals.isToday(cita.dateTime) ? 'Hoy' : (#temporals.isTomorrow(cita.dateTime) ? 'Mañana' : #strings.capitalize(#temporals.format(cita.dateTime, 'EEE, d MMM')))}"></strong>
+                                    <span class="text-muted" th:text="'a las ' + ${#temporals.format(cita.dateTime, 'hh:mm a')}"></span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-person-circle me-2 fs-4"></i>
+                                        <div>
+                                            <strong th:text="${cita.patient.firstName + ' ' + cita.patient.lastName}"></strong><br>
+                                            <small class="text-muted" th:text="${cita.patient.docType + ' ' + cita.patient.docNumber}"></small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge" th:classappend="'badge-' + ${cita.status}" th:text="${#strings.capitalize(cita.status.toString().toLowerCase())}"></span>
+                                </td>
+                                <td>
+                                    <a th:href="@{/doctor/citas/{id}(id=${cita.id})}" class="btn btn-sm btn-outline-primary-custom me-1"><i class="bi bi-eye"></i></a>
+                                    <a href="#" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle"></i></a>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    // Cargar estadísticas vía AJAX
-    fetch('/api/dashboard/stats')
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('citasHoy').textContent = data.citasHoy;
-            document.getElementById('citasSemana').textContent = data.citasSemana;
-            document.getElementById('pacientesNuevos').textContent = data.pacientesNuevos;
-            document.getElementById('ocupacion').textContent = data.ocupacion + '%';
-        })
-        .catch(error => console.error('Error cargando estadísticas:', error));
-</script>
 </body>
 </html>
