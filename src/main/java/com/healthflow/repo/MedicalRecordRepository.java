@@ -2,23 +2,20 @@ package com.healthflow.repo;
 
 import com.healthflow.domain.MedicalRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
+@Repository
 public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, UUID> {
 
-    // CORREGIDO: Renombrado para seguir la convención de navegación de propiedades
-    Optional<MedicalRecord> findByAppointment_Id(UUID appointmentId);
-
-    // CORREGIDO: La ruta de navegación es a través del objeto anidado appointment.patient.id
-    @Query("SELECT mr FROM MedicalRecord mr WHERE mr.appointment.patient.id = :patientId ORDER BY mr.createdAt DESC")
-    List<MedicalRecord> findByPatientIdOrderByCreatedAtDesc(@Param("patientId") UUID patientId);
-
-    @Query("SELECT mr FROM MedicalRecord mr WHERE DATE(mr.createdAt) = :date")
-    List<MedicalRecord> findByDate(@Param("date") LocalDate date);
+    /**
+     * Recupera las historias clínicas previas de un paciente, ordenadas por fecha de la cita de forma descendente.
+     * Esencial para la continuidad asistencial.
+     *
+     * @param patientId El ID del paciente.
+     * @return Una lista de registros médicos ordenados.
+     */
+    List<MedicalRecord> findByAppointmentPatientIdOrderByAppointmentDateTimeDesc(UUID patientId);
 }

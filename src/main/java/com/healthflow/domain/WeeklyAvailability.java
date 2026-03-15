@@ -9,11 +9,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "disponibilidad_semanal")
-public class WeeklyAvailability {
-
-    @Id
-    @Column(columnDefinition = "uuid")
-    private UUID id;
+public class WeeklyAvailability extends BaseEntity {
 
     @NotNull
     @Column(name = "profesional_id", nullable = false, columnDefinition = "uuid")
@@ -36,14 +32,7 @@ public class WeeklyAvailability {
     @Column(name = "activo")
     private Boolean active = true;
 
-    @PrePersist
-    void prePersist() {
-        if (id == null) id = UUID.randomUUID();
-    }
-
     // Getters y Setters
-    public UUID getId() { return id; }
-
     public UUID getProfessionalId() { return professionalId; }
     public void setProfessionalId(UUID professionalId) { this.professionalId = professionalId; }
 

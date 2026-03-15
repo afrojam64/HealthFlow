@@ -182,6 +182,15 @@
             font-weight: 500;
         }
 
+        .badge-atendida {
+            background: #E5E7EB;
+            color: #4B5563;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
         /* Botones personalizados */
         .btn-health {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
@@ -208,6 +217,10 @@
             box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
             text-align: center;
             color: var(--gray-600);
+        }
+
+        .text-primary{
+            color: #2a7f6e !important;
         }
     </style>
 </head>
@@ -256,7 +269,7 @@
                     <a href="/dashboard" class="list-group-item list-group-item-action active">
                         <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
-                    <a href="#" class="list-group-item list-group-item-action">
+                    <a href="/doctor/agenda" class="list-group-item list-group-item-action">
                         <i class="bi bi-calendar-week"></i> Agenda
                     </a>
                     <a href="#" class="list-group-item list-group-item-action">
@@ -345,28 +358,56 @@
             <!-- Tabla de próximas citas mejorada -->
             <div class="table-custom">
                 <div class="p-3 bg-white border-bottom d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="bi bi-clock-history me-2 text-primary"></i>
-                        Próximas Citas
-                    </h5>
-                    <a href="#" class="btn btn-health btn-sm">
-                        Ver todas <i class="bi bi-arrow-right ms-1"></i>
-                    </a>
+                    <div>
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history me-2 text-primary"></i>
+                            Citas para el <span th:text="${fechaTablaCitas}"></span>
+                        </h5>
+                    </div>
+                    <div>
+                        <a th:href="@{/dashboard(date=${prevDate})}" class="btn btn-outline-secondary btn-sm">&lt;&lt; Día Anterior</a>
+                        <a th:href="@{/dashboard(date=${nextDate})}" class="btn btn-outline-secondary btn-sm">Día Siguiente &gt;&gt;</a>
+                    </div>
                 </div>
                 <table class="table mb-0">
                     <thead>
                     <tr>
-                        <th>Fecha/Hora</th>
+                        <th>Hora</th>
                         <th>Paciente</th>
                         <th>Estado</th>
-                        <th>Acciones</th>
+                        <th class="text-end">Acciones</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr>
+                    <tr th:if="${proximasCitas.isEmpty()}">
                         <td colspan="4" class="text-center py-4 text-muted">
                             <i class="bi bi-calendar-x fs-4 d-block mb-2"></i>
-                            No hay citas próximas
+                            No hay citas programadas para este día
+                        </td>
+                    </tr>
+                    <tr th:each="cita : ${proximasCitas}">
+                        <td th:text="${#temporals.format(cita.dateTime, 'hh:mm a', 'America/Bogota')}">09:00 AM</td>
+                        <td th:text="${cita.patient.firstName + ' ' + cita.patient.lastName}">Juan Pérez</td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${cita.status == T(com.healthflow.domain.AppointmentStatus).PENDIENTE ? 'badge-pendiente' :
+                                                   (cita.status == T(com.healthflow.domain.AppointmentStatus).CONFIRMADA ? 'badge-confirmada' : 'badge-atendida')}"
+                                  th:text="${cita.status.displayName}">CONFIRMADA</span>
+                        </td>
+                        <td class="text-end">
+                            <!-- INICIO DEL BLOQUE CORREGIDO -->
+                            <a th:if="${(cita.status == T(com.healthflow.domain.AppointmentStatus).PENDIENTE or cita.status == T(com.healthflow.domain.AppointmentStatus).CONFIRMADA) and
+                                       !cita.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')).toLocalDate().isAfter(today)}"
+                               th:href="@{/doctor/citas/{id}/atender(id=${cita.id})}"
+                               class="btn btn-sm btn-health">
+                                <i class="bi bi-file-earmark-medical me-1"></i>Atender
+                            </a>
+                            <a th:if="${cita.status == T(com.healthflow.domain.AppointmentStatus).ATENDIDA}"
+                               th:href="@{/doctor/citas/{id}/atender(id=${cita.id})}"
+                               class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-eye me-1"></i>Ver Nota
+                            </a>
+                            <!-- FIN DEL BLOQUE CORREGIDO -->
                         </td>
                     </tr>
                     </tbody>

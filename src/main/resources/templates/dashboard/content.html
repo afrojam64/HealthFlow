@@ -143,44 +143,56 @@
                                 <th>Paciente</th>
                                 <th>Médico</th>
                                 <th>Estado</th>
-                                <th>Acciones</th>
+                                <th class="text-end">Acciones</th>
                             </tr>
                             </thead>
-                            <tbody>
-                            <!-- Aquí irían las citas dinámicas -->
-                            <tr th:if="${appointments?.isEmpty() ?: true}">
+                            <!-- INICIO DEL BLOQUE MODIFICADO -->
+                            <tbody th:if="${proximasCitas != null}">
+                            <tr th:if="${#lists.isEmpty(proximasCitas)}">
                                 <td colspan="5" class="text-center py-4 text-muted">
                                     <i class="bi bi-calendar-x fs-4 d-block mb-2"></i>
                                     No hay citas próximas
                                 </td>
                             </tr>
-                            <!-- Ejemplo estático (luego se reemplazará con datos reales) -->
-                            <tr>
-                                <td>09:00 AM - Hoy</td>
+                            <tr th:each="appointment : ${proximasCitas}">
+                                <td th:text="${#temporals.format(appointment.dateTime, 'dd/MM/yyyy hh:mm a')}"></td>
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <i class="bi bi-person-circle me-2 fs-4"></i>
                                         <div>
-                                            <strong>Juan Pérez</strong>
+                                            <strong th:text="${appointment.patient.firstName + ' ' + appointment.patient.lastName}"></strong>
                                             <br>
-                                            <small class="text-muted">CC 100000001</small>
+                                            <small class="text-muted" th:text="${'CC ' + appointment.patient.documentNumber}"></small>
                                         </div>
                                     </div>
                                 </td>
-                                <td>Dra. Laura Pérez</td>
+                                <td th:text="${appointment.professional.fullName}"></td>
                                 <td>
-                                    <span class="badge bg-success">Confirmada</span>
+                                        <span class="badge"
+                                              th:classappend="${appointment.status.name() == 'PENDIENTE' ? 'bg-warning text-dark' :
+                                                               appointment.status.name() == 'CONFIRMADA' ? 'bg-success' :
+                                                               appointment.status.name() == 'ATENDIDA' ? 'bg-info' :
+                                                               'bg-secondary'}"
+                                              th:text="${appointment.status.displayName}">
+                                        </span>
                                 </td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary-custom me-1">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger">
-                                        <i class="bi bi-x-circle"></i>
-                                    </button>
+                                <td class="text-end">
+                                    <!-- Botón "Atender" para citas pendientes o confirmadas -->
+                                    <a th:if="${appointment.status.name() == 'PENDIENTE' or appointment.status.name() == 'CONFIRMADA'}"
+                                       th:href="@{/doctor/citas/{id}/atender(id=${appointment.id})}"
+                                       class="btn btn-sm btn-primary-custom me-1">
+                                        <i class="bi bi-file-earmark-medical"></i> Atender
+                                    </a>
+                                    <!-- Botón "Ver Nota" para citas atendidas -->
+                                    <a th:if="${appointment.status.name() == 'ATENDIDA'}"
+                                       th:href="@{/doctor/citas/{id}/atender(id=${appointment.id})}"
+                                       class="btn btn-sm btn-outline-secondary me-1">
+                                        <i class="bi bi-eye"></i> Ver Nota
+                                    </a>
                                 </td>
                             </tr>
                             </tbody>
+                            <!-- FIN DEL BLOQUE MODIFICADO -->
                         </table>
                     </div>
                 </div>

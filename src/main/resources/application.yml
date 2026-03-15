@@ -12,9 +12,7 @@ spring:
     password: TmX85col1978
   jpa:
     hibernate:
-      ddl-auto: update
-    flyway:
-      enabled: true
+      ddl-auto: validate # <-- CAMBIADO a 'validate'
     properties:
       hibernate:
         jdbc:

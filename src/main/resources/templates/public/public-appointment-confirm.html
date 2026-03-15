@@ -33,7 +33,7 @@
                     <div class="mb-3">
                         <div class="text-muted small">Detalles</div>
                         <div><strong>Estado:</strong> <span th:text="${appointment.status}">CONFIRMADA</span></div>
-                        <div><strong>Fecha/Hora (UTC):</strong> <span th:text="${appointment.dateTime}">...</span></div>
+                        <div><strong>Fecha/Hora:</strong> <span th:text="${#temporals.format(appointment.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')), 'EEEE, d ''de'' MMMM ''de'' yyyy ''a las'' hh:mm a', new java.util.Locale('es', 'CO'))}">...</span></div>
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex">

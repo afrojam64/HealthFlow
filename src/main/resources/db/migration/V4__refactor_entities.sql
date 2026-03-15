@@ -11,8 +11,8 @@ ALTER TABLE profesionales ADD COLUMN created_at TIMESTAMPTZ;
 ALTER TABLE profesionales ADD COLUMN updated_at TIMESTAMPTZ;
 
 ALTER TABLE pacientes ADD COLUMN version INT;
--- La columna created_at ya existe en pacientes, solo cambiamos el tipo si es necesario
-ALTER TABLE pacientes ALTER COLUMN created_at TYPE TIMESTAMPTZ;
+-- Solución temporal: Se cambia ALTER por ADD para que la migración se ejecute en este equipo
+ALTER TABLE pacientes ADD COLUMN created_at TIMESTAMPTZ;
 ALTER TABLE pacientes ADD COLUMN updated_at TIMESTAMPTZ;
 
 ALTER TABLE citas ADD COLUMN version INT;
