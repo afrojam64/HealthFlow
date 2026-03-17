@@ -44,20 +44,20 @@ public class SchedulingService {
     }
 
     public List<OffsetDateTime> getFreeSlots(UUID professionalId, LocalDate date) {
+        // 1. Calcular el inicio de la semana y el día de la semana correctos
         LocalDate weekStartDate = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        int dayOfWeek = date.getDayOfWeek().getValue();
+        int dayOfWeek = date.getDayOfWeek().getValue(); // 1=Lunes, ..., 7=Domingo
 
+        // 2. Buscar la disponibilidad directamente en la BD (lógica simplificada y robusta)
         Optional<WeeklyAvailability> dayAvailabilityOpt = weeklyAvailabilityRepository
-                .findByProfessionalIdAndWeekStartDateOrderByDayOfWeekAsc(professionalId, weekStartDate)
-                .stream()
-                .filter(wa -> wa.getDayOfWeek() == dayOfWeek)
-                .findFirst();
+                .findAvailabilityForDay(professionalId, weekStartDate, dayOfWeek);
 
         if (dayAvailabilityOpt.isEmpty()) {
             return List.of();
         }
         WeeklyAvailability availability = dayAvailabilityOpt.get();
 
+        // 3. Obtener citas ya agendadas para ese día
         OffsetDateTime startOfDay = date.atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime endOfDay = date.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
         Set<LocalTime> reservedSlots = appointmentRepository.findActiveByProfessionalIdAndDateTimeBetween(professionalId, startOfDay, endOfDay)
@@ -65,12 +65,12 @@ public class SchedulingService {
                 .map(a -> a.getDateTime().atZoneSameInstant(zoneId).toLocalTime())
                 .collect(Collectors.toSet());
 
+        // 4. Regla: mínimo tiempo de anticipación para agendar
         ZonedDateTime minAllowedTime = ZonedDateTime.now(zoneId).plusMinutes(minLeadMinutes);
 
+        // 5. Generar los slots y filtrarlos
         List<OffsetDateTime> freeSlots = new ArrayList<>();
         LocalTime slotTime = availability.getStartTime();
-        
-        // CORRECCIÓN: Ajustar la condición para incluir la hora de fin como un slot válido
         while (!slotTime.isAfter(availability.getEndTime())) {
             ZonedDateTime slotZdt = date.atTime(slotTime).atZone(zoneId);
 

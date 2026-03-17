@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Table(name = "pacientes")
@@ -54,6 +55,9 @@ public class Patient extends BaseEntity {
     @Column(name = "celular", nullable = false, length = 15)
     private String phone;
 
+    @OneToMany(mappedBy = "patient")
+    private List<Appointment> appointments;
+
     // Getters y Setters
     public String getDocType() { return docType; }
     public void setDocType(String docType) { this.docType = docType; }
@@ -87,4 +91,7 @@ public class Patient extends BaseEntity {
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
+
+    public List<Appointment> getAppointments() { return appointments; }
+    public void setAppointments(List<Appointment> appointments) { this.appointments = appointments; }
 }

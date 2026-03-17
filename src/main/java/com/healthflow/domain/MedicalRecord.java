@@ -1,7 +1,7 @@
 package com.healthflow.domain;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull; // Mantener si se usa en otros campos
 
 @Entity
 @Table(name = "consultas_hc")
@@ -11,11 +11,11 @@ public class MedicalRecord extends BaseEntity {
     @JoinColumn(name = "cita_id", nullable = false, unique = true)
     private Appointment appointment;
 
-    @NotNull
+    // @NotNull ELIMINADO: Permitir que sea nulo para borradores
     @Column(name = "motivo", columnDefinition = "TEXT")
     private String reason;
 
-    @NotNull
+    // @NotNull ELIMINADO: Permitir que sea nulo para borradores
     @Column(name = "evolucion", columnDefinition = "TEXT")
     private String evolution;
 
@@ -25,7 +25,7 @@ public class MedicalRecord extends BaseEntity {
     @Column(name = "dx_principal", length = 10)
     private String mainDiagnosis;
 
-    @NotNull
+    @NotNull // Este campo sí debe ser NotNull
     @Column(name = "bloqueado", nullable = false)
     private Boolean locked = false;
 

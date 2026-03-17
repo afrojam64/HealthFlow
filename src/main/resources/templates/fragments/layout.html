@@ -394,9 +394,15 @@
                                                    (cita.status == T(com.healthflow.domain.AppointmentStatus).CONFIRMADA ? 'badge-confirmada' : 'badge-atendida')}"
                                   th:text="${cita.status.displayName}">CONFIRMADA</span>
                         </td>
+                        <!-- INICIO DEL BLOQUE CORREGIDO -->
                         <td class="text-end">
-                            <!-- INICIO DEL BLOQUE CORREGIDO -->
-                            <a th:if="${(cita.status == T(com.healthflow.domain.AppointmentStatus).PENDIENTE or cita.status == T(com.healthflow.domain.AppointmentStatus).CONFIRMADA) and
+                            <a th:if="${cita.status == T(com.healthflow.domain.AppointmentStatus).PENDIENTE and
+                                       !cita.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')).toLocalDate().isAfter(today)}"
+                               th:href="@{/doctor/citas/{id}/atender(id=${cita.id})}"
+                               class="btn btn-sm btn-health">
+                                <i class="bi bi-file-earmark-medical me-1"></i>Atender
+                            </a>
+                            <a th:if="${cita.status == T(com.healthflow.domain.AppointmentStatus).CONFIRMADA and
                                        !cita.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')).toLocalDate().isAfter(today)}"
                                th:href="@{/doctor/citas/{id}/atender(id=${cita.id})}"
                                class="btn btn-sm btn-health">
@@ -407,8 +413,8 @@
                                class="btn btn-sm btn-outline-secondary">
                                 <i class="bi bi-eye me-1"></i>Ver Nota
                             </a>
-                            <!-- FIN DEL BLOQUE CORREGIDO -->
                         </td>
+                        <!-- FIN DEL BLOQUE CORREGIDO -->
                     </tr>
                     </tbody>
                 </table>

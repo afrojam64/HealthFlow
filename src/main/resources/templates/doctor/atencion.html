@@ -87,6 +87,11 @@
             border-radius: 12px;
             margin-bottom: 1.5rem;
         }
+        .history-panel {
+            background-color: #f8f9fa;
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
     </style>
 </head>
 <body>
@@ -108,73 +113,92 @@
         </a>
     </div>
 
-    <!-- Patient Info -->
-    <div class="patient-info-card">
-        <div class="row align-items-center">
-            <div class="col-md-6">
-                <h5><i class="bi bi-person-fill me-2"></i>Paciente</h5>
-                <p class="mb-1"><strong>Nombre:</strong> <span th:text="${patient.firstName + ' ' + patient.lastName}"></span></p>
-                <p class="mb-0"><strong>Documento:</strong> <span th:text="${patient.docNumber}"></span></p>
+    <div class="row g-4">
+        <div class="col-md-8">
+            <!-- Patient Info -->
+            <div class="patient-info-card">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-person-fill me-2"></i>Paciente</h5>
+                        <p class="mb-1"><strong>Nombre:</strong> <span th:text="${patient.firstName + ' ' + patient.lastName}"></span></p>
+                        <p class="mb-0"><strong>Documento:</strong> <span th:text="${patient.docNumber}"></span></p>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-6 text-md-end">
-                <a href="#" class="btn btn-secondary rounded-pill">
-                    <i class="bi bi-clock-history me-1"></i> Ver Historial Completo
-                </a>
+
+            <!-- Form Section -->
+            <div class="form-section">
+                <form th:action="@{/doctor/citas/{id}/guardar(id=${appointment.id})}" method="post">
+                    <input type="hidden" name="appointmentId" th:value="${appointment.id}" />
+
+                    <div th:if="${medicalRecord != null && medicalRecord.locked}" class="locked-alert">
+                        <i class="bi bi-lock-fill me-2"></i>
+                        <strong>Consulta Cerrada.</strong> Este registro ya fue guardado y no puede ser modificado.
+                    </div>
+
+                    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+                    <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+                    <fieldset th:disabled="${medicalRecord != null && medicalRecord.locked}">
+                        <div class="row g-4">
+                            <div class="col-12">
+                                <label for="reason" class="form-label">Motivo de la Consulta</label>
+                                <textarea id="reason" name="reason" class="form-control" rows="3" required th:text="${medicalRecord?.reason}"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label for="evolution" class="form-label">Evolución</label>
+                                <textarea id="evolution" name="evolution" class="form-control" rows="8" required th:text="${medicalRecord?.evolution}"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="mainDiagnosis" class="form-label">Diagnóstico Principal (CIE-10)</label>
+                                <input type="text" id="mainDiagnosis" name="mainDiagnosis" class="form-control" placeholder="Ej: J06.9" th:value="${medicalRecord?.mainDiagnosis}">
+                            </div>
+                            <div class="col-12">
+                                <label for="prescription" class="form-label">Prescripción / Fórmula Médica</label>
+                                <textarea id="prescription" name="prescription" class="form-control" rows="4" th:text="${medicalRecord?.prescription}"></textarea>
+                            </div>
+                        </div>
+                        <div class="text-center mt-5">
+                            <button type="submit" class="btn btn-secondary px-5">
+                                <i class="bi bi-save me-2"></i>Guardar Borrador
+                            </button>
+                        </div>
+                    </fieldset>
+                </form>
+                <form th:action="@{/doctor/citas/{id}/finalizar(id=${appointment.id})}" method="post" class="text-center mt-3">
+                    <button type="submit" class="btn btn-primary px-5" th:disabled="${medicalRecord != null && medicalRecord.locked}">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        Finalizar y Cerrar Consulta
+                    </button>
+                </form>
             </div>
         </div>
-    </div>
-
-    <!-- Form Section -->
-    <div class="form-section">
-        <form th:action="@{/doctor/citas/atencion/guardar}" method="post">
-            <input type="hidden" name="appointmentId" th:value="${appointment.id}" />
-
-            <!-- Alerta si la consulta ya está cerrada -->
-            <div th:if="${medicalRecord != null && medicalRecord.locked}" class="locked-alert">
-                <i class="bi bi-lock-fill me-2"></i>
-                <strong>Consulta Cerrada.</strong> Este registro ya fue guardado y no puede ser modificado.
+        <div class="col-md-4">
+            <div class="history-panel">
+                <h4><i class="bi bi-clock-history me-2"></i>Historial</h4>
+                <div th:if="${previousRecords.isEmpty()}">
+                    <p class="text-muted">No hay registros anteriores para este paciente.</p>
+                </div>
+                <div class="accordion" id="historyAccordion" th:unless="${previousRecords.isEmpty()}">
+                    <div class="accordion-item" th:each="rec, iter : ${previousRecords}">
+                        <h2 class="accordion-header" th:id="'heading' + ${iter.index}">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${iter.index}">
+                                <strong th:text="${#temporals.format(rec.appointment.dateTime, 'dd/MM/yyyy')}"></strong>
+                                <span class="mx-2">-</span>
+                                <span th:text="${rec.mainDiagnosis} ?: 'Sin diagnóstico'"></span>
+                            </button>
+                        </h2>
+                        <div th:id="'collapse' + ${iter.index}" class="accordion-collapse collapse" data-bs-parent="#historyAccordion">
+                            <div class="accordion-body">
+                                <p><strong>Motivo:</strong> <span th:text="${rec.reason}"></span></p>
+                                <p><strong>Evolución:</strong> <span th:text="${rec.evolution}"></span></p>
+                                <p th:if="${rec.prescription}"><strong>Prescripción:</strong> <span th:text="${rec.prescription}"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <!-- Mensajes de error/éxito -->
-            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
-            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
-
-            <fieldset th:disabled="${medicalRecord != null && medicalRecord.locked}">
-                <div class="row g-4">
-                    <!-- Motivo de la Consulta -->
-                    <div class="col-12">
-                        <label for="reason" class="form-label">Motivo de la Consulta</label>
-                        <textarea id="reason" name="reason" class="form-control" rows="3" required th:text="${medicalRecord?.reason}"></textarea>
-                    </div>
-
-                    <!-- Evolución -->
-                    <div class="col-12">
-                        <label for="evolution" class="form-label">Evolución</label>
-                        <textarea id="evolution" name="evolution" class="form-control" rows="8" required th:text="${medicalRecord?.evolution}"></textarea>
-                    </div>
-
-                    <!-- Diagnóstico Principal (CIE-10) -->
-                    <div class="col-md-6">
-                        <label for="mainDiagnosis" class="form-label">Diagnóstico Principal (CIE-10)</label>
-                        <input type="text" id="mainDiagnosis" name="mainDiagnosis" class="form-control" placeholder="Ej: J06.9" th:value="${medicalRecord?.mainDiagnosis}">
-                    </div>
-
-                    <!-- Prescripción -->
-                    <div class="col-12">
-                        <label for="prescription" class="form-label">Prescripción / Fórmula Médica</label>
-                        <textarea id="prescription" name="prescription" class="form-control" rows="4" th:text="${medicalRecord?.prescription}"></textarea>
-                    </div>
-                </div>
-
-                <!-- Botón de Guardar -->
-                <div class="text-center mt-5">
-                    <button type="submit" class="btn btn-primary px-5">
-                        <i class="bi bi-check-circle-fill me-2"></i>
-                        Guardar y Cerrar Consulta
-                    </button>
-                </div>
-            </fieldset>
-        </form>
+        </div>
     </div>
 </div>
 
