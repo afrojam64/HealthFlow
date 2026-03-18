@@ -67,6 +67,7 @@ public class DashboardController {
         model.addAttribute("prevDate", viewDate.minusDays(1));
         model.addAttribute("nextDate", viewDate.plusDays(1));
         model.addAttribute("today", today); // <-- RESTAURADO
+        model.addAttribute("contenido", "dashboard/content");
 
         return "fragments/layout";
     }

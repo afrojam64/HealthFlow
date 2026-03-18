@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<div th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary">
+            <i class="bi bi-people-fill me-2"></i>Mis Pacientes
+        </h2>
+    </div>
+
+    <!-- Pestañas -->
+    <ul class="nav nav-tabs mb-4" id="pacientesTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="atendidos-tab" data-bs-toggle="tab" data-bs-target="#atendidos" type="button" role="tab" aria-controls="atendidos" aria-selected="true">
+                Atendidos <span class="badge bg-success ms-2" th:text="${pacientesAtendidos.size()}">0</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pendientes-tab" data-bs-toggle="tab" data-bs-target="#pendientes" type="button" role="tab" aria-controls="pendientes" aria-selected="false">
+                Por atender <span class="badge bg-warning ms-2" th:text="${pacientesPendientes.size()}">0</span>
+            </button>
+        </li>
+    </ul>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" th:action="@{/doctor/pacientes}" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Nombre</label>
+                    <input type="text" class="form-control" name="nombre" th:value="${filtroNombre}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Documento</label>
+                    <input type="text" class="form-control" name="documento" th:value="${filtroDocumento}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Fecha desde</label>
+                    <input type="date" class="form-control" name="fechaDesde" th:value="${filtroFechaDesde}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Fecha hasta</label>
+                    <input type="date" class="form-control" name="fechaHasta" th:value="${filtroFechaHasta}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contenido de las pestañas -->
+    <div class="tab-content" id="pacientesTabContent">
+        <!-- Pestaña Atendidos -->
+        <div class="tab-pane fade show active" id="atendidos" role="tabpanel" aria-labelledby="atendidos-tab">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Documento</th>
+                        <th>Última cita</th>
+                        <th>Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${pacientesAtendidos.isEmpty()}">
+                        <td colspan="4" class="text-center text-muted py-4">
+                            <i class="bi bi-emoji-frown fs-2 d-block mb-2"></i>
+                            No hay pacientes atendidos
+                        </td>
+                    </tr>
+                    <tr th:each="p : ${pacientesAtendidos}">
+                        <td th:text="${p.nombreCompleto}">Juan Pérez</td>
+                        <td th:text="${p.documento}">12345678</td>
+                        <td th:text="${p.ultimaCita != null ? #temporals.format(p.ultimaCita, 'dd/MM/yyyy') : 'Sin cita'}">15/03/2026</td>
+                        <td>
+                            <a th:href="@{/doctor/pacientes/{id}/historial(id=${p.id})}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-file-earmark-medical me-1"></i>Ver historial
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pestaña Pendientes -->
+        <div class="tab-pane fade" id="pendientes" role="tabpanel" aria-labelledby="pendientes-tab">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Documento</th>
+                        <th>Última cita</th>
+                        <th>Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${pacientesPendientes.isEmpty()}">
+                        <td colspan="4" class="text-center text-muted py-4">
+                            <i class="bi bi-emoji-frown fs-2 d-block mb-2"></i>
+                            No hay pacientes pendientes
+                        </td>
+                    </tr>
+                    <tr th:each="p : ${pacientesPendientes}">
+                        <td th:text="${p.nombreCompleto}">Juan Pérez</td>
+                        <td th:text="${p.documento}">12345678</td>
+                        <td th:text="${p.ultimaCita != null ? #temporals.format(p.ultimaCita, 'dd/MM/yyyy') : 'Sin cita'}">15/03/2026</td>
+                        <td>
+                            <a th:href="@{/doctor/pacientes/{id}/historial(id=${p.id})}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-file-earmark-medical me-1"></i>Ver historial
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

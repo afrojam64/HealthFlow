@@ -22,6 +22,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -67,17 +68,41 @@ public class DoctorAgendaController {
 
         LocalDate startOfCurrentWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
 
-        model.addAttribute("title", "Agenda - HealthFlow");
+        // Variables necesarias para el layout (copiadas de PatientController)
+        String fechaActual = today.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + ", " +
+                today.getDayOfMonth() + " de " +
+                today.getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + " de " +
+                today.getYear();
+
+        String fechaTablaCitas = today.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + ", " +
+                today.getDayOfMonth() + " de " +
+                today.getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "ES"));
+
+        DashboardStats stats = new DashboardStats(0, 0, 0, 0);
+        List<Object> proximasCitas = new ArrayList<>();
+
         model.addAttribute("username", username);
+        model.addAttribute("stats", stats);
+        model.addAttribute("fechaActual", fechaActual);
+        model.addAttribute("fechaTablaCitas", fechaTablaCitas);
+        model.addAttribute("proximasCitas", proximasCitas);
+        model.addAttribute("prevDate", today.minusDays(1));
+        model.addAttribute("nextDate", today.plusDays(1));
+        model.addAttribute("today", today);
+
+        // Datos específicos de la agenda
         model.addAttribute("professionalName", professional.getFullName());
+        model.addAttribute("title", "Agenda - HealthFlow");
         model.addAttribute("currentYear", currentYear);
         model.addAttribute("currentMonth", currentMonth);
         model.addAttribute("currentMonthName", monthNames[currentMonth]);
         model.addAttribute("prevMonthName", monthNames[prevMonth]);
         model.addAttribute("nextMonthName", monthNames[nextMonth]);
         model.addAttribute("startOfCurrentWeek", startOfCurrentWeek);
+        //model.addAttribute("contenido", "doctor/agenda");
+        model.addAttribute("contenido", "doctor/agenda");
 
-        return "doctor/agenda";
+        return "fragments/layout";
     }
 
     @PostMapping("/agenda/save")
@@ -219,5 +244,25 @@ public class DoctorAgendaController {
         public void setHoraFin(String horaFin) { this.horaFin = horaFin; }
         public Boolean getActivo() { return activo; }
         public void setActivo(Boolean activo) { this.activo = activo; }
+    }
+
+    // Clase interna para stats (igual que en PatientController)
+    public static class DashboardStats {
+        public final long citasHoy;
+        public final long citasSemana;
+        public final long pacientesNuevos;
+        public final int ocupacion;
+
+        public DashboardStats(long citasHoy, long citasSemana, long pacientesNuevos, int ocupacion) {
+            this.citasHoy = citasHoy;
+            this.citasSemana = citasSemana;
+            this.pacientesNuevos = pacientesNuevos;
+            this.ocupacion = ocupacion;
+        }
+
+        public long getCitasHoy() { return citasHoy; }
+        public long getCitasSemana() { return citasSemana; }
+        public long getPacientesNuevos() { return pacientesNuevos; }
+        public int getOcupacion() { return ocupacion; }
     }
 }

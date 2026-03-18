@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<div th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="bi bi-person-lines-fill me-2"></i>Historial Clínico
+            </h2>
+            <p class="text-muted" th:text="${patient.firstName + ' ' + patient.lastName + ' - ' + patient.docNumber}">
+                Juan Pérez - 12345678
+            </p>
+        </div>
+        <a href="/doctor/pacientes" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+
+    <!-- Opciones adicionales (descargar/enviar) -->
+    <div class="d-flex justify-content-end gap-2 mb-4">
+        <button class="btn btn-outline-primary" disabled>
+            <i class="bi bi-download me-1"></i>Descargar PDF
+        </button>
+        <button class="btn btn-outline-primary" disabled>
+            <i class="bi bi-envelope me-1"></i>Enviar al paciente
+        </button>
+    </div>
+
+    <!-- Listado de citas -->
+    <div class="accordion" id="historialAccordion">
+        <div th:if="${historial.isEmpty()}" class="alert alert-info">
+            Este paciente no tiene citas registradas con usted.
+        </div>
+        <div class="accordion-item" th:each="cita, iterStat : ${historial}" th:attr="data-index=${iterStat.index}">
+            <h2 class="accordion-header" th:id="'heading' + ${iterStat.index}">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                        th:attr="data-bs-target='#collapse' + ${iterStat.index}"
+                        th:classappend="${!iterStat.first} ? 'collapsed' : ''">
+                    <span class="fw-bold me-3" th:text="${#temporals.format(cita.fecha, 'dd/MM/yyyy HH:mm')}">15/03/2026 09:00</span>
+                    <span class="badge ms-2" th:classappend="${cita.estado == T(com.healthflow.domain.AppointmentStatus).ATENDIDA ? 'bg-success' :
+                                                                          (cita.estado == T(com.healthflow.domain.AppointmentStatus).PENDIENTE ? 'bg-warning' : 'bg-secondary')}"
+                          th:text="${cita.estado}">Atendida</span>
+                    <span th:if="${!cita.tieneRegistro}" class="badge bg-secondary ms-2">Sin registro</span>
+                </button>
+            </h2>
+            <div th:id="'collapse' + ${iterStat.index}" class="accordion-collapse collapse"
+                 th:classappend="${iterStat.first} ? 'show' : ''"
+                 th:attr="aria-labelledby='heading' + ${iterStat.index}">
+                <div class="accordion-body">
+                    <div th:if="${cita.tieneRegistro}">
+                        <p><strong>Motivo:</strong> <span th:text="${cita.registro.reason}">Dolor de cabeza</span></p>
+                        <p><strong>Diagnóstico (CIE-10):</strong> <span th:text="${cita.registro.mainDiagnosis}">R51</span></p>
+                        <p><strong>Evolución:</strong></p>
+                        <p class="border-start border-3 ps-3" th:text="${cita.registro.evolution}">Evolución detallada...</p>
+                        <p><strong>Prescripción:</strong></p>
+                        <p class="border-start border-3 ps-3" th:text="${cita.registro.prescription}">Prescripción...</p>
+                    </div>
+                    <div th:if="${!cita.tieneRegistro}">
+                        <p class="text-muted">Esta cita no tiene un registro clínico asociado.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

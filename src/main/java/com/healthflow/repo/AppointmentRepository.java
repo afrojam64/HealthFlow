@@ -50,4 +50,16 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
 
     List<Appointment> findByDateTimeBetweenOrderByDateTimeAsc(OffsetDateTime start, OffsetDateTime end);
 
+    // ========== NUEVOS MÉTODOS PARA EL MÓDULO DE PACIENTES ==========
+
+    /**
+     * Encuentra la última cita (más reciente) de un paciente con un profesional específico.
+     */
+    Optional<Appointment> findTopByPatientIdAndProfessionalIdOrderByDateTimeDesc(UUID patientId, UUID professionalId);
+
+    /**
+     * Encuentra todas las citas de un paciente con un profesional específico, ordenadas por fecha descendente.
+     */
+    List<Appointment> findByPatientIdAndProfessionalIdOrderByDateTimeDesc(UUID patientId, UUID professionalId);
+
 }
