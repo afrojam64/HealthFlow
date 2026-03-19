@@ -2,6 +2,7 @@ package com.healthflow.config;
 
 import com.healthflow.domain.*;
 import com.healthflow.repo.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -48,6 +49,12 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+
+        if (userRepo.count() > 0) {
+            System.out.println("[DataSeeder] Ya existen usuarios, no se insertan datos de ejemplo. Cargando catálogos RIPS si es necesario...");
+            cargarCatalogosRIPS();
+            return;
+        }
 
         if (!enabled) return;
 
@@ -315,5 +322,100 @@ public class DataSeeder implements CommandLineRunner {
         appointment.setDateTime(dateTime);
         appointment.setStatus(status);
         return appointmentRepo.save(appointment);
+    }
+
+    // ===== 8) CARGAR CATÁLOGOS RIPS =====
+    @Autowired
+    private CatalogoFinalidadConsultaRepository finalidadRepo;
+
+    @Autowired
+    private CatalogoCausaExternaRepository causaExternaRepo;
+
+// Después de cargar los demás datos, dentro del if (userRepo.count() > 0) return;
+
+    private void cargarCatalogosRIPS() {
+        System.out.println("[DataSeeder] Cargando catálogos RIPS...");
+
+        // Finalidad de Consulta
+        if (finalidadRepo.count() == 0) {
+            List<CatalogoFinalidadConsulta> finalidades = Arrays.asList(
+                    new CatalogoFinalidadConsulta("01", "Detección temprana - Alteraciones del desarrollo del joven (de 10 a 29 años)"),
+                    new CatalogoFinalidadConsulta("02", "Detección temprana - Alteraciones del embarazo"),
+                    new CatalogoFinalidadConsulta("03", "Detección temprana - Alteraciones del adulto (de 45 a 59 años)"),
+                    new CatalogoFinalidadConsulta("04", "Detección temprana - Cáncer de cuello uterino"),
+                    new CatalogoFinalidadConsulta("05", "Detección temprana - Cáncer de mama"),
+                    new CatalogoFinalidadConsulta("06", "Detección temprana - Alteraciones de la agudeza visual"),
+                    new CatalogoFinalidadConsulta("07", "Protección específica - Vacunación"),
+                    new CatalogoFinalidadConsulta("08", "Protección específica - Atención preventiva en salud bucal"),
+                    new CatalogoFinalidadConsulta("09", "Protección específica - Atención preventiva en salud mental"),
+                    new CatalogoFinalidadConsulta("10", "Protección específica - Planificación familiar"),
+                    new CatalogoFinalidadConsulta("11", "Protección específica - Atención del parto"),
+                    new CatalogoFinalidadConsulta("12", "Protección específica - Atención del recién nacido"),
+                    new CatalogoFinalidadConsulta("13", "Protección específica - Atención en planificación familiar hombres"),
+                    new CatalogoFinalidadConsulta("14", "Detección temprana - Enfermedad renal crónica"),
+                    new CatalogoFinalidadConsulta("15", "Detección temprana - Hipertensión arterial"),
+                    new CatalogoFinalidadConsulta("16", "Detección temprana - Diabetes mellitus"),
+                    new CatalogoFinalidadConsulta("17", "Detección temprana - Alteraciones metabólicas"),
+                    new CatalogoFinalidadConsulta("18", "Protección específica - Crecimiento y desarrollo (menores de 10 años)"),
+                    new CatalogoFinalidadConsulta("19", "Demanda inducida - Vacunación"),
+                    new CatalogoFinalidadConsulta("20", "Demanda inducida - Control de enfermedades crónicas"),
+                    new CatalogoFinalidadConsulta("21", "Demanda inducida - Consulta por morbilidad"),
+                    new CatalogoFinalidadConsulta("22", "Consulta de primera vez"),
+                    new CatalogoFinalidadConsulta("23", "Consulta de control o seguimiento"),
+                    new CatalogoFinalidadConsulta("24", "Consulta de urgencias"),
+                    new CatalogoFinalidadConsulta("25", "Consulta domiciliaria"),
+                    new CatalogoFinalidadConsulta("26", "Consulta a instituciones cerradas"),
+                    new CatalogoFinalidadConsulta("27", "Teleconsulta"),
+                    new CatalogoFinalidadConsulta("28", "Junta médica"),
+                    new CatalogoFinalidadConsulta("29", "Interconsulta"),
+                    new CatalogoFinalidadConsulta("30", "Consulta de promoción y mantenimiento de la salud"),
+                    new CatalogoFinalidadConsulta("31", "Consulta para la prescripción de tecnologías en salud"),
+                    new CatalogoFinalidadConsulta("32", "Consulta para la certificación de incapacidad"),
+                    new CatalogoFinalidadConsulta("33", "Consulta por primera vez por medicina especializada"),
+                    new CatalogoFinalidadConsulta("34", "Consulta de control por medicina especializada"),
+                    new CatalogoFinalidadConsulta("99", "Otra finalidad")
+            );
+            finalidadRepo.saveAll(finalidades);
+            System.out.println("[DataSeeder] " + finalidades.size() + " finalidades de consulta cargadas.");
+        }
+
+        // Causa Externa
+        if (causaExternaRepo.count() == 0) {
+            List<CatalogoCausaExterna> causas = Arrays.asList(
+                    new CatalogoCausaExterna("01", "Accidente de trabajo"),
+                    new CatalogoCausaExterna("02", "Accidente de tránsito"),
+                    new CatalogoCausaExterna("03", "Accidente doméstico"),
+                    new CatalogoCausaExterna("04", "Accidente de otro tipo"),
+                    new CatalogoCausaExterna("05", "Agresión (atentado, maltrato, violencia)"),
+                    new CatalogoCausaExterna("06", "Lesión autoinfligida (intento de suicidio)"),
+                    new CatalogoCausaExterna("07", "Sospecha de maltrato físico"),
+                    new CatalogoCausaExterna("08", "Sospecha de abuso sexual"),
+                    new CatalogoCausaExterna("09", "Sospecha de violencia sexual"),
+                    new CatalogoCausaExterna("10", "Enfermedad general"),
+                    new CatalogoCausaExterna("11", "Enfermedad profesional"),
+                    new CatalogoCausaExterna("12", "Condiciones maternas"),
+                    new CatalogoCausaExterna("13", "Condiciones perinatales"),
+                    new CatalogoCausaExterna("14", "Enfermedad huérfana (rara)"),
+                    new CatalogoCausaExterna("15", "Accidente biológico"),
+                    new CatalogoCausaExterna("16", "Otra causa externa"),
+                    new CatalogoCausaExterna("17", "Intoxicación por plaguicidas"),
+                    new CatalogoCausaExterna("18", "Intoxicación por fármacos"),
+                    new CatalogoCausaExterna("19", "Intoxicación por otros químicos"),
+                    new CatalogoCausaExterna("20", "Efecto adverso por droga lícita"),
+                    new CatalogoCausaExterna("21", "Efecto adverso por droga ilícita"),
+                    new CatalogoCausaExterna("22", "Efecto adverso por medicamentos"),
+                    new CatalogoCausaExterna("23", "Reacción adversa a vacuna"),
+                    new CatalogoCausaExterna("24", "Evento adverso durante procedimiento quirúrgico"),
+                    new CatalogoCausaExterna("25", "Evento adverso durante procedimiento médico"),
+                    new CatalogoCausaExterna("26", "Complicación de implante o injerto"),
+                    new CatalogoCausaExterna("27", "Complicación de dispositivo médico"),
+                    new CatalogoCausaExterna("28", "Reacción adversa a transfusión"),
+                    new CatalogoCausaExterna("29", "Evento adverso durante atención en salud"),
+                    new CatalogoCausaExterna("30", "Lesión por reacción medicamentosa"),
+                    new CatalogoCausaExterna("99", "Otra")
+            );
+            causaExternaRepo.saveAll(causas);
+            System.out.println("[DataSeeder] " + causas.size() + " causas externas cargadas.");
+        }
     }
 }

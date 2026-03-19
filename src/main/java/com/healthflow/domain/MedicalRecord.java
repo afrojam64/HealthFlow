@@ -3,6 +3,8 @@ package com.healthflow.domain;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull; // Mantener si se usa en otros campos
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "consultas_hc")
 public class MedicalRecord extends BaseEntity {
@@ -28,6 +30,65 @@ public class MedicalRecord extends BaseEntity {
     @NotNull // Este campo sí debe ser NotNull
     @Column(name = "bloqueado", nullable = false)
     private Boolean locked = false;
+
+    // ========== NUEVOS CAMPOS PARA RIPS ==========
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "finalidad_consulta_id")
+    private CatalogoFinalidadConsulta finalidadConsulta;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "causa_externa_id")
+    private CatalogoCausaExterna causaExterna;
+
+    @Column(name = "modalidad_consulta", length = 2)
+    private String modalidadConsulta; // Tabla ModalidadAtencion (01=Presencial, 02=Telemedicina, etc.)
+
+    @Column(name = "grupo_servicios", length = 2)
+    private String grupoServicios; // Tabla GrupoServicios
+
+    @Column(name = "via_ingreso", length = 2)
+    private String viaIngreso; // Tabla ViaIngresoUsuario
+
+    @Column(name = "tipo_diagnostico", length = 1)
+    private String tipoDiagnostico; // 1=Impresión diagnóstica, 2=Confirmado nuevo, 3=Confirmado repetido
+
+    @Column(name = "valor_servicio")
+    private BigDecimal valorServicio;
+
+    @Column(name = "cuota_moderadora")
+    private BigDecimal cuotaModeradora;
+
+    @Column(name = "copago")
+    private BigDecimal copago;
+
+    // Getters y Setters para los nuevos campos
+    public CatalogoFinalidadConsulta getFinalidadConsulta() { return finalidadConsulta; }
+    public void setFinalidadConsulta(CatalogoFinalidadConsulta finalidadConsulta) { this.finalidadConsulta = finalidadConsulta; }
+
+    public CatalogoCausaExterna getCausaExterna() { return causaExterna; }
+    public void setCausaExterna(CatalogoCausaExterna causaExterna) { this.causaExterna = causaExterna; }
+
+    public String getModalidadConsulta() { return modalidadConsulta; }
+    public void setModalidadConsulta(String modalidadConsulta) { this.modalidadConsulta = modalidadConsulta; }
+
+    public String getGrupoServicios() { return grupoServicios; }
+    public void setGrupoServicios(String grupoServicios) { this.grupoServicios = grupoServicios; }
+
+    public String getViaIngreso() { return viaIngreso; }
+    public void setViaIngreso(String viaIngreso) { this.viaIngreso = viaIngreso; }
+
+    public String getTipoDiagnostico() { return tipoDiagnostico; }
+    public void setTipoDiagnostico(String tipoDiagnostico) { this.tipoDiagnostico = tipoDiagnostico; }
+
+    public BigDecimal getValorServicio() { return valorServicio; }
+    public void setValorServicio(BigDecimal valorServicio) { this.valorServicio = valorServicio; }
+
+    public BigDecimal getCuotaModeradora() { return cuotaModeradora; }
+    public void setCuotaModeradora(BigDecimal cuotaModeradora) { this.cuotaModeradora = cuotaModeradora; }
+
+    public BigDecimal getCopago() { return copago; }
+    public void setCopago(BigDecimal copago) { this.copago = copago; }
 
     // Getters y Setters
 

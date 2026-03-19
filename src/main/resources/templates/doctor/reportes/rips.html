@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<div th:fragment="contenido">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary">
+            <i class="bi bi-file-text me-2"></i>Reportes RIPS
+        </h2>
+        <div class="text-muted">
+            <i class="bi bi-info-circle me-1"></i>
+            Resolución 2275 de 2023
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Generar Reporte RIPS</h5>
+            <p class="card-text">Selecciona el rango de fechas para generar el archivo JSON con los datos de las atenciones.</p>
+
+            <form th:action="@{/doctor/reportes/rips/generar}" method="post" class="row g-3">
+                <div class="col-md-5">
+                    <label for="fechaInicio" class="form-label">Fecha inicial</label>
+                    <input type="date" class="form-control" id="fechaInicio" name="fechaInicio"
+                           th:value="${today}" required>
+                </div>
+                <div class="col-md-5">
+                    <label for="fechaFin" class="form-label">Fecha final</label>
+                    <input type="date" class="form-control" id="fechaFin" name="fechaFin"
+                           th:value="${today}" required>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-download me-1"></i> Generar
+                    </button>
+                </div>
+            </form>
+
+            <div class="alert alert-info mt-4 mb-0 small">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Solo se incluirán las citas con estado <strong>ATENDIDA</strong> y que tengan al menos un diagnóstico registrado.
+            </div>
+        </div>
+    </div>
+
+    <!-- Leyenda de campos RIPS (opcional) -->
+    <div class="card mt-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="bi bi-journal-code me-2"></i>Campos incluidos en el reporte</h6>
+        </div>
+        <div class="card-body small">
+            <ul class="list-unstyled mb-0 row">
+                <li class="col-md-6"><span class="badge bg-secondary me-2">1</span> Fecha y hora de atención</li>
+                <li class="col-md-6"><span class="badge bg-secondary me-2">2</span> Código de consulta (CUPS)</li>
+                <li class="col-md-6"><span class="badge bg-secondary me-2">3</span> Finalidad de la consulta</li>
+                <li class="col-md-6"><span class="badge bg-secondary me-2">4</span> Causa externa</li>
+                <li class="col-md-6"><span class="badge bg-secondary me-2">5</span> Diagnóstico principal (CIE-10)</li>
+                <li class="col-md-6"><span class="badge bg-secondary me-2">6</span> Diagnósticos relacionados</li>
+                <li class="col-md-6"><span class="badge bg-secondary me-2">7</span> Tipo y número de documento</li>
+                <li class="col-md-6"><span class="badge bg-secondary me-2">8</span> Valor del servicio y copagos</li>
+            </ul>
+        </div>
+    </div>
+</div>
+</body>
+</html>

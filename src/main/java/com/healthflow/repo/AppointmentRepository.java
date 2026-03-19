@@ -62,4 +62,20 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
      */
     List<Appointment> findByPatientIdAndProfessionalIdOrderByDateTimeDesc(UUID patientId, UUID professionalId);
 
+    /**
+     * Busca todas las citas de un profesional en un rango de fechas que tengan un estado específico.
+     * Incluye las relaciones con paciente y registro médico para evitar lazy loading.
+     */
+    @Query("SELECT a FROM Appointment a " +
+            "LEFT JOIN FETCH a.patient " +
+            "LEFT JOIN FETCH a.medicalRecord " +
+            "WHERE a.professional.id = :professionalId " +
+            "AND a.dateTime BETWEEN :start AND :end " +
+            "AND a.status = :status")
+    List<Appointment> findByProfessionalIdAndDateTimeBetweenAndStatus(
+            @Param("professionalId") UUID professionalId,
+            @Param("start") OffsetDateTime start,
+            @Param("end") OffsetDateTime end,
+            @Param("status") AppointmentStatus status);
+
 }
