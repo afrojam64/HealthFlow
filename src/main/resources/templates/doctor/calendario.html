@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* Estilos adicionales para el calendario */
+        .calendar-table {
+            border-collapse: separate;
+            border-spacing: 0 8px;
+            margin-top: 1rem;
+        }
+        .calendar-table th {
+            font-weight: 600;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            padding-bottom: 0.75rem;
+            border: none !important;
+            background: transparent !important;
+        }
+        .calendar-cell {
+            background: white;
+            border-radius: 16px !important;
+            padding: 0.75rem !important;
+            vertical-align: top;
+            height: 120px;
+            border: 1px solid var(--gray-200) !important;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .calendar-cell:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(42,127,110,0.08);
+            border-color: var(--primary-light) !important;
+        }
+        .calendar-cell.out-of-month {
+            background-color: var(--gray-50);
+            color: var(--gray-500);
+        }
+        .day-number {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--gray-800);
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            text-align: center;
+            border-radius: 50%;
+            margin-bottom: 0.5rem;
+        }
+        .day-number.today {
+            background: var(--primary);
+            color: white;
+        }
+        .cita-badge {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            border-radius: 20px;
+            padding: 0.15rem 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+            display: inline-block;
+            margin-right: 0.25rem;
+            margin-bottom: 0.25rem;
+        }
+        .cita-item {
+            font-size: 0.8rem;
+            padding: 0.1rem 0;
+            border-bottom: 1px dashed var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .cita-item:last-child {
+            border-bottom: none;
+        }
+        .cita-hora {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .cita-paciente {
+            color: var(--gray-700);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 90px;
+        }
+        .more-citas {
+            font-size: 0.7rem;
+            color: var(--gray-500);
+            margin-top: 0.25rem;
+        }
+        .btn-calendar-nav {
+            border-radius: 40px;
+            padding: 0.4rem 1.2rem;
+            font-size: 0.9rem;
+            border-color: var(--gray-200);
+            color: var(--gray-700);
+        }
+        .btn-calendar-nav:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary-dark);
+        }
+    </style>
+</head>
+<body>
+<div th:fragment="contenido">
+    <!-- Cabecera con título y navegación de mes -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <h2 class="text-primary mb-2 mb-sm-0">
+            <i class="bi bi-calendar-range me-2"></i>Calendario de Citas
+        </h2>
+        <div class="d-flex align-items-center">
+            <a th:href="@{/doctor/calendario(year=${prevYear}, month=${prevMonth})}"
+               class="btn btn-outline-secondary btn-calendar-nav me-2">
+                <i class="bi bi-chevron-left"></i> <span th:text="${prevMonthName}">Enero</span>
+            </a>
+            <span class="fw-bold fs-5 mx-2 text-nowrap" th:text="${currentMonthName} + ' ' + ${currentYear}">Marzo 2026</span>
+            <a th:href="@{/doctor/calendario(year=${nextYear}, month=${nextMonth})}"
+               class="btn btn-outline-secondary btn-calendar-nav ms-2">
+                <span th:text="${nextMonthName}">Mayo</span> <i class="bi bi-chevron-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Calendario mensual -->
+    <div class="table-responsive">
+        <table class="table calendar-table">
+            <thead>
+            <tr>
+                <th>Lunes</th>
+                <th>Martes</th>
+                <th>Miércoles</th>
+                <th>Jueves</th>
+                <th>Viernes</th>
+                <th>Sábado</th>
+                <th>Domingo</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="semana : ${semanas}">
+                <td th:each="dia : ${semana}"
+                    class="calendar-cell"
+                    th:classappend="${dia.monthValue != currentMonth} ? 'out-of-month' : ''"
+                    style="cursor: pointer;"
+                    th:data-url="@{/dashboard(date=${dia})}"
+                    onclick="location.href=this.dataset.url;">
+
+                    <!-- Número del día -->
+                    <div class="d-flex justify-content-between align-items-start">
+                            <span class="day-number"
+                                  th:classappend="${dia == today} ? 'today' : ''"
+                                  th:text="${dia.dayOfMonth}"></span>
+                        <!-- Contador de citas (si hay) -->
+                        <span th:if="${citasPorDia.containsKey(dia)}"
+                              class="cita-badge"
+                              th:text="${citasPorDia.get(dia).size()} + ' cita' + ${citasPorDia.get(dia).size() > 1 ? 's' : ''}"></span>
+                    </div>
+
+                    <!-- Lista de citas (máximo 3) -->
+                    <div th:if="${citasPorDia.containsKey(dia)}" class="mt-2">
+                        <div th:each="cita, stat : ${citasPorDia.get(dia)}"
+                             th:if="${stat.index < 3}"
+                             class="cita-item">
+                            <span class="cita-hora" th:text="${#temporals.format(cita.dateTime, 'HH:mm')}">09:00</span>
+                            <span class="cita-paciente" th:text="${cita.patient.firstName + ' ' + cita.patient.lastName}">Juan Pérez</span>
+                        </div>
+                        <!-- Indicador de más citas -->
+                        <div th:if="${citasPorDia.get(dia).size() > 3}"
+                             class="more-citas">
+                            <i class="bi bi-plus-circle me-1"></i>
+                            <span th:text="${citasPorDia.get(dia).size() - 3}"></span> más
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Leyenda informativa -->
+    <div class="mt-4 text-muted small">
+        <i class="bi bi-info-circle me-1"></i>
+        Haz clic en cualquier día para ver el detalle completo de las citas.
+    </div>
+</div>
+</body>
+</html>
