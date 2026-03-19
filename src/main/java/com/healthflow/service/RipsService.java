@@ -5,7 +5,9 @@ import com.healthflow.api.dto.rips.RipsDTO;
 import com.healthflow.domain.Appointment;
 import com.healthflow.domain.AppointmentStatus;
 import com.healthflow.domain.MedicalRecord;
+import com.healthflow.domain.Professional;
 import com.healthflow.repo.AppointmentRepository;
+import com.healthflow.repo.ProfessionalRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,11 +25,13 @@ public class RipsService {
 
     private final AppointmentRepository appointmentRepository;
     private final ZoneId zoneId;
+    private final ProfessionalRepository professionalRepository;
 
     public RipsService(AppointmentRepository appointmentRepository,
-                       @Value("${healthflow.timezone:America/Bogota}") String tz) {
+                       @Value("${healthflow.timezone:America/Bogota}") String tz, ProfessionalRepository professionalRepository) {
         this.appointmentRepository = appointmentRepository;
         this.zoneId = ZoneId.of(tz);
+        this.professionalRepository = professionalRepository;
     }
 
     /**
@@ -41,7 +45,11 @@ public class RipsService {
     @Transactional(readOnly = true)
     public RipsDTO generarRips(UUID professionalId, LocalDate fechaInicio, LocalDate fechaFin) {
 
-        // Convertir fechas a OffsetDateTime para la consulta (incluye todo el día)
+        // Obtener el profesional (para sus datos)
+        Professional professional = professionalRepository.findById(professionalId)
+                .orElseThrow(() -> new DomainException("Profesional no encontrado"));
+
+        // Convertir fechas a OffsetDateTime para la consulta
         OffsetDateTime start = fechaInicio.atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime end = fechaFin.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
 
@@ -59,10 +67,9 @@ public class RipsService {
         // Construir el DTO principal
         RipsDTO rips = new RipsDTO();
         rips.setFechaGeneracion(LocalDate.now(zoneId));
-        // Estos datos deberían venir del profesional, pero por ahora los dejamos vacíos
-        rips.setNitProfesional(""); // Se obtendría de Professional
-        rips.setNombreProfesional(""); // Se obtendría de Professional
-        rips.setRegistroRethus(""); // Se obtendría de Professional
+        rips.setNitProfesional(professional.getNit());
+        rips.setNombreProfesional(professional.getFullName());
+        rips.setRegistroRethus(professional.getMedicalRegistry());
         rips.setConsultas(consultas);
 
         return rips;
@@ -103,11 +110,12 @@ public class RipsService {
             dto.setVrServicio(mr.getValorServicio() != null ? mr.getValorServicio().doubleValue() : null);
             dto.setVrCuotaModeradora(mr.getCuotaModeradora() != null ? mr.getCuotaModeradora().doubleValue() : null);
             dto.setVrCopago(mr.getCopago() != null ? mr.getCopago().doubleValue() : null);
-        }
 
-        // Código CUPS de la consulta (podrías tenerlo en el profesional o en un catálogo)
-        // Por ahora lo dejamos vacío o con un valor por defecto.
-        dto.setCodigoConsulta(""); // Ej: "890101" para consulta de medicina general
+            // Código CUPS de la consulta (ahora se obtiene del registro médico)
+            dto.setCodigoConsulta(mr.getCodigoCups() != null ? mr.getCodigoCups() : "");
+        } else {
+            dto.setCodigoConsulta("");
+        }
 
         return dto;
     }

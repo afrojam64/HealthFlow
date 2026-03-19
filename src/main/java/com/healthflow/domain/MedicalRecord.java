@@ -1,9 +1,9 @@
 package com.healthflow.domain;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull; // Mantener si se usa en otros campos
-
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "consultas_hc")
@@ -13,11 +13,9 @@ public class MedicalRecord extends BaseEntity {
     @JoinColumn(name = "cita_id", nullable = false, unique = true)
     private Appointment appointment;
 
-    // @NotNull ELIMINADO: Permitir que sea nulo para borradores
     @Column(name = "motivo", columnDefinition = "TEXT")
     private String reason;
 
-    // @NotNull ELIMINADO: Permitir que sea nulo para borradores
     @Column(name = "evolucion", columnDefinition = "TEXT")
     private String evolution;
 
@@ -27,12 +25,10 @@ public class MedicalRecord extends BaseEntity {
     @Column(name = "dx_principal", length = 10)
     private String mainDiagnosis;
 
-    @NotNull // Este campo sí debe ser NotNull
     @Column(name = "bloqueado", nullable = false)
     private Boolean locked = false;
 
-    // ========== NUEVOS CAMPOS PARA RIPS ==========
-
+    // Relaciones con catálogos RIPS
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "finalidad_consulta_id")
     private CatalogoFinalidadConsulta finalidadConsulta;
@@ -41,6 +37,7 @@ public class MedicalRecord extends BaseEntity {
     @JoinColumn(name = "causa_externa_id")
     private CatalogoCausaExterna causaExterna;
 
+    // Campos RIPS adicionales
     @Column(name = "modalidad_consulta", length = 2)
     private String modalidadConsulta; // Tabla ModalidadAtencion (01=Presencial, 02=Telemedicina, etc.)
 
@@ -62,7 +59,28 @@ public class MedicalRecord extends BaseEntity {
     @Column(name = "copago")
     private BigDecimal copago;
 
-    // Getters y Setters para los nuevos campos
+    @Column(name = "codigo_cups", length = 10)
+    private String codigoCups; // Código CUPS de la consulta
+
+    // Getters y Setters
+    public Appointment getAppointment() { return appointment; }
+    public void setAppointment(Appointment appointment) { this.appointment = appointment; }
+
+    public String getReason() { return reason; }
+    public void setReason(String reason) { this.reason = reason; }
+
+    public String getEvolution() { return evolution; }
+    public void setEvolution(String evolution) { this.evolution = evolution; }
+
+    public String getPrescription() { return prescription; }
+    public void setPrescription(String prescription) { this.prescription = prescription; }
+
+    public String getMainDiagnosis() { return mainDiagnosis; }
+    public void setMainDiagnosis(String mainDiagnosis) { this.mainDiagnosis = mainDiagnosis; }
+
+    public Boolean getLocked() { return locked; }
+    public void setLocked(Boolean locked) { this.locked = locked; }
+
     public CatalogoFinalidadConsulta getFinalidadConsulta() { return finalidadConsulta; }
     public void setFinalidadConsulta(CatalogoFinalidadConsulta finalidadConsulta) { this.finalidadConsulta = finalidadConsulta; }
 
@@ -90,53 +108,6 @@ public class MedicalRecord extends BaseEntity {
     public BigDecimal getCopago() { return copago; }
     public void setCopago(BigDecimal copago) { this.copago = copago; }
 
-    // Getters y Setters
-
-    public Appointment getAppointment() {
-        return appointment;
-    }
-
-    public void setAppointment(Appointment appointment) {
-        this.appointment = appointment;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public void setReason(String reason) {
-        this.reason = reason;
-    }
-
-    public String getEvolution() {
-        return evolution;
-    }
-
-    public void setEvolution(String evolution) {
-        this.evolution = evolution;
-    }
-
-    public String getPrescription() {
-        return prescription;
-    }
-
-    public void setPrescription(String prescription) {
-        this.prescription = prescription;
-    }
-
-    public String getMainDiagnosis() {
-        return mainDiagnosis;
-    }
-
-    public void setMainDiagnosis(String mainDiagnosis) {
-        this.mainDiagnosis = mainDiagnosis;
-    }
-
-    public Boolean getLocked() {
-        return locked;
-    }
-
-    public void setLocked(Boolean locked) {
-        this.locked = locked;
-    }
+    public String getCodigoCups() { return codigoCups; }
+    public void setCodigoCups(String codigoCups) { this.codigoCups = codigoCups; }
 }

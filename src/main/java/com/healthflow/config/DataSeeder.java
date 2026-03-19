@@ -81,11 +81,11 @@ public class DataSeeder implements CommandLineRunner {
 
         // ===== 2) CREAR PROFESIONALES Y VINCULARLOS CON USUARIOS =====
         List<Professional> professionals = Arrays.asList(
-                createProfessional("Dra. Laura Pérez", "RM-10001", "Medicina General"),
-                createProfessional("Dr. Andrés Gómez", "RM-10002", "Medicina Interna"),
-                createProfessional("Dra. Sofía Ruiz", "RM-10003", "Pediatría"),
-                createProfessional("Dr. Camilo Torres", "RM-10004", "Ortopedia"),
-                createProfessional("Dra. Valentina Díaz", "RM-10005", "Ginecología")
+                createProfessional("Dra. Laura Pérez", "RM-10001", "Medicina General", "900123456-1"),
+                createProfessional("Dr. Andrés Gómez", "RM-10002", "Medicina Interna", "900123457-1"),
+                createProfessional("Dra. Sofía Ruiz", "RM-10003", "Pediatría", "900123458-1"),
+                createProfessional("Dr. Camilo Torres", "RM-10004", "Ortopedia", "900123459-1"),
+                createProfessional("Dra. Valentina Díaz", "RM-10005", "Ginecología", "900123460-1")
         );
 
         // Vincular usuarios a profesionales
@@ -268,11 +268,12 @@ public class DataSeeder implements CommandLineRunner {
         return user;
     }
 
-    private Professional createProfessional(String fullName, String medicalRegistry, String specialty) {
+    private Professional createProfessional(String fullName, String medicalRegistry, String specialty, String nit) {
         Professional professional = new Professional();
         professional.setFullName(fullName);
         professional.setMedicalRegistry(medicalRegistry);
         professional.setSpecialty(specialty);
+        professional.setNit(nit);
         return professional;
     }
 

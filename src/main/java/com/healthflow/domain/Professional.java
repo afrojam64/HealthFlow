@@ -15,6 +15,9 @@ public class Professional extends BaseEntity {
     @Column(name = "nombre_completo", nullable = false, length = 150)
     private String fullName;
 
+    @Column(name = "nit", unique = true, length = 20)
+    private String nit; // Número de Identificación Tributaria (para facturación)
+
     @NotBlank
     @Column(name = "registro_medico", unique = true, nullable = false, length = 50)
     private String medicalRegistry;
@@ -39,6 +42,9 @@ public class Professional extends BaseEntity {
     public void setFullName(String fullName) {
         this.fullName = fullName;
     }
+
+    public String getNit() { return nit; }
+    public void setNit(String nit) { this.nit = nit; }
 
     public String getMedicalRegistry() {
         return medicalRegistry;

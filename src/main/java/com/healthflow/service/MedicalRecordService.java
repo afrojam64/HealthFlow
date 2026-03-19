@@ -1,13 +1,11 @@
 package com.healthflow.service;
 
-import com.healthflow.domain.Appointment;
-import com.healthflow.domain.AppointmentStatus;
-import com.healthflow.domain.MedicalRecord;
-import com.healthflow.repo.AppointmentRepository;
-import com.healthflow.repo.MedicalRecordRepository;
+import com.healthflow.domain.*;
+import com.healthflow.repo.*;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.UUID;
@@ -17,13 +15,19 @@ public class MedicalRecordService {
 
     private final MedicalRecordRepository medicalRecordRepository;
     private final AppointmentRepository appointmentRepository;
+    private final CatalogoFinalidadConsultaRepository finalidadRepo;
+    private final CatalogoCausaExternaRepository causaExternaRepo;
     private final ZoneId zoneId;
 
     public MedicalRecordService(MedicalRecordRepository medicalRecordRepository,
                                 AppointmentRepository appointmentRepository,
+                                CatalogoFinalidadConsultaRepository finalidadRepo,
+                                CatalogoCausaExternaRepository causaExternaRepo,
                                 @org.springframework.beans.factory.annotation.Value("${healthflow.timezone:America/Bogota}") String tz) {
         this.medicalRecordRepository = medicalRecordRepository;
         this.appointmentRepository = appointmentRepository;
+        this.finalidadRepo = finalidadRepo;
+        this.causaExternaRepo = causaExternaRepo;
         this.zoneId = ZoneId.of(tz);
     }
 
@@ -32,19 +36,27 @@ public class MedicalRecordService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new DomainException("Cita no encontrada con ID: " + appointmentId));
 
-        // Si ya existe un registro, lo retornamos
         if (appointment.getMedicalRecord() != null) {
             return appointment.getMedicalRecord();
         }
 
-        // Si no existe, creamos uno nuevo en estado de borrador
         MedicalRecord newRecord = new MedicalRecord();
         newRecord.setAppointment(appointment);
         return medicalRecordRepository.save(newRecord);
     }
 
     @Transactional
-    public MedicalRecord saveMedicalRecord(UUID appointmentId, String reason, String evolution, String prescription, String mainDiagnosis) {
+    public MedicalRecord saveMedicalRecord(UUID appointmentId,
+                                           String reason,
+                                           String evolution,
+                                           String prescription,
+                                           String mainDiagnosis,
+                                           Long finalidadId,
+                                           Long causaExternaId,
+                                           BigDecimal valorServicio,
+                                           BigDecimal cuotaModeradora,
+                                           BigDecimal copago,
+                                           String codigoCups) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new DomainException("Cita no encontrada con ID: " + appointmentId));
 
@@ -53,12 +65,10 @@ public class MedicalRecordService {
             throw new DomainException("No se puede guardar una historia clínica que no ha sido iniciada.");
         }
 
-        // Validar que el registro no esté bloqueado
         if (record.getLocked()) {
             throw new DomainException("Esta consulta ya ha sido cerrada y no se puede modificar.");
         }
 
-        // Validar que solo se pueda editar el día de la cita
         LocalDate today = LocalDate.now(zoneId);
         LocalDate appointmentDate = record.getAppointment().getDateTime().atZoneSameInstant(zoneId).toLocalDate();
         if (!today.isEqual(appointmentDate)) {
@@ -69,6 +79,27 @@ public class MedicalRecordService {
         record.setEvolution(evolution);
         record.setPrescription(prescription);
         record.setMainDiagnosis(mainDiagnosis);
+
+        if (finalidadId != null) {
+            CatalogoFinalidadConsulta finalidad = finalidadRepo.findById(finalidadId)
+                    .orElseThrow(() -> new DomainException("Finalidad de consulta no válida"));
+            record.setFinalidadConsulta(finalidad);
+        } else {
+            record.setFinalidadConsulta(null);
+        }
+
+        if (causaExternaId != null) {
+            CatalogoCausaExterna causa = causaExternaRepo.findById(causaExternaId)
+                    .orElseThrow(() -> new DomainException("Causa externa no válida"));
+            record.setCausaExterna(causa);
+        } else {
+            record.setCausaExterna(null);
+        }
+
+        record.setValorServicio(valorServicio);
+        record.setCuotaModeradora(cuotaModeradora);
+        record.setCopago(copago);
+        record.setCodigoCups(codigoCups);
 
         return medicalRecordRepository.save(record);
     }
