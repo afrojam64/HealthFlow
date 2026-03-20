@@ -5,7 +5,7 @@
 </head>
 <body>
 <div th:fragment="content">
-    <!-- Título y fecha (que ahora van dentro del fragmento) -->
+    <!-- Título y fecha -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="text-primary">
             <i class="bi bi-speedometer2 me-2"></i>Dashboard
@@ -16,7 +16,7 @@
         </div>
     </div>
 
-    <!-- Cards de estadísticas mejoradas -->
+    <!-- Cards de estadísticas -->
     <div class="row g-4 mb-4">
         <div class="col-md-3">
             <div class="stat-card">
@@ -71,7 +71,7 @@
         </div>
     </div>
 
-    <!-- Tabla de próximas citas mejorada -->
+    <!-- Tabla de próximas citas -->
     <div class="table-custom">
         <div class="p-3 bg-white border-bottom d-flex justify-content-between align-items-center">
             <div>
@@ -105,25 +105,28 @@
                 <td th:text="${#temporals.format(cita.dateTime, 'hh:mm a', 'America/Bogota')}">09:00 AM</td>
                 <td th:text="${cita.patient.firstName + ' ' + cita.patient.lastName}">Juan Pérez</td>
                 <td>
-                    <span class="badge"
-                          th:classappend="${cita.status == T(com.healthflow.domain.AppointmentStatus).PENDIENTE ? 'badge-pendiente' :
-                                           (cita.status == T(com.healthflow.domain.AppointmentStatus).CONFIRMADA ? 'badge-confirmada' : 'badge-atendida')}"
-                          th:text="${cita.status.displayName}">CONFIRMADA</span>
+                    <!-- Badge con switch según el estado -->
+                    <span class="badge" th:switch="${cita.status.name()}">
+                        <span th:case="'PENDIENTE'" class="badge-pendiente">Pendiente</span>
+                        <span th:case="'CONFIRMADA'" class="badge-confirmada">Confirmada</span>
+                        <span th:case="'ATENDIDA'" class="badge-atendida">Atendida</span>
+                        <span th:case="'CANCELADA'" class="badge-cancelada">Cancelada</span>
+                        <span th:case="*">Desconocido</span>
+                    </span>
                 </td>
                 <td class="text-end">
-                    <a th:if="${cita.status == T(com.healthflow.domain.AppointmentStatus).PENDIENTE and
-                               !cita.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')).toLocalDate().isAfter(today)}"
+                    <!-- Botones usando cita.status.name() para comparar -->
+                    <a th:if="${cita.status.name() == 'PENDIENTE' and !cita.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')).toLocalDate().isAfter(today)}"
                        th:href="@{/doctor/citas/{id}/atender(id=${cita.id})}"
                        class="btn btn-sm btn-health">
                         <i class="bi bi-file-earmark-medical me-1"></i>Atender
                     </a>
-                    <a th:if="${cita.status == T(com.healthflow.domain.AppointmentStatus).CONFIRMADA and
-                               !cita.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')).toLocalDate().isAfter(today)}"
+                    <a th:if="${cita.status.name() == 'CONFIRMADA' and !cita.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')).toLocalDate().isAfter(today)}"
                        th:href="@{/doctor/citas/{id}/atender(id=${cita.id})}"
                        class="btn btn-sm btn-health">
                         <i class="bi bi-file-earmark-medical me-1"></i>Atender
                     </a>
-                    <a th:if="${cita.status == T(com.healthflow.domain.AppointmentStatus).ATENDIDA}"
+                    <a th:if="${cita.status.name() == 'ATENDIDA'}"
                        th:href="@{/doctor/citas/{id}/atender(id=${cita.id})}"
                        class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-eye me-1"></i>Ver Nota

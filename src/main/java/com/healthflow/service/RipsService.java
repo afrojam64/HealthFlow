@@ -81,40 +81,29 @@ public class RipsService {
     private RipsConsultaDTO convertirAConsultaDTO(Appointment cita) {
         RipsConsultaDTO dto = new RipsConsultaDTO();
 
-        // Fecha y hora de la atención (en zona local)
         ZonedDateTime fechaHoraLocal = cita.getDateTime().atZoneSameInstant(zoneId);
         dto.setFechaInicioAtencion(fechaHoraLocal.toLocalDate());
         dto.setHoraInicioAtencion(fechaHoraLocal.toLocalTime());
 
-        // Datos del paciente
         dto.setTipoDocumentoIdentificacion(cita.getPatient().getDocType());
         dto.setNumDocumentoIdentificacion(cita.getPatient().getDocNumber());
 
-        // Datos clínicos (si existen)
         MedicalRecord mr = cita.getMedicalRecord();
         if (mr != null) {
             dto.setCodDiagnosticoPrincipal(mr.getMainDiagnosis());
-            // Nota: si tienes campos separados para diagnósticos relacionados, asígnarlos aquí
-            // dto.setCodDiagnosticoRelacionado1(mr.getRelatedDiagnosis1());
-            // dto.setCodDiagnosticoRelacionado2(mr.getRelatedDiagnosis2());
-
-            // Finalidad y causa externa (los códigos)
+            // Asignar códigos de finalidad y causa externa
             if (mr.getFinalidadConsulta() != null) {
                 dto.setFinalidadConsulta(mr.getFinalidadConsulta().getCodigo());
             }
             if (mr.getCausaExterna() != null) {
                 dto.setCausaExterna(mr.getCausaExterna().getCodigo());
             }
-
-            // Valores económicos (si se capturan)
+            // Asignar código CUPS
+            dto.setCodigoConsulta(mr.getCodigoCups() != null ? mr.getCodigoCups() : "");
+            // Valores económicos
             dto.setVrServicio(mr.getValorServicio() != null ? mr.getValorServicio().doubleValue() : null);
             dto.setVrCuotaModeradora(mr.getCuotaModeradora() != null ? mr.getCuotaModeradora().doubleValue() : null);
             dto.setVrCopago(mr.getCopago() != null ? mr.getCopago().doubleValue() : null);
-
-            // Código CUPS de la consulta (ahora se obtiene del registro médico)
-            dto.setCodigoConsulta(mr.getCodigoCups() != null ? mr.getCodigoCups() : "");
-        } else {
-            dto.setCodigoConsulta("");
         }
 
         return dto;

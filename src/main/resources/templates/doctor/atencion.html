@@ -151,7 +151,7 @@
                 </div>
             </div>
 
-            <!-- Form Section -->
+            <!-- Formulario único -->
             <div class="form-section">
                 <form th:action="@{/doctor/citas/{id}/guardar(id=${appointment.id})}" method="post">
                     <div th:if="${medicalRecord != null && medicalRecord.locked}" class="locked-alert">
@@ -218,21 +218,23 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Botones -->
                         <div class="text-center mt-5">
-                            <button type="submit" class="btn btn-secondary px-5">
+                            <button type="submit" name="accion" value="guardar" class="btn btn-secondary px-5">
                                 <i class="bi bi-save me-2"></i>Guardar Borrador
+                            </button>
+                            <button type="submit" name="accion" value="finalizar" class="btn btn-primary px-5 ms-3" th:disabled="${medicalRecord != null && medicalRecord.locked}">
+                                <i class="bi bi-check-circle-fill me-2"></i>
+                                Finalizar y Cerrar Consulta
                             </button>
                         </div>
                     </fieldset>
                 </form>
-                <form th:action="@{/doctor/citas/{id}/finalizar(id=${appointment.id})}" method="post" class="text-center mt-3">
-                    <button type="submit" class="btn btn-primary px-5" th:disabled="${medicalRecord != null && medicalRecord.locked}">
-                        <i class="bi bi-check-circle-fill me-2"></i>
-                        Finalizar y Cerrar Consulta
-                    </button>
-                </form>
             </div>
         </div>
+
+        <!-- Panel de historial (sin cambios) -->
         <div class="col-md-4">
             <div class="history-panel">
                 <h4><i class="bi bi-clock-history me-2"></i>Historial</h4>
