@@ -2,9 +2,12 @@ package com.healthflow.web;
 
 import com.healthflow.domain.Appointment;
 import com.healthflow.domain.AppointmentStatus;
+import com.healthflow.domain.Professional;
 import com.healthflow.repo.AppointmentRepository;
 import com.healthflow.repo.PatientRepository;
 import com.healthflow.repo.ProfessionalRepository;
+import com.healthflow.repo.UserRepository;
+import com.healthflow.service.DomainException;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -20,6 +23,7 @@ import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.UUID;
 
 @Controller
 public class DashboardController {
@@ -27,17 +31,29 @@ public class DashboardController {
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
     private final ProfessionalRepository professionalRepository;
+    private final UserRepository userRepository;
     private final ZoneId zoneId;
 
     public DashboardController(
             AppointmentRepository appointmentRepository,
             PatientRepository patientRepository,
             ProfessionalRepository professionalRepository,
+            UserRepository userRepository,
             @org.springframework.beans.factory.annotation.Value("${healthflow.timezone:America/Bogota}") String tz) {
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.professionalRepository = professionalRepository;
+        this.userRepository = userRepository;
         this.zoneId = ZoneId.of(tz);
+    }
+
+    private UUID getCurrentProfessionalId() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new DomainException("Usuario no encontrado"));
+        Professional professional = professionalRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
+        return professional.getId();
     }
 
     @GetMapping("/dashboard")
@@ -56,7 +72,10 @@ public class DashboardController {
 
         OffsetDateTime startOfDay = viewDate.atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime endOfDay = viewDate.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
-        List<Appointment> proximasCitas = appointmentRepository.findByDateTimeBetweenOrderByDateTimeAsc(startOfDay, endOfDay);
+
+        UUID professionalId = getCurrentProfessionalId();
+        List<Appointment> proximasCitas = appointmentRepository
+                .findActiveByProfessionalIdAndDateTimeBetween(professionalId, startOfDay, endOfDay);
 
         model.addAttribute("title", "Dashboard - HealthFlow");
         model.addAttribute("username", username);
@@ -66,7 +85,7 @@ public class DashboardController {
         model.addAttribute("proximasCitas", proximasCitas);
         model.addAttribute("prevDate", viewDate.minusDays(1));
         model.addAttribute("nextDate", viewDate.plusDays(1));
-        model.addAttribute("today", today); // <-- RESTAURADO
+        model.addAttribute("today", today);
         model.addAttribute("contenido", "dashboard/content");
 
         return "fragments/layout";

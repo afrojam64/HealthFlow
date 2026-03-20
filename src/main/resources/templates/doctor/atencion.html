@@ -1,147 +1,21 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${title}">Atención Clínica - HealthFlow</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-        :root {
-            --primary: #2A7F6E;
-            --primary-dark: #1E5F51;
-            --primary-light: #E8F5F2;
-            --gray-50: #F9FAFB;
-            --gray-100: #F3F4F6;
-            --gray-200: #E5E7EB;
-            --gray-600: #4B5563;
-            --gray-800: #1F2937;
-        }
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background-color: var(--gray-50);
-        }
-        .header-bar {
-            background: white;
-            padding: 1.5rem 2rem;
-            border-radius: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-            margin-bottom: 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid var(--gray-200);
-        }
-        .form-section {
-            background: white;
-            border-radius: 24px;
-            padding: 2.5rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-            border: 1px solid var(--gray-200);
-        }
-        .form-label {
-            font-weight: 600;
-            color: var(--gray-800);
-            margin-bottom: 0.5rem;
-        }
-        .form-control, .form-select {
-            border-radius: 12px;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--gray-200);
-        }
-        .form-control:focus, .form-select:focus {
-            outline: 2px solid var(--primary);
-            border-color: transparent;
-            box-shadow: none;
-        }
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 14px 32px;
-            border-radius: 40px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn-primary:hover {
-            background: var(--primary-dark);
-        }
-        .btn-secondary {
-            background: white;
-            border: 1px solid var(--primary);
-            color: var(--primary);
-            padding: 14px 32px;
-            border-radius: 40px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn-secondary:hover {
-            background: var(--primary-light);
-        }
-        .patient-info-card {
-            background: var(--primary-light);
-            border: 1px solid var(--primary);
-            padding: 1.5rem;
-            border-radius: 16px;
-            margin-bottom: 2rem;
-        }
-        .patient-info-card h5 {
-            color: var(--primary-dark);
-            font-weight: 600;
-        }
-        .locked-alert {
-            background-color: #fff3cd;
-            border-color: #ffeeba;
-            color: #856404;
-            padding: 1rem;
-            border-radius: 12px;
-            margin-bottom: 1.5rem;
-        }
-        .history-panel {
-            background-color: #f8f9fa;
-            border-radius: 16px;
-            padding: 1.5rem;
-        }
-        .rips-section {
-            background-color: #f0f7f5;
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-top: 2rem;
-            border: 1px solid var(--primary-light);
-        }
-        .rips-section h5 {
-            color: var(--primary-dark);
-            margin-bottom: 1rem;
-        }
-    </style>
-</head>
-<body>
-<div class="container-fluid py-4 px-5">
-    <!-- Header -->
-    <div class="header-bar">
-        <div>
-            <h2 class="mb-1">
-                <i class="bi bi-file-earmark-medical text-primary me-2"></i>
-                <span th:text="${title}">Atención Clínica</span>
-            </h2>
-            <p class="text-muted mb-0">
-                <i class="bi bi-calendar-event me-1"></i>
-                <span th:text="'Cita del ' + ${#temporals.format(appointment.dateTime, 'dd/MM/yyyy HH:mm')}"></span>
-            </p>
+<div th:fragment="contenido" class="container-fluid px-0">
+    <!-- Header interno de la sección -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary">
+            <i class="bi bi-file-earmark-medical me-2"></i>
+            <span th:text="${title}">Atención Clínica</span>
+        </h2>
+        <div class="text-muted">
+            <i class="bi bi-calendar-event me-1"></i>
+            <span th:text="'Cita del ' + ${#temporals.format(appointment.dateTime, 'dd/MM/yyyy HH:mm')}"></span>
         </div>
-        <a href="/dashboard" class="btn btn-outline-secondary rounded-pill px-4">
-            <i class="bi bi-arrow-left me-1"></i> Volver al Dashboard
-        </a>
     </div>
 
     <div class="row g-4">
+        <!-- Columna principal: formularios -->
         <div class="col-md-8">
-            <!-- Patient Info -->
-            <div class="patient-info-card">
+            <!-- Información del paciente -->
+            <div class="patient-info-card mb-4">
                 <div class="row align-items-center">
                     <div class="col-md-6">
                         <h5><i class="bi bi-person-fill me-2"></i>Paciente</h5>
@@ -151,8 +25,8 @@
                 </div>
             </div>
 
-            <!-- Formulario único -->
-            <div class="form-section">
+            <!-- Formulario de GUARDAR BORRADOR -->
+            <div class="form-section mb-4">
                 <form th:action="@{/doctor/citas/{id}/guardar(id=${appointment.id})}" method="post">
                     <div th:if="${medicalRecord != null && medicalRecord.locked}" class="locked-alert">
                         <i class="bi bi-lock-fill me-2"></i>
@@ -219,42 +93,97 @@
                             </div>
                         </div>
 
-                        <!-- Botones -->
                         <div class="text-center mt-5">
-                            <button type="submit" name="accion" value="guardar" class="btn btn-secondary px-5">
+                            <button type="submit" class="btn btn-secondary px-5">
                                 <i class="bi bi-save me-2"></i>Guardar Borrador
-                            </button>
-                            <button type="submit" name="accion" value="finalizar" class="btn btn-primary px-5 ms-3" th:disabled="${medicalRecord != null && medicalRecord.locked}">
-                                <i class="bi bi-check-circle-fill me-2"></i>
-                                Finalizar y Cerrar Consulta
                             </button>
                         </div>
                     </fieldset>
                 </form>
             </div>
+
+            <!-- Formulario de FINALIZAR -->
+            <div class="form-section">
+                <form th:action="@{/doctor/citas/{id}/finalizar(id=${appointment.id})}" method="post">
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary px-5" th:disabled="${medicalRecord != null && medicalRecord.locked}">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            Finalizar y Cerrar Consulta
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
 
-        <!-- Panel de historial (sin cambios) -->
+        <!-- Columna derecha: historial mejorado -->
         <div class="col-md-4">
             <div class="history-panel">
-                <h4><i class="bi bi-clock-history me-2"></i>Historial</h4>
+                <h4 class="mb-3">
+                    <i class="bi bi-clock-history me-2 text-primary"></i> Historial de Consultas
+                </h4>
                 <div th:if="${previousRecords.isEmpty()}">
-                    <p class="text-muted">No hay registros anteriores para este paciente.</p>
+                    <div class="alert alert-light text-center py-4 rounded-4 border">
+                        <i class="bi bi-archive fs-1 d-block mb-2 text-muted"></i>
+                        No hay registros anteriores para este paciente.
+                    </div>
                 </div>
                 <div class="accordion" id="historyAccordion" th:unless="${previousRecords.isEmpty()}">
-                    <div class="accordion-item" th:each="rec, iter : ${previousRecords}">
+                    <div class="accordion-item mb-3 border-0 shadow-sm rounded-4 overflow-hidden"
+                         th:each="rec, iter : ${previousRecords}">
                         <h2 class="accordion-header" th:id="'heading' + ${iter.index}">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${iter.index}">
-                                <strong th:text="${#temporals.format(rec.appointment.dateTime, 'dd/MM/yyyy')}"></strong>
-                                <span class="mx-2">-</span>
-                                <span th:text="${rec.mainDiagnosis} ?: 'Sin diagnóstico'"></span>
+                            <button class="accordion-button collapsed bg-white rounded-4 p-3" type="button"
+                                    data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${iter.index}"
+                                    aria-expanded="false" th:aria-controls="'collapse' + ${iter.index}">
+                                <div class="d-flex align-items-center w-100 justify-content-between">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <i class="bi bi-calendar3 fs-5 text-primary"></i>
+                                        <strong class="fs-6" th:text="${#temporals.format(rec.appointment.dateTime, 'dd/MM/yyyy')}"></strong>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span th:if="${rec.mainDiagnosis}" class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fs-6">
+                                            <i class="bi bi-stethoscope me-1"></i> <span th:text="${rec.mainDiagnosis}"></span>
+                                        </span>
+                                        <span th:unless="${rec.mainDiagnosis}" class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill fs-6">
+                                            <i class="bi bi-question-circle me-1"></i> Sin diagnóstico
+                                        </span>
+                                    </div>
+                                </div>
                             </button>
                         </h2>
-                        <div th:id="'collapse' + ${iter.index}" class="accordion-collapse collapse" data-bs-parent="#historyAccordion">
-                            <div class="accordion-body">
-                                <p><strong>Motivo:</strong> <span th:text="${rec.reason}"></span></p>
-                                <p><strong>Evolución:</strong> <span th:text="${rec.evolution}"></span></p>
-                                <p th:if="${rec.prescription}"><strong>Prescripción:</strong> <span th:text="${rec.prescription}"></span></p>
+                        <div th:id="'collapse' + ${iter.index}" class="accordion-collapse collapse"
+                             data-bs-parent="#historyAccordion">
+                            <div class="accordion-body p-4 bg-light">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <div class="d-flex gap-2 align-items-start">
+                                            <i class="bi bi-chat-text fs-5 text-secondary mt-1"></i>
+                                            <div>
+                                                <strong class="d-block text-secondary mb-1">Motivo de la consulta</strong>
+                                                <p class="mb-0" th:text="${rec.reason} ?: 'No registrado'"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="d-flex gap-2 align-items-start">
+                                            <i class="bi bi-activity fs-5 text-secondary mt-1"></i>
+                                            <div>
+                                                <strong class="d-block text-secondary mb-1">Evolución / Hallazgos</strong>
+                                                <p class="mb-0" th:text="${rec.evolution} ?: 'No registrado'"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div th:if="${rec.prescription}">
+                                        <div class="col-12">
+                                            <div class="d-flex gap-2 align-items-start">
+                                                <i class="bi bi-file-earmark-medical fs-5 text-secondary mt-1"></i>
+                                                <div>
+                                                    <strong class="d-block text-secondary mb-1">Prescripción</strong>
+                                                    <p class="mb-0" th:text="${rec.prescription}"></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -263,7 +192,3 @@
         </div>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>

@@ -56,8 +56,9 @@ public class DoctorAppointmentAttentionController {
         model.addAttribute("finalidades", finalidades);
         model.addAttribute("causas", causas);
         model.addAttribute("title", "Atención Clínica");
+        model.addAttribute("contenido", "doctor/atencion");
 
-        return "doctor/atencion";
+        return "fragments/layout";
     }
 
     @PostMapping("/{id}/guardar")
