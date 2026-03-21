@@ -46,10 +46,16 @@
                                 <label for="evolution" class="form-label">Evolución</label>
                                 <textarea id="evolution" name="evolution" class="form-control" rows="8" required th:text="${medicalRecord?.evolution}"></textarea>
                             </div>
+
+                            <!-- Diagnóstico Principal con autocompletado -->
                             <div class="col-md-6">
                                 <label for="mainDiagnosis" class="form-label">Diagnóstico Principal (CIE-10)</label>
-                                <input type="text" id="mainDiagnosis" name="mainDiagnosis" class="form-control" placeholder="Ej: J06.9" th:value="${medicalRecord?.mainDiagnosis}">
+                                <input type="text" id="mainDiagnosis" name="mainDiagnosis" class="form-control"
+                                       placeholder="Escriba código o descripción" list="diagnosticosList"
+                                       th:value="${medicalRecord?.mainDiagnosis}" autocomplete="off">
+                                <small class="text-muted">Ej: M79.1, J06, etc.</small>
                             </div>
+
                             <div class="col-12">
                                 <label for="prescription" class="form-label">Prescripción / Fórmula Médica</label>
                                 <textarea id="prescription" name="prescription" class="form-control" rows="4" th:text="${medicalRecord?.prescription}"></textarea>
@@ -88,6 +94,32 @@
                                     <div class="col-md-4">
                                         <label for="copago" class="form-label">Copago ($)</label>
                                         <input type="number" step="0.01" id="copago" name="copago" class="form-control" placeholder="0.00" th:value="${medicalRecord?.copago}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Diagnósticos Relacionados y Complicación (sección independiente) -->
+                            <div class="col-12 mt-3">
+                                <hr>
+                                <h5><i class="bi bi-diagram-3 me-2 text-primary"></i>Diagnósticos Relacionados</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label for="relatedDiagnosis1" class="form-label">Diagnóstico Relacionado 1 (CIE-10)</label>
+                                        <input type="text" id="relatedDiagnosis1" name="relatedDiagnosis1" class="form-control"
+                                               placeholder="Escriba código o descripción" list="diagnosticosList"
+                                               th:value="${medicalRecord?.relatedDiagnosis1}" autocomplete="off">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="relatedDiagnosis2" class="form-label">Diagnóstico Relacionado 2 (CIE-10)</label>
+                                        <input type="text" id="relatedDiagnosis2" name="relatedDiagnosis2" class="form-control"
+                                               placeholder="Escriba código o descripción" list="diagnosticosList"
+                                               th:value="${medicalRecord?.relatedDiagnosis2}" autocomplete="off">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="complicationDiagnosis" class="form-label">Diagnóstico de Complicación (CIE-10)</label>
+                                        <input type="text" id="complicationDiagnosis" name="complicationDiagnosis" class="form-control"
+                                               placeholder="Escriba código o descripción" list="diagnosticosList"
+                                               th:value="${medicalRecord?.complicationDiagnosis}" autocomplete="off">
                                     </div>
                                 </div>
                             </div>
@@ -192,3 +224,8 @@
         </div>
     </div>
 </div>
+
+<!-- Datalist global para autocompletado de diagnósticos -->
+<datalist id="diagnosticosList">
+    <option th:each="d : ${diagnosticos}" th:value="${d.codigo}" th:text="${d.codigo + ' - ' + d.descripcion}"></option>
+</datalist>

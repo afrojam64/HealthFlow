@@ -1,0 +1,3 @@
+ALTER TABLE consultas_hc ADD COLUMN IF NOT EXISTS dx_relacionado1 VARCHAR(10);
+ALTER TABLE consultas_hc ADD COLUMN IF NOT EXISTS dx_relacionado2 VARCHAR(10);
+ALTER TABLE consultas_hc ADD COLUMN IF NOT EXISTS dx_complicacion VARCHAR(10);

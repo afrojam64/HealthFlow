@@ -56,7 +56,10 @@ public class MedicalRecordService {
                                            BigDecimal valorServicio,
                                            BigDecimal cuotaModeradora,
                                            BigDecimal copago,
-                                           String codigoCups) {
+                                           String codigoCups,
+                                           String relatedDiagnosis1,
+                                           String relatedDiagnosis2,
+                                           String complicationDiagnosis) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new DomainException("Cita no encontrada con ID: " + appointmentId));
 
@@ -79,6 +82,11 @@ public class MedicalRecordService {
         record.setEvolution(evolution);
         record.setPrescription(prescription);
         record.setMainDiagnosis(mainDiagnosis);
+
+        // Guardar los nuevos campos de diagnósticos relacionados
+        record.setRelatedDiagnosis1(relatedDiagnosis1);
+        record.setRelatedDiagnosis2(relatedDiagnosis2);
+        record.setComplicationDiagnosis(complicationDiagnosis);
 
         if (finalidadId != null) {
             CatalogoFinalidadConsulta finalidad = finalidadRepo.findById(finalidadId)

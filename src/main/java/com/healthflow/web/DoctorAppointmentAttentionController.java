@@ -22,17 +22,19 @@ public class DoctorAppointmentAttentionController {
     private final MedicalRecordRepository medicalRecordRepository;
     private final CatalogoFinalidadConsultaRepository finalidadRepo;
     private final CatalogoCausaExternaRepository causaExternaRepo;
+    private final DiagnosticoCIE10Repository diagnosticoRepo;
 
     public DoctorAppointmentAttentionController(AppointmentRepository appointmentRepository,
                                                 MedicalRecordService medicalRecordService,
                                                 MedicalRecordRepository medicalRecordRepository,
                                                 CatalogoFinalidadConsultaRepository finalidadRepo,
-                                                CatalogoCausaExternaRepository causaExternaRepo) {
+                                                CatalogoCausaExternaRepository causaExternaRepo, DiagnosticoCIE10Repository diagnosticoRepo) {
         this.appointmentRepository = appointmentRepository;
         this.medicalRecordService = medicalRecordService;
         this.medicalRecordRepository = medicalRecordRepository;
         this.finalidadRepo = finalidadRepo;
         this.causaExternaRepo = causaExternaRepo;
+        this.diagnosticoRepo = diagnosticoRepo;
     }
 
     @GetMapping("/{id}/atender")
@@ -49,12 +51,16 @@ public class DoctorAppointmentAttentionController {
         List<CatalogoFinalidadConsulta> finalidades = finalidadRepo.findAll();
         List<CatalogoCausaExterna> causas = causaExternaRepo.findAll();
 
+        // Cargar todos los diagnósticos CIE-10 para la búsqueda
+        List<DiagnosticoCIE10> diagnosticos = diagnosticoRepo.findAll();
+
         model.addAttribute("appointment", appointment);
         model.addAttribute("patient", appointment.getPatient());
         model.addAttribute("medicalRecord", currentRecord);
         model.addAttribute("previousRecords", previousRecords);
         model.addAttribute("finalidades", finalidades);
         model.addAttribute("causas", causas);
+        model.addAttribute("diagnosticos", diagnosticos);
         model.addAttribute("title", "Atención Clínica");
         model.addAttribute("contenido", "doctor/atencion");
 
@@ -73,10 +79,17 @@ public class DoctorAppointmentAttentionController {
                                    @RequestParam(name = "cuotaModeradora", required = false) BigDecimal cuotaModeradora,
                                    @RequestParam(name = "copago", required = false) BigDecimal copago,
                                    @RequestParam(name = "codigoCups", required = false) String codigoCups,
+                                   @RequestParam(name = "relatedDiagnosis1", required = false) String relatedDiagnosis1,
+                                   @RequestParam(name = "relatedDiagnosis2", required = false) String relatedDiagnosis2,
+                                   @RequestParam(name = "complicationDiagnosis", required = false) String complicationDiagnosis,
                                    RedirectAttributes redirectAttributes) {
+
+                                    System.out.println("🔍 relatedDiagnosis1: " + relatedDiagnosis1);
+                                    System.out.println("🔍 relatedDiagnosis2: " + relatedDiagnosis2);
+                                    System.out.println("🔍 complicationDiagnosis: " + complicationDiagnosis);
         try {
             medicalRecordService.saveMedicalRecord(appointmentId, reason, evolution, prescription, mainDiagnosis,
-                    finalidadId, causaExternaId, valorServicio, cuotaModeradora, copago, codigoCups);
+                    finalidadId, causaExternaId, valorServicio, cuotaModeradora, copago, codigoCups, relatedDiagnosis1, relatedDiagnosis2, complicationDiagnosis);
             redirectAttributes.addFlashAttribute("successMessage", "Borrador guardado correctamente.");
         } catch (DomainException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());

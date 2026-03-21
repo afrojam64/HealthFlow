@@ -98,6 +98,12 @@ public class RipsService {
             if (mr.getCausaExterna() != null) {
                 dto.setCausaExterna(mr.getCausaExterna().getCodigo());
             }
+
+            dto.setCodDiagnosticoPrincipal(mr.getMainDiagnosis());
+            dto.setCodDiagnosticoRelacionado1(mr.getRelatedDiagnosis1());
+            dto.setCodDiagnosticoRelacionado2(mr.getRelatedDiagnosis2());
+            dto.setCodDiagnosticoComplicacion(mr.getComplicationDiagnosis());
+
             // Asignar código CUPS
             dto.setCodigoConsulta(mr.getCodigoCups() != null ? mr.getCodigoCups() : "");
             // Valores económicos
