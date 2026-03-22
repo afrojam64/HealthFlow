@@ -28,7 +28,8 @@ public class DoctorAppointmentAttentionController {
                                                 MedicalRecordService medicalRecordService,
                                                 MedicalRecordRepository medicalRecordRepository,
                                                 CatalogoFinalidadConsultaRepository finalidadRepo,
-                                                CatalogoCausaExternaRepository causaExternaRepo, DiagnosticoCIE10Repository diagnosticoRepo) {
+                                                CatalogoCausaExternaRepository causaExternaRepo,
+                                                DiagnosticoCIE10Repository diagnosticoRepo) {
         this.appointmentRepository = appointmentRepository;
         this.medicalRecordService = medicalRecordService;
         this.medicalRecordRepository = medicalRecordRepository;
@@ -50,8 +51,6 @@ public class DoctorAppointmentAttentionController {
 
         List<CatalogoFinalidadConsulta> finalidades = finalidadRepo.findAll();
         List<CatalogoCausaExterna> causas = causaExternaRepo.findAll();
-
-        // Cargar todos los diagnósticos CIE-10 para la búsqueda
         List<DiagnosticoCIE10> diagnosticos = diagnosticoRepo.findAll();
 
         model.addAttribute("appointment", appointment);
@@ -62,8 +61,9 @@ public class DoctorAppointmentAttentionController {
         model.addAttribute("causas", causas);
         model.addAttribute("diagnosticos", diagnosticos);
         model.addAttribute("title", "Atención Clínica");
-        model.addAttribute("contenido", "doctor/atencion");
 
+        // 👇 LO QUE FALTA: indicar el fragmento y retornar el layout
+        model.addAttribute("contenido", "doctor/atencion");
         return "fragments/layout";
     }
 
@@ -82,29 +82,27 @@ public class DoctorAppointmentAttentionController {
                                    @RequestParam(name = "relatedDiagnosis1", required = false) String relatedDiagnosis1,
                                    @RequestParam(name = "relatedDiagnosis2", required = false) String relatedDiagnosis2,
                                    @RequestParam(name = "complicationDiagnosis", required = false) String complicationDiagnosis,
+                                   @RequestParam(name = "accion", required = false) String accion,
                                    RedirectAttributes redirectAttributes) {
 
-                                    System.out.println("🔍 relatedDiagnosis1: " + relatedDiagnosis1);
-                                    System.out.println("🔍 relatedDiagnosis2: " + relatedDiagnosis2);
-                                    System.out.println("🔍 complicationDiagnosis: " + complicationDiagnosis);
         try {
+            // 1. Guardar siempre los datos clínicos
             medicalRecordService.saveMedicalRecord(appointmentId, reason, evolution, prescription, mainDiagnosis,
-                    finalidadId, causaExternaId, valorServicio, cuotaModeradora, copago, codigoCups, relatedDiagnosis1, relatedDiagnosis2, complicationDiagnosis);
-            redirectAttributes.addFlashAttribute("successMessage", "Borrador guardado correctamente.");
-        } catch (DomainException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-        }
-        return "redirect:/doctor/citas/" + appointmentId + "/atender";
-    }
+                    finalidadId, causaExternaId, valorServicio, cuotaModeradora, copago, codigoCups,
+                    relatedDiagnosis1, relatedDiagnosis2, complicationDiagnosis);
 
-    @PostMapping("/{id}/finalizar")
-    public String finalizeAndLock(@PathVariable("id") UUID appointmentId, RedirectAttributes redirectAttributes) {
-        try {
-            medicalRecordService.markAsAttendedAndLock(appointmentId);
-            redirectAttributes.addFlashAttribute("successMessage", "Consulta finalizada y cerrada correctamente.");
+            // 2. Si la acción es finalizar, cerrar la consulta
+            if ("finalizar".equals(accion)) {
+                medicalRecordService.markAsAttendedAndLock(appointmentId);
+                redirectAttributes.addFlashAttribute("successMessage", "Consulta finalizada y cerrada correctamente.");
+                return "redirect:/dashboard";
+            } else {
+                redirectAttributes.addFlashAttribute("successMessage", "Borrador guardado correctamente.");
+                return "redirect:/doctor/citas/" + appointmentId + "/atender";
+            }
         } catch (DomainException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/doctor/citas/" + appointmentId + "/atender";
         }
-        return "redirect:/dashboard";
     }
 }

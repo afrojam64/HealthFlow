@@ -78,6 +78,8 @@ public class MedicalRecordService {
             throw new DomainException("La historia clínica solo puede ser editada el día de la cita.");
         }
 
+        System.out.println("📅 Fecha cita: " + appointmentDate + " - Fecha hoy: " + today);
+
         record.setReason(reason);
         record.setEvolution(evolution);
         record.setPrescription(prescription);
@@ -109,6 +111,18 @@ public class MedicalRecordService {
         record.setCopago(copago);
         record.setCodigoCups(codigoCups);
 
+        System.out.println("💾 Guardando en BD:");
+        System.out.println("   relatedDiagnosis1: " + record.getRelatedDiagnosis1());
+        System.out.println("   relatedDiagnosis2: " + record.getRelatedDiagnosis2());
+        System.out.println("   complicationDiagnosis: " + record.getComplicationDiagnosis());
+        System.out.println("💾 Guardando en BD:");
+        System.out.println("   ID del record: " + record.getId());
+        System.out.println("   relatedDiagnosis1: " + record.getRelatedDiagnosis1());
+        System.out.println("   relatedDiagnosis2: " + record.getRelatedDiagnosis2());
+        System.out.println("   complicationDiagnosis: " + record.getComplicationDiagnosis());
+        System.out.println("   mainDiagnosis: " + record.getMainDiagnosis());
+        System.out.println("   ¿locked? " + record.getLocked());
+
         return medicalRecordRepository.save(record);
     }
 
@@ -122,8 +136,13 @@ public class MedicalRecordService {
             throw new DomainException("No se puede marcar como atendida una cita sin una historia clínica iniciada.");
         }
 
+        // Verificar que no esté ya bloqueada
+        if (record.getLocked()) {
+            throw new DomainException("La historia clínica ya está cerrada.");
+        }
+
         record.setLocked(true);
-        medicalRecordRepository.save(record);
+        medicalRecordRepository.saveAndFlush(record);  // Forzar escritura inmediata
 
         appointment.setStatus(AppointmentStatus.ATENDIDA);
         appointmentRepository.save(appointment);
