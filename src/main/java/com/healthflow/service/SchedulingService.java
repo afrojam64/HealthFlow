@@ -18,6 +18,7 @@ public class SchedulingService {
     private final PatientRepository patientRepository;
     private final ProfessionalRepository professionalRepository;
     private final NotificationService notificationService;
+    private final AvailabilityBaseRepository availabilityBaseRepository;
 
     private final ZoneId zoneId;
     private final int slotMinutes;
@@ -28,7 +29,7 @@ public class SchedulingService {
             AppointmentRepository appointmentRepository,
             PatientRepository patientRepository,
             ProfessionalRepository professionalRepository,
-            NotificationService notificationService,
+            NotificationService notificationService, AvailabilityBaseRepository availabilityBaseRepository,
             @Value("${healthflow.timezone:America/Bogota}") String tz,
             @Value("${healthflow.appointment.slotMinutes:30}") int slotMinutes,
             @Value("${healthflow.appointment.minLeadMinutes:120}") int minLeadMinutes
@@ -38,46 +39,67 @@ public class SchedulingService {
         this.patientRepository = patientRepository;
         this.professionalRepository = professionalRepository;
         this.notificationService = notificationService;
+        this.availabilityBaseRepository = availabilityBaseRepository;
         this.zoneId = ZoneId.of(tz);
         this.slotMinutes = slotMinutes;
         this.minLeadMinutes = minLeadMinutes;
     }
 
     public List<OffsetDateTime> getFreeSlots(UUID professionalId, LocalDate date) {
-        // 1. Calcular el inicio de la semana y el día de la semana correctos
+        // 1. Determinar inicio de semana y día de la semana (1=Lunes, 7=Domingo)
         LocalDate weekStartDate = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        int dayOfWeek = date.getDayOfWeek().getValue(); // 1=Lunes, ..., 7=Domingo
+        int dayOfWeek = date.getDayOfWeek().getValue();
 
-        // 2. Buscar la disponibilidad directamente en la BD (lógica simplificada y robusta)
-        Optional<WeeklyAvailability> dayAvailabilityOpt = weeklyAvailabilityRepository
+        // 2. Buscar disponibilidad semanal específica (excepciones)
+        Optional<WeeklyAvailability> weeklyOpt = weeklyAvailabilityRepository
                 .findAvailabilityForDay(professionalId, weekStartDate, dayOfWeek);
 
-        if (dayAvailabilityOpt.isEmpty()) {
-            return List.of();
-        }
-        WeeklyAvailability availability = dayAvailabilityOpt.get();
+        List<AvailabilityBase> rangos = new ArrayList<>();
 
-        // 3. Obtener citas ya agendadas para ese día
+        if (weeklyOpt.isPresent() && weeklyOpt.get().getActive()) {
+            WeeklyAvailability wa = weeklyOpt.get();
+            if (wa.getStartTime() != null && wa.getEndTime() != null) {
+                // Hay una excepción: usar ese rango horario
+                AvailabilityBase temp = new AvailabilityBase();
+                temp.setStartTime(wa.getStartTime());
+                temp.setEndTime(wa.getEndTime());
+                rangos.add(temp);
+            } else {
+                // Si startTime es null, significa bloqueo total (no hay disponibilidad)
+                return List.of();
+            }
+        } else {
+            // 3. No hay excepción semanal: usar la disponibilidad base recurrente
+            rangos = availabilityBaseRepository
+                    .findByProfessionalIdAndDayOfWeekOrderByStartTimeAsc(professionalId, dayOfWeek);
+            if (rangos.isEmpty()) {
+                return List.of();
+            }
+        }
+
+        // 4. Obtener citas ya agendadas para ese día
         OffsetDateTime startOfDay = date.atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime endOfDay = date.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
-        Set<LocalTime> reservedSlots = appointmentRepository.findActiveByProfessionalIdAndDateTimeBetween(professionalId, startOfDay, endOfDay)
+        Set<LocalTime> reservedSlots = appointmentRepository
+                .findActiveByProfessionalIdAndDateTimeBetween(professionalId, startOfDay, endOfDay)
                 .stream()
                 .map(a -> a.getDateTime().atZoneSameInstant(zoneId).toLocalTime())
                 .collect(Collectors.toSet());
 
-        // 4. Regla: mínimo tiempo de anticipación para agendar
+        // 5. Regla: mínimo tiempo de anticipación
         ZonedDateTime minAllowedTime = ZonedDateTime.now(zoneId).plusMinutes(minLeadMinutes);
 
-        // 5. Generar los slots y filtrarlos
+        // 6. Generar slots
         List<OffsetDateTime> freeSlots = new ArrayList<>();
-        LocalTime slotTime = availability.getStartTime();
-        while (!slotTime.isAfter(availability.getEndTime())) {
-            ZonedDateTime slotZdt = date.atTime(slotTime).atZone(zoneId);
-
-            if (slotZdt.isAfter(minAllowedTime) && !reservedSlots.contains(slotTime)) {
-                freeSlots.add(slotZdt.toOffsetDateTime());
+        for (AvailabilityBase rango : rangos) {
+            LocalTime slotTime = rango.getStartTime();
+            while (!slotTime.isAfter(rango.getEndTime())) {
+                ZonedDateTime slotZdt = date.atTime(slotTime).atZone(zoneId);
+                if (slotZdt.isAfter(minAllowedTime) && !reservedSlots.contains(slotTime)) {
+                    freeSlots.add(slotZdt.toOffsetDateTime());
+                }
+                slotTime = slotTime.plusMinutes(slotMinutes);
             }
-            slotTime = slotTime.plusMinutes(slotMinutes);
         }
 
         freeSlots.sort(Comparator.naturalOrder());
