@@ -26,6 +26,13 @@ public class Professional extends BaseEntity {
     @Column(name = "especialidad", nullable = false, length = 100)
     private String specialty;
 
+    @Column(name = "slug", unique = true, length = 100)
+    private String slug; // +++++ nuevo campo
+
+    // +++++ getter y setter para slug
+    public String getSlug() { return slug; }
+    public void setSlug(String slug) { this.slug = slug; }
+
     // Getters y Setters
     public User getUser() {
         return user;

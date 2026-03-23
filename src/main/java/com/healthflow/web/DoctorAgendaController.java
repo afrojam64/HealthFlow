@@ -99,7 +99,7 @@ public class DoctorAgendaController {
         model.addAttribute("prevMonthName", monthNames[prevMonth]);
         model.addAttribute("nextMonthName", monthNames[nextMonth]);
         model.addAttribute("startOfCurrentWeek", startOfCurrentWeek);
-        //model.addAttribute("contenido", "doctor/agenda");
+        model.addAttribute("professionalSlug", professional.getSlug());
         model.addAttribute("contenido", "doctor/agenda");
 
         return "fragments/layout";

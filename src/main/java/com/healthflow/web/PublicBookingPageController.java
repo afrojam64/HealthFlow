@@ -1,12 +1,16 @@
 package com.healthflow.web;
 
+import com.healthflow.domain.Professional;
+import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.service.ProfessionalService;
 import com.healthflow.service.SchedulingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -21,11 +25,41 @@ public class PublicBookingPageController {
 
     private final ProfessionalService professionalService;
     private final SchedulingService schedulingService;
+    private final ProfessionalRepository professionalRepository;
 
     public PublicBookingPageController(ProfessionalService professionalService,
-                                       SchedulingService schedulingService) {
+                                       SchedulingService schedulingService, ProfessionalRepository professionalRepository) {
         this.professionalService = professionalService;
         this.schedulingService = schedulingService;
+        this.professionalRepository = professionalRepository;
+    }
+
+    // Endpoint con slug (nuevo)
+    @GetMapping("/{slug}")
+    public String showBookingPageBySlug(@PathVariable("slug") String slug, Model model) {
+        Professional professional = professionalRepository.findBySlug(slug)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profesional no encontrado"));
+        model.addAttribute("professional", professional);
+        model.addAttribute("professionalId", professional.getId());
+        model.addAttribute("slug", professional.getSlug());
+        model.addAttribute("title", "Agenda tu cita | HealthFlow");
+        model.addAttribute("contenido", "public/public-book"); // ← ajusta según ubicación real
+        return "fragments/layout-public";
+    }
+
+    // Endpoint legacy con UUID (redirige al slug si existe, para compatibilidad)
+    @GetMapping("/book/{id}")
+    public String showBookingPageById(@PathVariable UUID id, Model model) {
+        Professional professional = professionalRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profesional no encontrado"));
+        // Si tiene slug, redirigimos a la nueva URL amigable
+        if (professional.getSlug() != null) {
+            return "redirect:/public/" + professional.getSlug();
+        }
+        // Si no tiene slug, usamos el antiguo (por compatibilidad)
+        model.addAttribute("professional", professional);
+        model.addAttribute("professionalId", professional.getId());
+        return "public-book-legacy"; // o puedes seguir con la misma vista, pero pasando el id
     }
 
     @GetMapping("/book/{professionalId}")
