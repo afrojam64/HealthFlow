@@ -12,4 +12,6 @@ public interface AvailabilityBaseRepository extends JpaRepository<AvailabilityBa
   List<AvailabilityBase> findByProfessional_IdOrderByDayOfWeekAsc(UUID professionalId);
 
     List<AvailabilityBase> findByProfessionalIdAndDayOfWeekOrderByStartTimeAsc(UUID professionalId, int dayOfWeek);
+
+    List<AvailabilityBase> findByProfessionalIdOrderByDayOfWeekAscStartTimeAsc(UUID professionalId);
 }

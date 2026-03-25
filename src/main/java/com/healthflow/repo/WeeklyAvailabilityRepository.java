@@ -31,4 +31,7 @@ public interface WeeklyAvailabilityRepository extends JpaRepository<WeeklyAvaila
         @Param("weekStartDate") LocalDate weekStartDate,
         @Param("dayOfWeek") int dayOfWeek
     );
+
+    // Nuevo método
+    List<WeeklyAvailability> findByProfessionalIdAndWeekStartDateBetween(UUID professionalId, LocalDate start, LocalDate end);
 }
