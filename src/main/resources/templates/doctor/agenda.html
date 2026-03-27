@@ -289,15 +289,15 @@
 
 <!-- Modal de notificación mejorado -->
 <div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-md">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="notificationModalLabel">Aviso</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <div class="modal-body py-4" id="notificationMessage"></div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Aceptar</button>
+            <div class="modal-body text-center py-4" id="notificationMessage"></div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-sm btn-primary" data-bs-dismiss="modal">Aceptar</button>
             </div>
         </div>
     </div>
@@ -316,6 +316,13 @@
     let selectedWeeks = new Set();
     let currentMonthData = null;
 
+    // Parsear una fecha en formato YYYY-MM-DD a objeto Date local
+    function parseDateLocal(dateStr) {
+        const [year, month, day] = dateStr.split('-').map(Number);
+        return new Date(year, month - 1, day);
+    }
+
+    // Formatear fecha a YYYY-MM-DD
     function formatDate(date) {
         let y = date.getFullYear();
         let m = String(date.getMonth() + 1).padStart(2, '0');
@@ -323,12 +330,23 @@
         return `${y}-${m}-${d}`;
     }
 
-    function getWeekStart(date) {
+    // Obtener el lunes de la semana que contiene una fecha (fecha local)
+    function getMonday(date) {
         const d = new Date(date);
-        const day = d.getDay();
+        const day = d.getDay(); // 0=domingo, 1=lunes...
         const diff = day === 0 ? 6 : day - 1;
         d.setDate(d.getDate() - diff);
-        return formatDate(d);
+        return d;
+    }
+
+    // Mostrar rango de una semana (lunes a domingo)
+    function getWeekRangeText(date) {
+        const monday = getMonday(date);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        const startStr = monday.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
+        const endStr = sunday.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
+        return `Semana del ${startStr} al ${endStr}`;
     }
 
     function showNotification(message, isError = false) {
@@ -361,7 +379,7 @@
                     } else {
                         hoursText = 'Sin horario base';
                     }
-                    html += `<tr><td><strong>${dayNames[i-1]}</strong></td><td>${hoursText}</td></tr>`;
+                    html += `  <tr><td><strong>${dayNames[i-1]}</strong></td><td>${hoursText}</td></tr>`;
                 }
                 document.getElementById('baseTableBody').innerHTML = html;
             })
@@ -411,13 +429,13 @@
                     for (let col = 0; col < 7; col++) {
                         const cell = week[col];
                         if (!cell) {
-                            tableHtml += '<td class="text-muted bg-light"></td>';
+                            tableHtml += '<td class="text-muted bg-light"> </td>';
                             continue;
                         }
                         const dayInfo = daysMap.get(cell.date);
                         let cellClass = 'calendar-cell';
                         let hoursHtml = '';
-                        const isPast = new Date(cell.date) < today;
+                        const isPast = parseDateLocal(cell.date) < today;
                         if (isPast) cellClass += ' disabled';
                         if (dayInfo && dayInfo.isException) {
                             cellClass += ' exception';
@@ -436,7 +454,7 @@
                         tableHtml += `<td class="${cellClass}" data-date="${cell.date}" data-day="${cell.day}">
                                         <div class="calendar-day-number">${cell.day}</div>
                                         ${hoursHtml}
-                                      </td>`;
+                                       </td>`;
                     }
                     tableHtml += '</tr>';
                 });
@@ -459,33 +477,26 @@
         }
     });
 
-    // Generar checkboxes de semanas
+    // Generar checkboxes de semanas (siempre desde lunes a domingo)
     function generateWeekCheckboxes(weeks) {
         let html = '<div class="row"><div class="col-12"><h6>Semanas disponibles:</h6></div>';
         weeks.forEach((week, idx) => {
             const firstReal = week.find(cell => cell !== null);
-            const lastReal = week.slice().reverse().find(cell => cell !== null);
-            if (firstReal && lastReal) {
-                const startDay = firstReal.day;
-                const endDay = lastReal.day;
-                const monthName = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][currentMonth];
-                const weekRange = `${startDay} – ${endDay} ${monthName}`;
-                const firstDate = new Date(currentYear, currentMonth, startDay);
-                const dayOfWeek = firstDate.getDay();
-                const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-                const monday = new Date(firstDate);
-                monday.setDate(firstDate.getDate() - diff);
-                const weekStartStr = formatDate(monday);
-                const weekEndDate = new Date(monday);
-                weekEndDate.setDate(monday.getDate() + 6);
-                const isPastWeek = weekEndDate < today;
-                html += `<div class="col-auto">
-                            <div class="form-check">
-                                <input class="form-check-input week-checkbox" type="checkbox" value="${weekStartStr}" id="week${idx}" ${isPastWeek ? 'disabled' : ''}>
-                                <label class="form-check-label" for="week${idx}">Semana del ${weekRange}</label>
-                            </div>
-                         </div>`;
-            }
+            if (!firstReal) return;
+            const firstDate = parseDateLocal(firstReal.date);
+            const monday = getMonday(firstDate);
+            const weekStartStr = formatDate(monday);
+            const weekEnd = new Date(monday);
+            weekEnd.setDate(monday.getDate() + 6);
+            const isPastWeek = weekEnd < today;
+            const weekRange = getWeekRangeText(monday);
+            console.log(`Semana ${idx}: valor=${weekStartStr}, rango=${weekRange}`);
+            html += `<div class="col-auto">
+                        <div class="form-check">
+                            <input class="form-check-input week-checkbox" type="checkbox" value="${weekStartStr}" id="week${idx}" ${isPastWeek ? 'disabled' : ''}>
+                            <label class="form-check-label" for="week${idx}">${weekRange}</label>
+                        </div>
+                     </div>`;
         });
         html += '</div>';
         document.getElementById('weekCheckboxesContainer').innerHTML = html;
@@ -495,6 +506,7 @@
             cb.addEventListener('change', () => {
                 selectedWeeks.clear();
                 document.querySelectorAll('.week-checkbox:checked').forEach(c => selectedWeeks.add(c.value));
+                console.log('Semanas seleccionadas:', Array.from(selectedWeeks));
                 updateSaveButtonState();
             });
         });
@@ -511,7 +523,7 @@
             return;
         }
         saveBtn.disabled = false;
-        const currentWeekStart = getWeekStart(today);
+        const currentWeekStart = formatDate(getMonday(today));
         const hasCurrentWeek = Array.from(selectedWeeks).some(ws => ws === currentWeekStart);
         if (hasCurrentWeek) {
             applySameCheckbox.disabled = true;
@@ -524,22 +536,17 @@
     }
 
     document.getElementById('applySameToAll').addEventListener('change', () => {
-        // Al cambiar el checkbox, el botón siempre está habilitado si hay semanas seleccionadas.
-        // Simplemente refrescamos el título (opcional).
         updateSaveButtonState();
     });
 
-    // Guardar desde el botón principal: decide qué modal mostrar
+    // Guardar desde el botón principal
     document.getElementById('saveButton').addEventListener('click', () => {
         if (selectedWeeks.size === 0) return;
         const applySame = document.getElementById('applySameToAll').checked;
         if (applySame) {
             // Modal de misma franja
-            const weeksList = Array.from(selectedWeeks).map(ws => {
-                const date = new Date(ws);
-                return date.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
-            });
-            const listHtml = weeksList.map(w => `<li>Semana del ${w}</li>`).join('');
+            const weeksList = Array.from(selectedWeeks).map(ws => getWeekRangeText(parseDateLocal(ws)));
+            const listHtml = weeksList.map(w => `<li>${w}</li>`).join('');
             document.getElementById('selectedWeeksList').innerHTML = listHtml;
 
             const timeOptions = [];
@@ -583,10 +590,9 @@
             const weekSelect = document.getElementById('weekSelect');
             weekSelect.innerHTML = '';
             weeksArray.forEach(ws => {
-                const date = new Date(ws);
                 const option = document.createElement('option');
                 option.value = ws;
-                option.text = `Semana del ${date.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' })}`;
+                option.text = getWeekRangeText(parseDateLocal(ws));
                 weekSelect.appendChild(option);
             });
             if (weeksArray.length > 1) {
@@ -594,7 +600,7 @@
             } else {
                 document.getElementById('weekSelectorDiv').style.display = 'none';
             }
-            // Cargar la primera semana
+            console.log('Cargando semana:', weeksArray[0]);
             loadWeekConfig(weeksArray[0]);
             const modal = new bootstrap.Modal(document.getElementById('weekConfigModal'));
             modal.show();
@@ -603,7 +609,11 @@
 
     // Cargar los datos de una semana en el modal de configuración por día
     function loadWeekConfig(weekStartStr) {
-        const weekStart = new Date(weekStartStr);
+        console.log('loadWeekConfig recibió:', weekStartStr);
+        // Parsear localmente
+        const baseDate = parseDateLocal(weekStartStr);
+        const monday = getMonday(baseDate); // Aunque ya debería ser lunes, aseguramos
+        const weekStart = monday;
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
 
@@ -657,7 +667,7 @@
 
         let containerHtml = '<div class="table-responsive"><table class="table table-bordered"><thead><tr><th>Día</th><th>Hora inicio</th><th>Hora fin</th><th>Activo</th></tr></thead><tbody>';
         days.forEach((day, idx) => {
-            const isPast = new Date(day.date) < today;
+            const isPast = parseDateLocal(day.date) < today;
             const disabledAttr = isPast ? 'disabled' : '';
             containerHtml += `
             <tr data-date="${day.date}">
@@ -669,17 +679,18 @@
                     ${timeOptions.map(opt => `<option value="${opt.value}" ${day.endTime === opt.value ? 'selected' : ''}>${opt.display}</option>`).join('')}
                 </select></td>
                 <td class="text-center"><input type="checkbox" class="form-check-input day-active" data-idx="${idx}" ${day.active ? 'checked' : ''} ${disabledAttr}></td>
-            </tr>
-        `;
+            </tr>`;
         });
         containerHtml += '</tbody></table></div>';
         document.getElementById('weekDaysContainer').innerHTML = containerHtml;
 
-        document.getElementById('saveWeekConfigBtn').dataset.currentWeek = weekStartStr;
+        document.getElementById('saveWeekConfigBtn').dataset.currentWeek = formatDate(weekStart);
+        console.log('Semana cargada en modal:', formatDate(weekStart));
     }
 
     // Cambio de semana en el selector
     document.getElementById('weekSelect')?.addEventListener('change', (e) => {
+        console.log('Selector cambiado a:', e.target.value);
         loadWeekConfig(e.target.value);
     });
 
@@ -732,7 +743,7 @@
 
     // Abrir modal para editar un día (clic en celda)
     function openEditModal(dateStr) {
-        const selectedDate = new Date(dateStr);
+        const selectedDate = parseDateLocal(dateStr);
         const isToday = formatDate(selectedDate) === formatDate(today);
         const isPast = selectedDate < today;
         if (isPast) return;
@@ -801,12 +812,12 @@
         }
 
         document.getElementById('editDate').value = dateStr;
-        const dayDisplay = new Date(dateStr).toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+        const dayDisplay = selectedDate.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
         document.getElementById('editDayDisplay').innerText = dayDisplay;
         document.getElementById('editActive').checked = active;
 
-        const weekStart = getWeekStart(new Date(dateStr));
-        const isFutureWeek = weekStart > getWeekStart(today);
+        const weekStart = formatDate(getMonday(selectedDate));
+        const isFutureWeek = weekStart > formatDate(getMonday(today));
         const weekActionDiv = document.getElementById('editWeekAction');
         if (isFutureWeek) {
             weekActionDiv.style.display = 'block';

@@ -40,7 +40,6 @@ public class PublicAppointmentPageController {
         Appointment appt = appointmentRepository.findByAccessToken(token)
                 .orElseThrow(() -> new DomainException("No encontramos tu cita. Verifica el enlace."));
 
-        // Reglas (mismas que API)
         if (appt.getStatus() == AppointmentStatus.CANCELADA) {
             model.addAttribute("title", "No se puede confirmar");
             model.addAttribute("message", "Esta cita fue cancelada y no se puede confirmar.");
@@ -50,7 +49,6 @@ public class PublicAppointmentPageController {
             Appointment saved = appointmentRepository.save(appt);
 
             Patient patient = saved.getPatient();
-
             notificationService.sendStatusEmail(patient.getEmail(), saved);
 
             model.addAttribute("title", "¡Cita confirmada!");
@@ -61,7 +59,7 @@ public class PublicAppointmentPageController {
 
         model.addAttribute("appointment", appt);
         model.addAttribute("token", token.toString());
-        model.addAttribute("statusUrl", publicBaseUrl + "/api/public/appointments/" + token);
+        model.addAttribute("statusUrl", publicBaseUrl + "/public/appointments/" + token);
         model.addAttribute("icsUrl", publicBaseUrl + "/api/public/appointments/" + token + "/calendar.ics");
         model.addAttribute("cancelUrl", publicBaseUrl + "/public/appointments/" + token + "/cancel");
 
@@ -74,7 +72,6 @@ public class PublicAppointmentPageController {
         Appointment appt = appointmentRepository.findByAccessToken(token)
                 .orElseThrow(() -> new DomainException("No encontramos tu cita. Verifica el enlace."));
 
-        // Reglas (similares a API)
         if (appt.getStatus() == AppointmentStatus.ATENDIDA) {
             model.addAttribute("title", "No se puede cancelar");
             model.addAttribute("message", "Esta cita ya fue atendida y no se puede cancelar.");
@@ -84,7 +81,6 @@ public class PublicAppointmentPageController {
             Appointment saved = appointmentRepository.save(appt);
 
             Patient patient = saved.getPatient();
-
             notificationService.sendStatusEmail(patient.getEmail(), saved);
 
             model.addAttribute("title", "Cita cancelada");
@@ -95,7 +91,7 @@ public class PublicAppointmentPageController {
 
         model.addAttribute("appointment", appt);
         model.addAttribute("token", token.toString());
-        model.addAttribute("statusUrl", publicBaseUrl + "/api/public/appointments/" + token);
+        model.addAttribute("statusUrl", publicBaseUrl + "/public/appointments/" + token);
         model.addAttribute("icsUrl", publicBaseUrl + "/api/public/appointments/" + token + "/calendar.ics");
 
         return "public/public-appointment-cancel";

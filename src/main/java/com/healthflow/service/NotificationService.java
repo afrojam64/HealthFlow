@@ -15,9 +15,10 @@ public class NotificationService {
 
     public void sendBookingEmail(String email, Appointment appt) {
         String token = appt.getAccessToken().toString();
-        String confirmUrl = publicBaseUrl + "/api/public/appointments/" + token + "/confirm";
-        String cancelUrl  = publicBaseUrl + "/api/public/appointments/" + token + "/cancel";
-        String statusUrl  = publicBaseUrl + "/api/public/appointments/" + token;
+        // URLs amigables (vistas web)
+        String confirmUrl = publicBaseUrl + "/public/appointments/" + token + "/confirm";
+        String cancelUrl  = publicBaseUrl + "/public/appointments/" + token + "/cancel";
+        String statusUrl  = publicBaseUrl + "/public/appointments/" + token;
 
         System.out.println("=== EMAIL (MOCK) ===");
         System.out.println("Para: " + email);
@@ -30,7 +31,7 @@ public class NotificationService {
 
     public void sendStatusEmail(String email, Appointment appt) {
         String token = appt.getAccessToken().toString();
-        String statusUrl  = publicBaseUrl + "/api/public/appointments/" + token;
+        String statusUrl  = publicBaseUrl + "/public/appointments/" + token;
 
         System.out.println("=== EMAIL (MOCK) ===");
         System.out.println("Para: " + email);
@@ -41,9 +42,9 @@ public class NotificationService {
 
     public void sendReminderEmail(String email, Appointment appt) {
         String token = appt.getAccessToken().toString();
-        String statusUrl  = publicBaseUrl + "/api/public/appointments/" + token;
-        String confirmUrl = publicBaseUrl + "/api/public/appointments/" + token + "/confirm";
-        String cancelUrl  = publicBaseUrl + "/api/public/appointments/" + token + "/cancel";
+        String statusUrl  = publicBaseUrl + "/public/appointments/" + token;
+        String confirmUrl = publicBaseUrl + "/public/appointments/" + token + "/confirm";
+        String cancelUrl  = publicBaseUrl + "/public/appointments/" + token + "/cancel";
 
         System.out.println("=== EMAIL (MOCK) ===");
         System.out.println("Para: " + email);
@@ -56,9 +57,9 @@ public class NotificationService {
 
     public void sendRescheduleEmail(String email, Appointment appt) {
         String token = appt.getAccessToken().toString();
-        String statusUrl  = publicBaseUrl + "/api/public/appointments/" + token;
-        String confirmUrl = publicBaseUrl + "/api/public/appointments/" + token + "/confirm";
-        String cancelUrl  = publicBaseUrl + "/api/public/appointments/" + token + "/cancel";
+        String statusUrl  = publicBaseUrl + "/public/appointments/" + token;
+        String confirmUrl = publicBaseUrl + "/public/appointments/" + token + "/confirm";
+        String cancelUrl  = publicBaseUrl + "/public/appointments/" + token + "/cancel";
 
         System.out.println("=== EMAIL (MOCK) ===");
         System.out.println("Para: " + email);
