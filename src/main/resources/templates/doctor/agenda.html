@@ -183,6 +183,10 @@
 
         <div id="weekCheckboxesContainer" class="mt-3"></div>
 
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exceptionModal">
+            <i class="bi bi-plus-circle me-1"></i> Agregar excepción
+        </button>
+
         <div class="mt-4">
             <div class="form-check">
                 <input type="checkbox" class="form-check-input" id="applySameToAll" disabled>
@@ -298,6 +302,57 @@
             <div class="modal-body text-center py-4" id="notificationMessage"></div>
             <div class="modal-footer justify-content-center">
                 <button type="button" class="btn btn-sm btn-primary" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar excepción (con rango de fechas) -->
+<div class="modal fade" id="exceptionModal" tabindex="-1" aria-labelledby="exceptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exceptionModalLabel">Agregar excepción de agenda</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="exceptionStartDate" class="form-label">Fecha desde</label>
+                    <input type="date" class="form-control" id="exceptionStartDate" required>
+                </div>
+                <div class="mb-3">
+                    <label for="exceptionEndDate" class="form-label">Fecha hasta</label>
+                    <input type="date" class="form-control" id="exceptionEndDate" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Tipo</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="exceptionType" id="typeBlock" value="BLOQUEO" checked>
+                        <label class="form-check-label" for="typeBlock">Bloqueo (sin atención)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="exceptionType" id="typeExtra" value="EXTRA">
+                        <label class="form-check-label" for="typeExtra">Horario extra</label>
+                    </div>
+                </div>
+                <div id="extraTimeFields" style="display: none;">
+                    <div class="mb-3">
+                        <label for="exceptionStartTime" class="form-label">Hora inicio</label>
+                        <input type="time" class="form-control" id="exceptionStartTime">
+                    </div>
+                    <div class="mb-3">
+                        <label for="exceptionEndTime" class="form-label">Hora fin</label>
+                        <input type="time" class="form-control" id="exceptionEndTime">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="exceptionReason" class="form-label">Motivo (opcional)</label>
+                    <textarea class="form-control" id="exceptionReason" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="saveExceptionBtn" class="btn btn-primary">Guardar</button>
             </div>
         </div>
     </div>
@@ -903,6 +958,84 @@
     // Inicializar
     loadBaseAvailability();
     loadMonthCalendar();
+
+    // Mostrar/ocultar campos de hora según tipo de excepción
+    const typeRadios = document.querySelectorAll('input[name="exceptionType"]');
+    const extraTimeFields = document.getElementById('extraTimeFields');
+    if (typeRadios.length) {
+        typeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                extraTimeFields.style.display = radio.value === 'EXTRA' ? 'block' : 'none';
+            });
+        });
+    }
+
+    // Guardar excepción (rango de fechas)
+    document.getElementById('saveExceptionBtn').addEventListener('click', async () => {
+        const startDate = document.getElementById('exceptionStartDate').value;
+        const endDate = document.getElementById('exceptionEndDate').value;
+
+        if (!startDate || !endDate) {
+            showNotification('Selecciona un rango de fechas.', true);
+            return;
+        }
+
+        // Validar que la fecha inicial no sea posterior a la final
+        if (startDate > endDate) {
+            showNotification('La fecha desde no puede ser mayor que la fecha hasta.', true);
+            return;
+        }
+
+        const tipo = document.querySelector('input[name="exceptionType"]:checked').value;
+        const motivo = document.getElementById('exceptionReason').value;
+
+        // Preparar payload con el rango
+        const payload = {
+            startDate: startDate,
+            endDate: endDate,
+            tipo: tipo,
+            motivo: motivo
+        };
+
+        if (tipo === 'EXTRA') {
+            const startTime = document.getElementById('exceptionStartTime').value;
+            const endTime = document.getElementById('exceptionEndTime').value;
+            if (!startTime || !endTime) {
+                showNotification('Indica hora inicio y fin para el horario extra.', true);
+                return;
+            }
+            payload.startTime = startTime;
+            payload.endTime = endTime;
+        }
+
+        try {
+            const response = await fetch('/doctor/agenda/exceptions/range', {  // nuevo endpoint
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Error al guardar excepción');
+            }
+            const saved = await response.json();
+            showNotification('Excepción(es) guardada(s) correctamente', false);
+            // Cerrar modal
+            bootstrap.Modal.getInstance(document.getElementById('exceptionModal')).hide();
+            // Recargar calendario
+            loadMonthCalendar();
+            // Limpiar formulario
+            document.getElementById('exceptionStartDate').value = '';
+            document.getElementById('exceptionEndDate').value = '';
+            document.getElementById('exceptionReason').value = '';
+            document.getElementById('exceptionStartTime').value = '';
+            document.getElementById('exceptionEndTime').value = '';
+            document.querySelector('input[name="exceptionType"][value="BLOQUEO"]').checked = true;
+            extraTimeFields.style.display = 'none';
+        } catch (err) {
+            showNotification('Error: ' + err.message, true);
+        }
+    });
 </script>
 </body>
 </html>

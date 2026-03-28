@@ -57,14 +57,11 @@ public class PatientService {
                                                         LocalDate fechaDesde,
                                                         LocalDate fechaHasta) {
 
-        // Obtener TODOS los pacientes del profesional (sin filtros)
         List<Patient> todosPacientes = patientRepository.findPatientsByProfessionalId(professionalId);
 
-        // Convertir fechas a OffsetDateTime para comparar (si vienen)
         OffsetDateTime start = (fechaDesde != null) ? fechaDesde.atStartOfDay(zoneId).toOffsetDateTime() : null;
         OffsetDateTime end = (fechaHasta != null) ? fechaHasta.atTime(LocalTime.MAX).atZone(zoneId).toOffsetDateTime() : null;
 
-        // Filtrar en memoria
         Stream<Patient> stream = todosPacientes.stream();
 
         if (nombre != null && !nombre.trim().isEmpty()) {
@@ -77,31 +74,21 @@ public class PatientService {
             stream = stream.filter(p -> p.getDocNumber().toLowerCase().contains(docLower));
         }
 
-        // Filtros de fecha: necesitamos obtener las citas del paciente con este profesional
-        // pero como ya tenemos la lista de pacientes, debemos para cada paciente verificar si tiene citas en el rango.
-        // Esto es más complejo, así que simplificamos: si se especifican fechas, solo mostramos pacientes que tengan al menos una cita en el rango.
-        if (start != null || end != null) {
-            // Para cada paciente, necesitamos saber si tiene alguna cita en el rango
-            // Vamos a obtener las citas de cada paciente con este profesional y filtrar
-            // Pero eso haría muchas consultas. Para simplificar, obtenemos las citas primero y luego los pacientes.
-            // Otra opción: no implementar filtros de fecha por ahora, y luego mejoramos.
-            // Por ahora, podemos ignorar los filtros de fecha para no complicar.
-            // Te propongo que por ahora no implementes filtros de fecha, o los implementamos después.
-            // Para avanzar, comenta las líneas de filtros de fecha y pon un mensaje.
-        }
+        // Filtro de fecha (opcional) - si se implementa, debe hacerse con cuidado, pero por ahora lo omitimos
 
         List<Patient> pacientesFiltrados = stream.collect(Collectors.toList());
 
-        // Clasificar en atendidos y pendientes
         List<PacienteResumen> atendidos = new ArrayList<>();
         List<PacienteResumen> pendientes = new ArrayList<>();
 
         for (Patient patient : pacientesFiltrados) {
+            // Obtener última cita con este profesional
             Appointment ultimaCita = appointmentRepository
                     .findTopByPatientIdAndProfessionalIdOrderByDateTimeDesc(patient.getId(), professionalId)
                     .orElse(null);
 
-            boolean tieneRegistro = medicalRecordRepository.existsByAppointmentPatientId(patient.getId());
+            // Verificar si ha sido atendido por este profesional (tiene algún MedicalRecord)
+            boolean tieneRegistro = medicalRecordRepository.existsByAppointmentPatientIdAndAppointmentProfessionalId(patient.getId(), professionalId);
 
             PacienteResumen resumen = new PacienteResumen(
                     patient.getId(),

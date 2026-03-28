@@ -27,6 +27,7 @@ public class DoctorAgendaController {
     private final WeeklyAvailabilityRepository weeklyAvailabilityRepository;
     private final AvailabilityBaseRepository availabilityBaseRepository;
     private final AppointmentRepository appointmentRepository;
+    private final AgendaExceptionRepository agendaExceptionRepository;
     private final ZoneId zoneId;
     private final int slotMinutes;
 
@@ -35,7 +36,7 @@ public class DoctorAgendaController {
             UserRepository userRepository,
             WeeklyAvailabilityRepository weeklyAvailabilityRepository,
             AvailabilityBaseRepository availabilityBaseRepository,
-            AppointmentRepository appointmentRepository,
+            AppointmentRepository appointmentRepository, AgendaExceptionRepository agendaExceptionRepository,
             @Value("${healthflow.timezone:America/Bogota}") String tz,
             @Value("${healthflow.appointment.slotMinutes:30}") int slotMinutes) {
         this.professionalRepository = professionalRepository;
@@ -43,6 +44,7 @@ public class DoctorAgendaController {
         this.weeklyAvailabilityRepository = weeklyAvailabilityRepository;
         this.availabilityBaseRepository = availabilityBaseRepository;
         this.appointmentRepository = appointmentRepository;
+        this.agendaExceptionRepository = agendaExceptionRepository;
         this.zoneId = ZoneId.of(tz);
         this.slotMinutes = slotMinutes;
     }
@@ -319,48 +321,61 @@ public class DoctorAgendaController {
         // 2. Obtener disponibilidad base (recurrente) para todos los días de la semana
         List<AvailabilityBase> baseList = availabilityBaseRepository
                 .findByProfessionalIdOrderByDayOfWeekAscStartTimeAsc(professionalId);
-        // Agrupar base por día de semana (1=lunes, ..., 7=domingo)
         Map<Integer, List<AvailabilityBase>> baseByDay = baseList.stream()
                 .collect(Collectors.groupingBy(AvailabilityBase::getDayOfWeek));
 
-        // 3. Obtener excepciones semanales para el rango del mes
-        List<WeeklyAvailability> exceptions = weeklyAvailabilityRepository
+        // 3. Obtener excepciones semanales (weekly_availability) para el rango del mes
+        List<WeeklyAvailability> weeklyExceptions = weeklyAvailabilityRepository
                 .findByProfessionalIdAndWeekStartDateBetween(professionalId, firstDay, lastDay);
-        // Agrupar por fecha (día exacto) para fácil acceso
-        Map<LocalDate, List<WeeklyAvailability>> exceptionsByDate = exceptions.stream()
-                .collect(Collectors.groupingBy(wa -> {
-                    return wa.getWeekStartDate().plusDays(wa.getDayOfWeek() - 1);
-                }));
+        Map<LocalDate, List<WeeklyAvailability>> weeklyExceptionsByDate = weeklyExceptions.stream()
+                .collect(Collectors.groupingBy(wa -> wa.getWeekStartDate().plusDays(wa.getDayOfWeek() - 1)));
 
-        // 4. Construir la respuesta para cada día del mes
+        // 4. Obtener excepciones puntuales (excepciones_agenda) para el rango del mes
+        List<AgendaException> puntualExceptions = agendaExceptionRepository.findByProfessional_IdAndDateBetween(professionalId, firstDay, lastDay);
+        Map<LocalDate, List<AgendaException>> puntualExceptionsByDate = puntualExceptions.stream()
+                .collect(Collectors.groupingBy(AgendaException::getDate));
+
+        // 5. Construir la respuesta para cada día del mes
         List<Map<String, Object>> daysData = new ArrayList<>();
         for (LocalDate date = firstDay; !date.isAfter(lastDay); date = date.plusDays(1)) {
             Map<String, Object> dayInfo = new HashMap<>();
             dayInfo.put("date", date.toString());
             dayInfo.put("dayOfWeek", date.getDayOfWeek().getValue());
 
-            List<WeeklyAvailability> ex = exceptionsByDate.get(date);
-            if (ex != null && !ex.isEmpty()) {
-                WeeklyAvailability wa = ex.get(0);
+            // Prioridad: excepción puntual > excepción semanal > base
+            List<AgendaException> puntual = puntualExceptionsByDate.get(date);
+            if (puntual != null && !puntual.isEmpty()) {
+                AgendaException ae = puntual.get(0);
                 dayInfo.put("isException", true);
-                dayInfo.put("exceptionId", wa.getId());
-                dayInfo.put("startTime", wa.getStartTime() != null ? wa.getStartTime().toString() : null);
-                dayInfo.put("endTime", wa.getEndTime() != null ? wa.getEndTime().toString() : null);
-                dayInfo.put("active", wa.getActive());
+                dayInfo.put("exceptionId", ae.getId());
+                dayInfo.put("startTime", ae.getStartTime() != null ? ae.getStartTime().toString() : null);
+                dayInfo.put("endTime", ae.getEndTime() != null ? ae.getEndTime().toString() : null);
+                dayInfo.put("active", ae.getType() != ExceptionType.BLOQUEO); // si es bloqueo, no activo
+                // Para bloqueo, no hay horario; para extra, se muestra el rango
             } else {
-                int dow = date.getDayOfWeek().getValue();
-                List<AvailabilityBase> baseForDay = baseByDay.getOrDefault(dow, List.of());
-                if (baseForDay.isEmpty()) {
-                    dayInfo.put("isException", false);
-                    dayInfo.put("hasBase", false);
+                List<WeeklyAvailability> weekly = weeklyExceptionsByDate.get(date);
+                if (weekly != null && !weekly.isEmpty()) {
+                    WeeklyAvailability wa = weekly.get(0);
+                    dayInfo.put("isException", true);
+                    dayInfo.put("exceptionId", wa.getId());
+                    dayInfo.put("startTime", wa.getStartTime() != null ? wa.getStartTime().toString() : null);
+                    dayInfo.put("endTime", wa.getEndTime() != null ? wa.getEndTime().toString() : null);
+                    dayInfo.put("active", wa.getActive());
                 } else {
-                    dayInfo.put("isException", false);
-                    dayInfo.put("hasBase", true);
-                    List<Map<String, String>> ranges = baseForDay.stream()
-                            .map(b -> Map.of("start", b.getStartTime().toString(),
-                                    "end", b.getEndTime().toString()))
-                            .collect(Collectors.toList());
-                    dayInfo.put("ranges", ranges);
+                    int dow = date.getDayOfWeek().getValue();
+                    List<AvailabilityBase> baseForDay = baseByDay.getOrDefault(dow, List.of());
+                    if (baseForDay.isEmpty()) {
+                        dayInfo.put("isException", false);
+                        dayInfo.put("hasBase", false);
+                    } else {
+                        dayInfo.put("isException", false);
+                        dayInfo.put("hasBase", true);
+                        List<Map<String, String>> ranges = baseForDay.stream()
+                                .map(b -> Map.of("start", b.getStartTime().toString(),
+                                        "end", b.getEndTime().toString()))
+                                .collect(Collectors.toList());
+                        dayInfo.put("ranges", ranges);
+                    }
                 }
             }
             daysData.add(dayInfo);

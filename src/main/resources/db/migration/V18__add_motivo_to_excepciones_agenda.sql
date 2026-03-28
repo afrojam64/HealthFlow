@@ -1,0 +1,1 @@
+ALTER TABLE excepciones_agenda ADD COLUMN IF NOT EXISTS motivo VARCHAR(255);

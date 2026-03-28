@@ -38,4 +38,6 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, UU
      */
     boolean existsByAppointmentPatientId(UUID patientId);
 
+    boolean existsByAppointmentPatientIdAndAppointmentProfessionalId(UUID patientId, UUID professionalId);
+
 }

@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
@@ -49,70 +48,17 @@ public class PatientController {
 
     @GetMapping("/pacientes")
     public String listarPacientes(
-        @RequestParam(name = "nombre", required = false) String nombre,
-        @RequestParam(name = "documento", required = false) String documento,
-        @RequestParam(name = "fechaDesde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaDesde,
-        @RequestParam(name = "fechaHasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta,
-        Model model) {
+            @RequestParam(name = "nombre", required = false) String nombre,
+            @RequestParam(name = "documento", required = false) String documento,
+            @RequestParam(name = "fechaDesde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaDesde,
+            @RequestParam(name = "fechaHasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta,
+            Model model) {
 
         UUID professionalId = getCurrentProfessionalId();
 
-        // Obtener pacientes con estado y filtros
         PatientService.PacientesConEstado pacientes = patientService.obtenerPacientesConEstado(
                 professionalId, nombre, documento, fechaDesde, fechaHasta);
 
-        // Variables necesarias para el layout
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        LocalDate today = LocalDate.now(zoneId);
-        String fechaActual = today.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + ", " +
-                today.getDayOfMonth() + " de " +
-                today.getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + " de " +
-                today.getYear();
-
-        String fechaTablaCitas = today.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + ", " +
-                today.getDayOfMonth() + " de " +
-                today.getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "ES"));
-
-        // Datos por defecto para estadísticas y citas (vacíos)
-        DashboardStats stats = new DashboardStats(0, 0, 0, 0);
-        List<Object> proximasCitas = new ArrayList<>(); // Lista vacía
-
-        model.addAttribute("username", username);
-        model.addAttribute("stats", stats);
-        model.addAttribute("fechaActual", fechaActual);
-        model.addAttribute("fechaTablaCitas", fechaTablaCitas);
-        model.addAttribute("proximasCitas", proximasCitas);
-        model.addAttribute("prevDate", today.minusDays(1));
-        model.addAttribute("nextDate", today.plusDays(1));
-        model.addAttribute("today", today);
-
-        // Datos específicos de la página de pacientes
-        model.addAttribute("pacientesAtendidos", pacientes.getAtendidos());
-        model.addAttribute("pacientesPendientes", pacientes.getPendientes());
-        model.addAttribute("filtroNombre", nombre);
-        model.addAttribute("filtroDocumento", documento);
-        model.addAttribute("filtroFechaDesde", fechaDesde);
-        model.addAttribute("filtroFechaHasta", fechaHasta);
-        model.addAttribute("title", "Mis Pacientes - HealthFlow");
-        System.out.println("Agregando contenido: doctor/pacientes :: content");
-        model.addAttribute("contenido", "doctor/pacientes");
-
-        return "fragments/layout";
-    }
-
-    @GetMapping("/pacientes/{id}/historial")
-    public String verHistorial(@PathVariable("id") UUID patientId, Model model) {
-
-        UUID professionalId = getCurrentProfessionalId();
-
-        // Obtener datos del paciente
-        Patient patient = patientRepository.findById(patientId)
-                .orElseThrow(() -> new DomainException("Paciente no encontrado"));
-
-        // Obtener historial
-        var historial = patientService.obtenerHistorialPaciente(patientId, professionalId);
-
-        // Variables necesarias para el layout
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         LocalDate today = LocalDate.now(zoneId);
         String fechaActual = today.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + ", " +
@@ -136,11 +82,55 @@ public class PatientController {
         model.addAttribute("nextDate", today.plusDays(1));
         model.addAttribute("today", today);
 
-        // Datos específicos de la página de historial
+        model.addAttribute("pacientesAtendidos", pacientes.getAtendidos());
+        model.addAttribute("pacientesPendientes", pacientes.getPendientes());
+        model.addAttribute("filtroNombre", nombre);
+        model.addAttribute("filtroDocumento", documento);
+        model.addAttribute("filtroFechaDesde", fechaDesde);
+        model.addAttribute("filtroFechaHasta", fechaHasta);
+        model.addAttribute("title", "Mis Pacientes - HealthFlow");
+        model.addAttribute("contenido", "doctor/pacientes"); // ← CORREGIDO: añadido ":: content"
+
+        return "fragments/layout";
+    }
+
+    @GetMapping("/pacientes/{id}/historial")
+    public String verHistorial(@PathVariable("id") UUID patientId, Model model) {
+
+        UUID professionalId = getCurrentProfessionalId();
+
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new DomainException("Paciente no encontrado"));
+
+        var historial = patientService.obtenerHistorialPaciente(patientId, professionalId);
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        LocalDate today = LocalDate.now(zoneId);
+        String fechaActual = today.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + ", " +
+                today.getDayOfMonth() + " de " +
+                today.getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + " de " +
+                today.getYear();
+
+        String fechaTablaCitas = today.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + ", " +
+                today.getDayOfMonth() + " de " +
+                today.getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "ES"));
+
+        DashboardStats stats = new DashboardStats(0, 0, 0, 0);
+        List<Object> proximasCitas = new ArrayList<>();
+
+        model.addAttribute("username", username);
+        model.addAttribute("stats", stats);
+        model.addAttribute("fechaActual", fechaActual);
+        model.addAttribute("fechaTablaCitas", fechaTablaCitas);
+        model.addAttribute("proximasCitas", proximasCitas);
+        model.addAttribute("prevDate", today.minusDays(1));
+        model.addAttribute("nextDate", today.plusDays(1));
+        model.addAttribute("today", today);
+
         model.addAttribute("patient", patient);
         model.addAttribute("historial", historial);
         model.addAttribute("title", "Historial de " + patient.getFirstName() + " - HealthFlow");
-        model.addAttribute("contenido", "doctor/historial-paciente :: content");
+        model.addAttribute("contenido", "doctor/historial-paciente"); // ← CORREGIDO: añadido ":: content"
 
         return "fragments/layout";
     }
@@ -154,7 +144,6 @@ public class PatientController {
         return professional.getId();
     }
 
-    // Clase interna para stats (copia de la de DashboardController)
     public static class DashboardStats {
         public final long citasHoy;
         public final long citasSemana;

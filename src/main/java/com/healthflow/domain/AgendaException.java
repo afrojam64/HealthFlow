@@ -20,7 +20,7 @@ public class AgendaException extends BaseEntity {
     private LocalDate date;
 
     @Column(name = "hora_inicio")
-    private LocalTime startTime; // null => todo el día
+    private LocalTime startTime;
 
     @Column(name = "hora_fin")
     private LocalTime endTime;
@@ -29,6 +29,9 @@ public class AgendaException extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo", nullable = false, length = 20)
     private ExceptionType type;
+
+    @Column(name = "motivo", length = 255)
+    private String reason; // motivo
 
     // Getters y Setters
     public Professional getProfessional() {
@@ -69,5 +72,13 @@ public class AgendaException extends BaseEntity {
 
     public void setType(ExceptionType type) {
         this.type = type;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
     }
 }

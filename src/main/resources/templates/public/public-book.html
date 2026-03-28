@@ -78,7 +78,7 @@
                     </div>
                     <table class="table table-bordered text-center">
                         <thead>
-                        <tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th>+
+                        <tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th>
                         </thead>
                         <tbody id="calendarBody"></tbody>
                     </table>
@@ -168,14 +168,24 @@
     }
 
     async function loadCalendar(year, month) {
+        // 1. Cargar disponibilidad del mes
+        const availabilityUrl = `/api/public/professionals/${professionalId}/monthly-availability?year=${year}&month=${month+1}`;
+        try {
+            const resp = await fetch(availabilityUrl);
+            monthlyAvailability = await resp.json();
+        } catch (err) {
+            console.error('Error cargando disponibilidad mensual:', err);
+            monthlyAvailability = null;
+        }
+
         const firstDay = new Date(year, month, 1);
         const startDayOfWeek = firstDay.getDay();
         let startOffset = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
         const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        let calendarHTML = '<tr>';
+        let calendarHTML = '';
         for (let i = 0; i < startOffset; i++) {
-            calendarHTML += '<td class="text-muted bg-light"> </td>';
+            calendarHTML += '  <td class="text-muted bg-light"></td> ';
         }
         for (let day = 1; day <= daysInMonth; day++) {
             const cellDate = new Date(year, month, day);
@@ -183,23 +193,32 @@
             today.setHours(0, 0, 0, 0);
             const isPast = cellDate < today;
 
+            // Determinar si el día tiene disponibilidad
+            let hasAvailability = false;
+            if (monthlyAvailability) {
+                const dateStr = formatDate(cellDate);
+                const dayInfo = monthlyAvailability.days.find(d => d.date === dateStr);
+                if (dayInfo) hasAvailability = dayInfo.hasAvailability;
+            }
+
             let classes = 'calendar-day';
-            if (isPast) classes += ' disabled';
+            if (isPast || !hasAvailability) classes += ' disabled';
             if (selectedDate && cellDate.getTime() === selectedDate.getTime()) classes += ' selected';
 
-            calendarHTML += `<td><div class="${classes}" data-date="${formatDate(cellDate)}">${day}</div></td>`;
+            calendarHTML += `  <td><div class="${classes}" data-date="${formatDate(cellDate)}">${day}</div></td> `;
             if ((day + startOffset) % 7 === 0) {
-                calendarHTML += '</tr><tr>';
+                calendarHTML += ' </tr><tr> ';
             }
         }
         const remainingCells = (7 - ((daysInMonth + startOffset) % 7)) % 7;
         for (let i = 0; i < remainingCells; i++) {
-            calendarHTML += '<td class="text-muted bg-light"> </td>';
+            calendarHTML += '  <td class="text-muted bg-light"></td> ';
         }
-        calendarHTML += '</tr>';
+        calendarHTML += ' </tr> ';
 
         document.getElementById('calendarBody').innerHTML = calendarHTML;
 
+        // Asignar eventos a los días habilitados
         document.querySelectorAll('.calendar-day:not(.disabled)').forEach(dayDiv => {
             dayDiv.addEventListener('click', () => {
                 const dateStr = dayDiv.getAttribute('data-date');
@@ -221,6 +240,8 @@
         const normalized = new Date(date.getFullYear(), date.getMonth(), date.getDate());
         selectedDate = normalized;
         const dateStr = formatDate(normalized);
+
+        console.log("📅 Día seleccionado (normalizado):", dateStr);
 
         document.querySelectorAll('.calendar-day').forEach(div => div.classList.remove('selected'));
         const selectedDiv = document.querySelector(`.calendar-day[data-date="${dateStr}"]`);
