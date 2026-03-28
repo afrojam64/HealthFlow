@@ -6,6 +6,7 @@ import com.healthflow.domain.Patient;
 import com.healthflow.repo.AppointmentRepository;
 import com.healthflow.service.DomainException;
 import com.healthflow.service.NotificationService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,7 +17,7 @@ import java.time.ZonedDateTime;
 import java.util.UUID;
 
 @Controller
-@RequestMapping("/public/appointments")
+@RequestMapping("/public/booking")
 public class PublicAppointmentPageController {
 
     private final AppointmentRepository appointmentRepository;
@@ -34,11 +35,16 @@ public class PublicAppointmentPageController {
         this.timezone = timezone;
     }
 
-    @GetMapping("/{token}/confirm")
-    public String confirmPage(@PathVariable("token") UUID token, Model model) {
+    @Transactional
+    @GetMapping("/confirm")
+    public String confirmPage(@RequestParam("token") UUID token, Model model) {
 
         Appointment appt = appointmentRepository.findByAccessToken(token)
                 .orElseThrow(() -> new DomainException("No encontramos tu cita. Verifica el enlace."));
+
+        // Forzar carga de paciente y profesional para evitar LazyInitializationException
+        appt.getPatient().getFirstName(); // carga el paciente
+        appt.getProfessional().getFullName(); // carga el profesional (no se usa, pero por si acaso)
 
         if (appt.getStatus() == AppointmentStatus.CANCELADA) {
             model.addAttribute("title", "No se puede confirmar");
@@ -59,18 +65,22 @@ public class PublicAppointmentPageController {
 
         model.addAttribute("appointment", appt);
         model.addAttribute("token", token.toString());
-        model.addAttribute("statusUrl", publicBaseUrl + "/public/appointments/" + token);
+        model.addAttribute("statusUrl", publicBaseUrl + "/public/booking/status?token=" + token);
         model.addAttribute("icsUrl", publicBaseUrl + "/api/public/appointments/" + token + "/calendar.ics");
-        model.addAttribute("cancelUrl", publicBaseUrl + "/public/appointments/" + token + "/cancel");
+        model.addAttribute("cancelUrl", publicBaseUrl + "/public/booking/cancel?token=" + token);
 
         return "public/public-appointment-confirm";
     }
 
-    @GetMapping("/{token}/cancel")
-    public String cancelPage(@PathVariable("token") UUID token, Model model) {
+    @Transactional
+    @GetMapping("/cancel")
+    public String cancelPage(@RequestParam("token") UUID token, Model model) {
 
         Appointment appt = appointmentRepository.findByAccessToken(token)
                 .orElseThrow(() -> new DomainException("No encontramos tu cita. Verifica el enlace."));
+
+        // Forzar carga
+        appt.getPatient().getFirstName();
 
         if (appt.getStatus() == AppointmentStatus.ATENDIDA) {
             model.addAttribute("title", "No se puede cancelar");
@@ -91,17 +101,21 @@ public class PublicAppointmentPageController {
 
         model.addAttribute("appointment", appt);
         model.addAttribute("token", token.toString());
-        model.addAttribute("statusUrl", publicBaseUrl + "/public/appointments/" + token);
+        model.addAttribute("statusUrl", publicBaseUrl + "/public/booking/status?token=" + token);
         model.addAttribute("icsUrl", publicBaseUrl + "/api/public/appointments/" + token + "/calendar.ics");
 
         return "public/public-appointment-cancel";
     }
 
-    @GetMapping("/{token}")
-    public String statusPage(@PathVariable("token") UUID token, Model model) {
+    @Transactional
+    @GetMapping("/status")
+    public String statusPage(@RequestParam("token") UUID token, Model model) {
 
         Appointment appt = appointmentRepository.findByAccessToken(token)
                 .orElseThrow(() -> new DomainException("No encontramos tu cita. Verifica el enlace."));
+
+        // Forzar carga
+        appt.getPatient().getFirstName();
 
         ZoneId zoneId = ZoneId.of(this.timezone);
         ZonedDateTime local = appt.getDateTime().atZoneSameInstant(zoneId);
@@ -111,8 +125,8 @@ public class PublicAppointmentPageController {
         model.addAttribute("appointment", appt);
         model.addAttribute("token", token.toString());
 
-        model.addAttribute("confirmUrl", publicBaseUrl + "/public/appointments/" + token + "/confirm");
-        model.addAttribute("cancelUrl", publicBaseUrl + "/public/appointments/" + token + "/cancel");
+        model.addAttribute("confirmUrl", publicBaseUrl + "/public/booking/confirm?token=" + token);
+        model.addAttribute("cancelUrl", publicBaseUrl + "/public/booking/cancel?token=" + token);
         model.addAttribute("icsUrl", publicBaseUrl + "/api/public/appointments/" + token + "/calendar.ics");
 
         return "public/public-appointment-status";

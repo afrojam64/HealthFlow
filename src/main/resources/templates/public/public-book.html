@@ -6,7 +6,11 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        /* Estilos del calendario (igual que antes) */
+        :root {
+            --primary: #2A7F6E;
+            --primary-dark: #1E5F51;
+            --primary-light: #E8F5F2;
+        }
         .calendar-day {
             cursor: pointer;
             transition: all 0.2s;
@@ -57,6 +61,12 @@
         <p class="text-muted" th:text="${professional.specialty}">Medicina General</p>
     </div>
 
+    <!-- Mensajes de error (flash) -->
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
     <div class="row">
         <div class="col-md-6">
             <div class="card">
@@ -68,7 +78,7 @@
                     </div>
                     <table class="table table-bordered text-center">
                         <thead>
-                        <tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th></tr>
+                        <tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th>+
                         </thead>
                         <tbody id="calendarBody"></tbody>
                     </table>
@@ -84,7 +94,7 @@
                     </div>
                     <div id="bookingForm" style="display:none;" class="mt-4">
                         <h6>Confirmar cita</h6>
-                        <form id="bookForm">
+                        <form th:action="@{/public/{slug}/book(slug=${slug})}" method="post">
                             <input type="hidden" id="selectedDateTime" name="dateTime">
                             <div class="mb-3">
                                 <label for="docType" class="form-label">Tipo de documento</label>
@@ -106,7 +116,7 @@
                                 <label for="lastName" class="form-label">Primer apellido</label>
                                 <input type="text" class="form-control" id="lastName" name="lastName" required>
                             </div>
-                            <!-- Campos adicionales requeridos por el backend -->
+                            <!-- Campos adicionales requeridos -->
                             <div class="mb-3">
                                 <label for="birthDate" class="form-label">Fecha de nacimiento</label>
                                 <input type="date" class="form-control" id="birthDate" name="birthDate" required>
@@ -165,7 +175,7 @@
 
         let calendarHTML = '<tr>';
         for (let i = 0; i < startOffset; i++) {
-            calendarHTML += '<td></td>';
+            calendarHTML += '<td class="text-muted bg-light"> </td>';
         }
         for (let day = 1; day <= daysInMonth; day++) {
             const cellDate = new Date(year, month, day);
@@ -184,7 +194,7 @@
         }
         const remainingCells = (7 - ((daysInMonth + startOffset) % 7)) % 7;
         for (let i = 0; i < remainingCells; i++) {
-            calendarHTML += '<td></td>';
+            calendarHTML += '<td class="text-muted bg-light"> </td>';
         }
         calendarHTML += '</tr>';
 
@@ -211,8 +221,6 @@
         const normalized = new Date(date.getFullYear(), date.getMonth(), date.getDate());
         selectedDate = normalized;
         const dateStr = formatDate(normalized);
-
-        console.log("📅 Día seleccionado (normalizado):", dateStr);
 
         document.querySelectorAll('.calendar-day').forEach(div => div.classList.remove('selected'));
         const selectedDiv = document.querySelector(`.calendar-day[data-date="${dateStr}"]`);
@@ -253,57 +261,6 @@
         document.getElementById('selectedDateTime').value = dateTimeStr;
         document.getElementById('bookingForm').style.display = 'block';
         document.getElementById('bookingForm').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // Interceptar envío del formulario
-    const bookForm = document.getElementById('bookForm');
-    if (bookForm) {
-        bookForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            // Recoger datos
-            const formData = new FormData(bookForm);
-            const data = {
-                docType: formData.get('docType'),
-                docNumber: formData.get('docNumber'),
-                firstName: formData.get('firstName'),
-                lastName: formData.get('lastName'),
-                birthDate: formData.get('birthDate'),
-                sex: formData.get('sex'),
-                municipalityCode: formData.get('municipalityCode'),
-                email: formData.get('email'),
-                phone: formData.get('phone'),
-                dateTime: formData.get('dateTime')
-            };
-
-            // Validar campos requeridos
-            if (!data.birthDate || !data.sex || !data.municipalityCode) {
-                alert('Por favor complete todos los campos obligatorios (fecha de nacimiento, sexo, código de municipio).');
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/public/professionals/${professionalId}/book`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.message || 'Error al reservar la cita');
-                }
-
-                const result = await response.json();
-                alert('Cita agendada correctamente. Revisa tu correo para confirmar.');
-                // Opcional: redirigir a una página de éxito
-                window.location.href = `/public/public-appointment-confirm?token=${result.accessToken}`;
-            } catch (err) {
-                alert('Error: ' + err.message);
-            }
-        });
     }
 
     document.getElementById('prevMonth').addEventListener('click', () => {

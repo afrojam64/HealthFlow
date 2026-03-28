@@ -3,61 +3,229 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title th:text="${title}">Confirmación</title>
+    <title th:text="${title}">Cita confirmada</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9edf2 100%);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #2A7F6E 0%, #1E5F51 100%);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .navbar-brand {
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+        .footer {
+            background: white;
+            padding: 1.5rem;
+            margin-top: auto;
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        /* Card style from Uiverse */
+        .success-card {
+            width: 100%;
+            max-width: 500px;
+            background-color: white;
+            border-radius: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 2rem 2rem 2rem;
+            gap: 1.25rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.15);
+            margin: 2rem auto;
+            transition: transform 0.2s;
+        }
+        .success-card:hover {
+            transform: translateY(-5px);
+        }
+        #successIcon {
+            width: 80px;
+            height: 80px;
+        }
+        #successIcon g path {
+            fill: #2A7F6E;
+        }
+        .success-heading {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 0;
+        }
+        .success-subheading {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #4b5563;
+            text-align: center;
+        }
+        .appointment-details {
+            background-color: #f8fafc;
+            border-radius: 24px;
+            padding: 1rem 1.5rem;
+            width: 100%;
+            border: 1px solid #e2e8f0;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #334155;
+        }
+        .detail-value {
+            color: #1e293b;
+            font-weight: 500;
+            text-align: right;
+        }
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+        .btn-custom {
+            padding: 0.6rem 1.5rem;
+            border-radius: 40px;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-ics {
+            background-color: #2A7F6E;
+            color: white;
+            box-shadow: 0 2px 5px rgba(42,127,110,0.3);
+        }
+        .btn-ics:hover {
+            background-color: #1E5F51;
+            transform: translateY(-2px);
+            color: white;
+        }
+        .btn-cancel {
+            background-color: #f1f5f9;
+            color: #dc2626;
+            border: 1px solid #fee2e2;
+        }
+        .btn-cancel:hover {
+            background-color: #fee2e2;
+            transform: translateY(-2px);
+        }
+        .btn-home {
+            background-color: #f1f5f9;
+            color: #334155;
+        }
+        .btn-home:hover {
+            background-color: #e2e8f0;
+            transform: translateY(-2px);
+        }
+        @media (max-width: 576px) {
+            .success-card {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+            .button-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn-custom {
+                justify-content: center;
+            }
+        }
+    </style>
 </head>
+<body>
 
-<body class="bg-light">
-<nav class="navbar navbar-dark bg-dark">
+<nav class="navbar navbar-dark">
     <div class="container">
-        <span class="navbar-brand">HealthFlow</span>
+        <span class="navbar-brand">
+            <i class="bi bi-heart-pulse-fill me-2"></i> HealthFlow
+        </span>
     </div>
 </nav>
 
 <main class="container py-4">
     <div class="row justify-content-center">
-        <div class="col-12 col-lg-7">
+        <div class="col-12 col-lg-6">
+            <div class="success-card">
+                <!-- Icono (SVG adaptado del cookie) -->
+                <svg xml:space="preserve" viewBox="0 0 122.88 122.25" y="0px" x="0px" id="successIcon" version="1.1">
+                    <g>
+                        <path d="M101.77,49.38c2.09,3.1,4.37,5.11,6.86,5.78c2.45,0.66,5.32,0.06,8.7-2.01c1.36-0.84,3.14-0.41,3.97,0.95 c0.28,0.46,0.42,0.96,0.43,1.47c0.13,1.4,0.21,2.82,0.24,4.26c0.03,1.46,0.02,2.91-0.05,4.35h0v0c0,0.13-0.01,0.26-0.03,0.38 c-0.91,16.72-8.47,31.51-20,41.93c-11.55,10.44-27.06,16.49-43.82,15.69v0.01h0c-0.13,0-0.26-0.01-0.38-0.03 c-16.72-0.91-31.51-8.47-41.93-20C5.31,90.61-0.73,75.1,0.07,58.34H0.07v0c0-0.13,0.01-0.26,0.03-0.38 C1,41.22,8.81,26.35,20.57,15.87C32.34,5.37,48.09-0.73,64.85,0.07V0.07h0c1.6,0,2.89,1.29,2.89,2.89c0,0.4-0.08,0.78-0.23,1.12 c-1.17,3.81-1.25,7.34-0.27,10.14c0.89,2.54,2.7,4.51,5.41,5.52c1.44,0.54,2.2,2.1,1.74,3.55l0.01,0 c-1.83,5.89-1.87,11.08-0.52,15.26c0.82,2.53,2.14,4.69,3.88,6.4c1.74,1.72,3.9,3,6.39,3.78c4.04,1.26,8.94,1.18,14.31-0.55 C99.73,47.78,101.08,48.3,101.77,49.38L101.77,49.38z M59.28,57.86c2.77,0,5.01,2.24,5.01,5.01c0,2.77-2.24,5.01-5.01,5.01 c-2.77,0-5.01-2.24-5.01-5.01C54.27,60.1,56.52,57.86,59.28,57.86L59.28,57.86z M37.56,78.49c3.37,0,6.11,2.73,6.11,6.11 s-2.73,6.11-6.11,6.11s-6.11-2.73-6.11-6.11S34.18,78.49,37.56,78.49L37.56,78.49z M50.72,31.75c2.65,0,4.79,2.14,4.79,4.79 c0,2.65-2.14,4.79-4.79,4.79c-2.65,0-4.79-2.14-4.79-4.79C45.93,33.89,48.08,31.75,50.72,31.75L50.72,31.75z M119.3,32.4 c1.98,0,3.58,1.6,3.58,3.58c0,1.98-1.6,3.58-3.58,3.58s-3.58-1.6-3.58-3.58C115.71,34.01,117.32,32.4,119.3,32.4L119.3,32.4z M93.62,22.91c2.98,0,5.39,2.41,5.39,5.39c0,2.98-2.41,5.39-5.39,5.39c-2.98,0-5.39-2.41-5.39-5.39 C88.23,25.33,90.64,22.91,93.62,22.91L93.62,22.91z M97.79,0.59c3.19,0,5.78,2.59,5.78,5.78c0,3.19-2.59,5.78-5.78,5.78 c-3.19,0-5.78-2.59-5.78-5.78C92.02,3.17,94.6,0.59,97.79,0.59L97.79,0.59z M76.73,80.63c4.43,0,8.03,3.59,8.03,8.03 c0,4.43-3.59,8.03-8.03,8.03s-8.03-3.59-8.03-8.03C68.7,84.22,72.29,80.63,76.73,80.63L76.73,80.63z M31.91,46.78 c4.8,0,8.69,3.89,8.69,8.69c0,4.8-3.89,8.69-8.69,8.69s-8.69-3.89-8.69-8.69C23.22,50.68,27.11,46.78,31.91,46.78L31.91,46.78z M107.13,60.74c-3.39-0.91-6.35-3.14-8.95-6.48c-5.78,1.52-11.16,1.41-15.76-0.02c-3.37-1.05-6.32-2.81-8.71-5.18 c-2.39-2.37-4.21-5.32-5.32-8.75c-1.51-4.66-1.69-10.2-0.18-16.32c-3.1-1.8-5.25-4.53-6.42-7.88c-1.06-3.05-1.28-6.59-0.61-10.35 C47.27,5.95,34.3,11.36,24.41,20.18C13.74,29.69,6.66,43.15,5.84,58.29l0,0.05v0h0l-0.01,0.13v0C5.07,73.72,10.55,87.82,20.02,98.3 c9.44,10.44,22.84,17.29,38,18.1l0.05,0h0v0l0.13,0.01h0c15.24,0.77,29.35-4.71,39.83-14.19c10.44-9.44,17.29-22.84,18.1-38l0-0.05 v0h0l0.01-0.13v0c0.07-1.34,0.09-2.64,0.06-3.91C112.98,61.34,109.96,61.51,107.13,60.74L107.13,60.74z M116.15,64.04L116.15,64.04 L116.15,64.04L116.15,64.04z M58.21,116.42L58.21,116.42L58.21,116.42L58.21,116.42z"></path>
+                    </g>
+                </svg>
 
-            <div class="card shadow-sm">
-                <div class="card-body">
+                <h2 class="success-heading" th:text="${title}">¡Cita confirmada!</h2>
+                <p class="success-subheading" th:text="${message}">Gracias. Tu cita quedó confirmada.</p>
 
-                    <h3 class="mb-2" th:text="${title}">¡Cita confirmada!</h3>
-
-                    <div class="alert"
-                         th:classappend="${ok} ? ' alert-success' : ' alert-warning'"
-                         th:text="${message}">
-                        Mensaje
+                <div class="appointment-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Estado</span>
+                        <span class="detail-value" th:text="${appointment.status}">CONFIRMADA</span>
                     </div>
-
-                    <div class="mb-3">
-                        <div class="text-muted small">Detalles</div>
-                        <div><strong>Estado:</strong> <span th:text="${appointment.status}">CONFIRMADA</span></div>
-                        <div><strong>Fecha/Hora:</strong> <span th:text="${#temporals.format(appointment.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')), 'EEEE, d ''de'' MMMM ''de'' yyyy ''a las'' hh:mm a', new java.util.Locale('es', 'CO'))}">...</span></div>
+                    <div class="detail-row">
+                        <span class="detail-label">Fecha / Hora</span>
+                        <span class="detail-value" th:text="${#temporals.format(appointment.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')), 'EEEE, d ''de'' MMMM ''de'' yyyy ''a las'' hh:mm a', new java.util.Locale('es', 'CO'))}">...</span>
                     </div>
-
-                    <div class="d-grid gap-2 d-md-flex">
-                        <a class="btn btn-outline-primary" th:href="${icsUrl}" target="_blank">Descargar .ICS</a>
-                        <a class="btn btn-outline-secondary" th:href="${statusUrl}" target="_blank">Ver estado (JSON)</a>
-                        <a class="btn btn-outline-danger"
-                           th:if="${appointment.status.name() != 'CANCELADA' and appointment.status.name() != 'ATENDIDA'}"
-                           th:href="${cancelUrl}" target="_blank">
-                            Cancelar
-                        </a>
+                    <div class="detail-row">
+                        <span class="detail-label">Paciente</span>
+                        <span class="detail-value" th:text="${appointment.patient.firstName + ' ' + appointment.patient.lastName}"></span>
                     </div>
-
-                    <hr class="my-3">
-
-                    <div class="small text-muted">
-                        Si llegaste aquí por error, vuelve a la página anterior o solicita un nuevo enlace.
+                    <div class="detail-row">
+                        <span class="detail-label">Documento</span>
+                        <span class="detail-value" th:text="${appointment.patient.docNumber}"></span>
                     </div>
+                </div>
 
+                <div class="button-group">
+                    <a class="btn-custom btn-ics" th:href="${icsUrl}" target="_blank">
+                        <i class="bi bi-calendar-plus"></i> Descargar .ICS
+                    </a>
+                    <a class="btn-custom btn-cancel" th:if="${appointment.status.name() != 'CANCELADA' and appointment.status.name() != 'ATENDIDA'}"
+                       th:href="${cancelUrl}" target="_blank">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </a>
+                    <a class="btn-custom btn-home" href="http://localhost:8080/public/dra-laura-perez">
+                        <i class="bi bi-house-door"></i> Inicio
+                    </a>
+                </div>
+
+                <div class="text-muted small mt-2 text-center">
+                    <i class="bi bi-envelope"></i> Te hemos enviado un correo con los detalles de tu cita.
                 </div>
             </div>
-
         </div>
     </div>
 </main>
+
+<footer class="footer">
+    <div class="container">
+        <p class="mb-0">© 2026 HealthFlow - Gestión Clínica Digital</p>
+    </div>
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
