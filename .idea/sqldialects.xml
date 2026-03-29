@@ -6,6 +6,7 @@
     <file url="file://$PROJECT_DIR$/src/main/resources/db/migration/V16__add_slug_to_profesionales.sql" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/src/main/resources/db/migration/V17__fix_slug_generation.sql" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/src/main/resources/db/migration/V18__add_motivo_to_excepciones_agenda.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/src/main/resources/db/migration/V19__create_documentos_table.sql" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/src/main/resources/db/migration/V9__insert_catalogos_rips.sql" dialect="GenericSQL" />
   </component>
 </project>

@@ -5,6 +5,7 @@ import com.healthflow.domain.Professional;
 import com.healthflow.repo.PatientRepository;
 import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.repo.UserRepository;
+import com.healthflow.service.DocumentoService;
 import com.healthflow.service.DomainException;
 import com.healthflow.service.PatientService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -33,17 +34,19 @@ public class PatientController {
     private final UserRepository userRepository;
     private final PatientRepository patientRepository;
     private final ZoneId zoneId;
+    private final DocumentoService documentoService;
 
     public PatientController(PatientService patientService,
                              ProfessionalRepository professionalRepository,
                              UserRepository userRepository,
                              PatientRepository patientRepository,
-                             @org.springframework.beans.factory.annotation.Value("${healthflow.timezone:America/Bogota}") String tz) {
+                             @org.springframework.beans.factory.annotation.Value("${healthflow.timezone:America/Bogota}") String tz, DocumentoService documentoService) {
         this.patientService = patientService;
         this.professionalRepository = professionalRepository;
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
         this.zoneId = ZoneId.of(tz);
+        this.documentoService = documentoService;
     }
 
     @GetMapping("/pacientes")
@@ -129,6 +132,7 @@ public class PatientController {
 
         model.addAttribute("patient", patient);
         model.addAttribute("historial", historial);
+        model.addAttribute("documentos", documentoService.getDocumentsByPatient(patientId));
         model.addAttribute("title", "Historial de " + patient.getFirstName() + " - HealthFlow");
         model.addAttribute("contenido", "doctor/historial-paciente"); // ← CORREGIDO: añadido ":: content"
 
