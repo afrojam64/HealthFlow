@@ -1,0 +1,14 @@
+server:
+  port: ${PORT}
+
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+  jpa:
+    hibernate:
+      ddl-auto: validate # Protección estricta en la nube
+
+healthflow:
+  publicBaseUrl: ${PUBLIC_URL}
