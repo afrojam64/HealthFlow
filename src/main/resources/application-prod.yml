@@ -34,10 +34,10 @@ spring:
     baseline-on-migrate: true
 
   mail:
-    host: ${SPRING_MAIL_HOST}
+    host: ${SPRING_MAIL_HOST:smtp-relay.brevo.com}
     port: ${SPRING_MAIL_PORT:587}
-    username: ${SPRING_MAIL_USERNAME}
-    password: ${SPRING_MAIL_PASSWORD}
+    username: ${SPRING_MAIL_USERNAME:correo-falso@ejemplo.com}
+    password: ${SPRING_MAIL_PASSWORD:sin-clave}
     properties:
       mail:
         smtp:
@@ -57,7 +57,7 @@ spring:
 
 healthflow:
   timezone: America/Bogota
-  publicBaseUrl: ${PUBLIC_URL}
+  publicBaseUrl: ${PUBLIC_URL:https://healthflow-app.onrender.com}
   appointment:
     slotMinutes: 30
     minLeadMinutes: 120
