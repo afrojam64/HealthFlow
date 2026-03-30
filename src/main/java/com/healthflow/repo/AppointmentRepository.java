@@ -42,6 +42,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("endOfDay") OffsetDateTime endOfDay
     );
 
+    // NUEVO: contar citas por estado y rango de fechas
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.status = :status AND a.dateTime BETWEEN :start AND :end")
+    long countByStatusAndDateTimeBetween(@Param("status") AppointmentStatus status,
+                                         @Param("start") OffsetDateTime start,
+                                         @Param("end") OffsetDateTime end);
+
     long countByDateTimeBetween(OffsetDateTime start, OffsetDateTime end);
 
     long countByDateTimeAfter(OffsetDateTime since);
@@ -79,5 +85,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("start") OffsetDateTime start,
             @Param("end") OffsetDateTime end,
             @Param("status") AppointmentStatus status);
+
+    List<Appointment> findByPatientIdOrderByDateTimeDesc(UUID patientId);
 
 }

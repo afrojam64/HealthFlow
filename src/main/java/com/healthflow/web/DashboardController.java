@@ -2,7 +2,6 @@ package com.healthflow.web;
 
 import com.healthflow.domain.Appointment;
 import com.healthflow.domain.AppointmentStatus;
-import com.healthflow.domain.Professional;
 import com.healthflow.repo.AppointmentRepository;
 import com.healthflow.repo.PatientRepository;
 import com.healthflow.repo.ProfessionalRepository;
@@ -20,10 +19,8 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.TextStyle;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Controller
 public class DashboardController {
@@ -51,7 +48,7 @@ public class DashboardController {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         var user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new DomainException("Usuario no encontrado"));
-        Professional professional = professionalRepository.findByUserId(user.getId())
+        var professional = professionalRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
         return professional.getId();
     }
@@ -60,8 +57,8 @@ public class DashboardController {
     public String dashboard(@RequestParam(name = "date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Optional<LocalDate> date, Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         LocalDate viewDate = date.orElse(LocalDate.now(zoneId));
-        DashboardStats stats = getStats();
         LocalDate today = LocalDate.now(zoneId);
+
         String fechaFormateadaHoy = today.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + ", " +
                 today.getDayOfMonth() + " de " +
                 today.getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + " de " +
@@ -72,14 +69,12 @@ public class DashboardController {
 
         OffsetDateTime startOfDay = viewDate.atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime endOfDay = viewDate.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
-
         UUID professionalId = getCurrentProfessionalId();
         List<Appointment> proximasCitas = appointmentRepository
                 .findActiveByProfessionalIdAndDateTimeBetween(professionalId, startOfDay, endOfDay);
 
         model.addAttribute("title", "Dashboard - HealthFlow");
         model.addAttribute("username", username);
-        model.addAttribute("stats", stats);
         model.addAttribute("fechaActual", fechaFormateadaHoy);
         model.addAttribute("fechaTablaCitas", fechaTablaCitas);
         model.addAttribute("proximasCitas", proximasCitas);
@@ -93,37 +88,64 @@ public class DashboardController {
 
     @GetMapping("/api/dashboard/stats")
     @ResponseBody
-    public DashboardStats getStats() {
+    public DashboardStats getStats(
+            @RequestParam(value = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam(value = "end", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
         LocalDate today = LocalDate.now(zoneId);
-        LocalDate weekAgo = today.minusDays(7);
-        LocalDate monthAgo = today.minusDays(30);
+        LocalDate startDate = start != null ? start : today;
+        LocalDate endDate = end != null ? end : today;
 
-        OffsetDateTime startOfDay = today.atStartOfDay(zoneId).toOffsetDateTime();
-        OffsetDateTime endOfDay = today.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
-        OffsetDateTime startOfWeek = weekAgo.atStartOfDay(zoneId).toOffsetDateTime();
-        OffsetDateTime startOfMonth = monthAgo.atStartOfDay(zoneId).toOffsetDateTime();
+        OffsetDateTime startOfDay = startDate.atStartOfDay(zoneId).toOffsetDateTime();
+        OffsetDateTime endOfDay = endDate.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
 
-        long citasHoy = appointmentRepository.countByDateTimeBetween(startOfDay, endOfDay);
-        long citasSemana = appointmentRepository.countByDateTimeAfter(startOfWeek);
-        long pacientesNuevos = patientRepository.countByCreatedAtAfter(startOfMonth);
-        long totalProfesionales = professionalRepository.count();
-        long citasAtendidas = appointmentRepository.countByStatus(AppointmentStatus.ATENDIDA);
+        // Citas en el período (todas, sin filtrar por profesional – para simplificar)
+        long citasEnPeriodo = appointmentRepository.countByDateTimeBetween(startOfDay, endOfDay);
+        // Pacientes nuevos en el período (registrados entre las fechas)
+        long pacientesNuevos = patientRepository.countByCreatedAtBetween(startOfDay, endOfDay);
+        // Ocupación: ejemplo con citas atendidas vs total de citas
+        long citasAtendidas = appointmentRepository.countByStatusAndDateTimeBetween(AppointmentStatus.ATENDIDA, startOfDay, endOfDay);
+        int ocupacion = citasEnPeriodo > 0 ? (int) ((citasAtendidas * 100) / citasEnPeriodo) : 0;
+        // Tasa de asistencia (mismo cálculo)
+        int tasaAsistencia = ocupacion;
 
-        int ocupacion = totalProfesionales > 0 ?
-                (int) ((citasAtendidas * 100) / (totalProfesionales * 10)) : 0;
-
-        return new DashboardStats(
-                citasHoy,
-                citasSemana,
-                pacientesNuevos,
-                ocupacion
-        );
+        return new DashboardStats(citasEnPeriodo, pacientesNuevos, ocupacion, tasaAsistencia);
     }
 
+    @GetMapping("/api/dashboard/citas-por-dia")
+    @ResponseBody
+    public Map<String, Object> getCitasPorDia(
+            @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+        OffsetDateTime startOfDay = start.atStartOfDay(zoneId).toOffsetDateTime();
+        OffsetDateTime endOfDay = end.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
+
+        // Obtener todas las citas en el rango (para simplificar, sin filtrar por profesional)
+        List<Appointment> citas = appointmentRepository.findByDateTimeBetweenOrderByDateTimeAsc(startOfDay, endOfDay);
+
+        Map<LocalDate, Long> citasPorDia = citas.stream()
+                .collect(Collectors.groupingBy(
+                        a -> a.getDateTime().atZoneSameInstant(zoneId).toLocalDate(),
+                        Collectors.counting()
+                ));
+
+        List<String> fechas = new ArrayList<>();
+        List<Long> conteos = new ArrayList<>();
+        for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+            fechas.add(date.toString());
+            conteos.add(citasPorDia.getOrDefault(date, 0L));
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("fechas", fechas);
+        response.put("conteos", conteos);
+        return response;
+    }
+
+    // Clase record para las estadísticas
     public record DashboardStats(
-            long citasHoy,
-            long citasSemana,
+            long citasEnPeriodo,
             long pacientesNuevos,
-            int ocupacion
+            int ocupacion,
+            int tasaAsistencia
     ) {}
 }
