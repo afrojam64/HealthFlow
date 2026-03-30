@@ -57,7 +57,7 @@ spring:
 
 healthflow:
   timezone: America/Bogota
-  publicBaseUrl: ${PUBLIC_URL:http://localhost:8080}
+  publicBaseUrl: ${PUBLIC_URL}
   appointment:
     slotMinutes: 30
     minLeadMinutes: 120
