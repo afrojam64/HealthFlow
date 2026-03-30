@@ -42,6 +42,8 @@ spring:
       mail:
         smtp:
           auth: true
+          ssl:
+            enable: true
           starttls:
             enable: true
             required: true
