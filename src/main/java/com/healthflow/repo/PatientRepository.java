@@ -41,4 +41,7 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
             "JOIN Appointment a ON a.patient.id = p.id " +
             "WHERE a.professional.id = :professionalId")
     List<Patient> findPatientsByProfessionalId(@Param("professionalId") UUID professionalId);
+
+    // NUEVO: contar pacientes creados entre dos fechas
+    long countByCreatedAtBetween(OffsetDateTime start, OffsetDateTime end);
 }

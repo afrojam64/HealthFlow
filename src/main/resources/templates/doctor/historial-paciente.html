@@ -25,9 +25,9 @@
 
     <!-- Opciones adicionales (descargar/enviar) -->
     <div class="d-flex justify-content-end gap-2 mb-4">
-        <button class="btn btn-outline-primary" disabled>
+        <a th:href="@{/doctor/pacientes/{id}/pdf(id=${patient.id})}" class="btn btn-outline-primary" target="_blank">
             <i class="bi bi-download me-1"></i>Descargar PDF
-        </button>
+        </a>
         <button class="btn btn-outline-primary" disabled>
             <i class="bi bi-envelope me-1"></i>Enviar al paciente
         </button>
