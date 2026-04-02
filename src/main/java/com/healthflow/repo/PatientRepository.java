@@ -44,4 +44,6 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
 
     // NUEVO: contar pacientes creados entre dos fechas
     long countByCreatedAtBetween(OffsetDateTime start, OffsetDateTime end);
+
+    Optional<Patient> findByEmail(String email);
 }

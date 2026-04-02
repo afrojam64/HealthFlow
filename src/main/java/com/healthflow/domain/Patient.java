@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -58,6 +59,9 @@ public class Patient extends BaseEntity {
     @OneToMany(mappedBy = "patient")
     private List<Appointment> appointments;
 
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<PacienteToken> tokens = new ArrayList<>();
+
     // Getters y Setters
     public String getDocType() { return docType; }
     public void setDocType(String docType) { this.docType = docType; }
@@ -73,6 +77,14 @@ public class Patient extends BaseEntity {
 
     public String getLastName() { return lastName; }
     public void setLastName(String lastName) { this.lastName = lastName; }
+
+    public List<PacienteToken> getTokens() {
+        return tokens;
+    }
+
+    public void setTokens(List<PacienteToken> tokens) {
+        this.tokens = tokens;
+    }
 
     public String getSecondLastName() { return secondLastName; }
     public void setSecondLastName(String secondLastName) { this.secondLastName = secondLastName; }
