@@ -23,7 +23,6 @@ public class PacienteToken extends BaseEntity {
     // Constructor por defecto
     public PacienteToken() {}
 
-    // Constructor con parámetros
     public PacienteToken(Patient patient, String token, LocalDateTime expiresAt) {
         this.patient = patient;
         this.token = token;
