@@ -92,4 +92,13 @@ public class NotificationService {
         System.out.println(body);
         System.out.println("====================");
     }
+
+    // Envío de Token por mail
+    public void sendPortalAccessEmail(String email, String patientName, String portalUrl) {
+        System.out.println("=== EMAIL (MOCK) ===");
+        System.out.println("Para: " + email);
+        System.out.println("Asunto: Acceso a tu portal de salud - HealthFlow");
+        System.out.println("Hola " + patientName + ",\n\nAccede a tu portal de salud para gestionar tus citas y documentos:\n" + portalUrl + "\n\nEste enlace es válido por 1 año.\n\nSi no solicitaste este acceso, ignora este mensaje.\n\nSaludos,\nHealthFlow");
+        System.out.println("====================");
+    }
 }

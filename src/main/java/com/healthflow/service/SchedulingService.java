@@ -234,4 +234,49 @@ public class SchedulingService {
             throw new DomainException("Ese horario ya no está disponible. Por favor elige otro.");
         }
     }
+
+    // En SchedulingService.java
+    @Transactional
+    public Appointment bookForPatient(UUID professionalId, UUID patientId, OffsetDateTime dateTime) {
+        Professional professional = professionalRepository.findById(professionalId)
+                .orElseThrow(() -> new DomainException("Profesional no encontrado"));
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new DomainException("Paciente no encontrado"));
+
+        // Validar disponibilidad (misma lógica que en book)
+        // ... (copiar validaciones de book: verificar slot libre, no duplicado, etc.)
+
+        // Crear cita
+        Appointment appointment = new Appointment();
+        appointment.setProfessional(professional);
+        appointment.setPatient(patient);
+        appointment.setDateTime(dateTime);
+        appointment.setStatus(AppointmentStatus.PENDIENTE); // o CONFIRMADA si es automático
+        appointment.setAccessToken(UUID.randomUUID());
+
+        // Guardar
+        Appointment saved = appointmentRepository.save(appointment);
+
+        // Enviar notificación
+        notificationService.sendBookingEmail(patient.getEmail(), saved);
+
+        return saved;
+    }
+
+    @Transactional
+    public void rescheduleAppointment(UUID appointmentId, OffsetDateTime newDateTime) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new DomainException("Cita no encontrada"));
+        // Verificar que no esté atendida o cancelada
+        if (appointment.getStatus() == AppointmentStatus.ATENDIDA || appointment.getStatus() == AppointmentStatus.CANCELADA) {
+            throw new DomainException("No se puede reprogramar una cita atendida o cancelada.");
+        }
+        // Verificar disponibilidad del nuevo horario (usar la misma lógica de validación de book)
+        // ... (validar que el slot esté libre)
+        appointment.setDateTime(newDateTime);
+        appointment.setStatus(AppointmentStatus.PENDIENTE); // o mantener el estado
+        appointmentRepository.save(appointment);
+        // Enviar notificación
+        notificationService.sendRescheduleEmail(appointment.getPatient().getEmail(), appointment);
+    }
 }

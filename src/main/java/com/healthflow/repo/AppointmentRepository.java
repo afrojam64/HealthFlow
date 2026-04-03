@@ -88,4 +88,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
                                          @Param("end") OffsetDateTime end);
 
     List<Appointment> findByPatientIdOrderByDateTimeDesc(UUID patientId);
+
+    // En AppointmentRepository.java
+    Optional<Appointment> findTopByPatientIdOrderByDateTimeDesc(UUID patientId);
+
+
 }

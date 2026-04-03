@@ -13,37 +13,31 @@ import java.util.UUID;
 @Transactional
 public class PacienteTokenService {
 
-    private final PacienteTokenRepository tokenRepository;
+    private final PacienteTokenRepository tokenRepo;
 
-    public PacienteTokenService(PacienteTokenRepository tokenRepository) {
-        this.tokenRepository = tokenRepository;
+    public PacienteTokenService(PacienteTokenRepository tokenRepo) {
+        this.tokenRepo = tokenRepo;
     }
 
-    /**
-     * Genera un nuevo token activo para el paciente (inactiva tokens anteriores del mismo paciente).
-     */
     public String generarToken(Patient patient) {
-        // Inactivar tokens anteriores del mismo paciente (opcional, para mantener solo uno activo)
-        tokenRepository.findByPatientIdAndActiveTrue(patient.getId())
+        // Inactivar tokens anteriores del mismo paciente
+        tokenRepo.findByPatientIdAndActiveTrue(patient.getId())
                 .ifPresent(oldToken -> {
                     oldToken.setActive(false);
-                    tokenRepository.save(oldToken);
+                    tokenRepo.save(oldToken);
                 });
 
         String tokenValue = UUID.randomUUID().toString();
         LocalDateTime expiresAt = LocalDateTime.now().plusYears(1);
 
         PacienteToken token = new PacienteToken(patient, tokenValue, expiresAt);
-        tokenRepository.save(token);
+        tokenRepo.save(token);
 
         return tokenValue;
     }
 
-    /**
-     * Valida un token y retorna el paciente asociado si es válido y no expirado.
-     */
     public Patient validarToken(String token) {
-        PacienteToken pacienteToken = tokenRepository.findByTokenAndActiveTrue(token)
+        PacienteToken pacienteToken = tokenRepo.findByTokenAndActiveTrue(token)
                 .orElseThrow(() -> new RuntimeException("Token inválido o inactivo"));
 
         if (pacienteToken.getExpiresAt().isBefore(LocalDateTime.now())) {
@@ -53,9 +47,6 @@ public class PacienteTokenService {
         return pacienteToken.getPatient();
     }
 
-    /**
-     * Renueva el token de un paciente (genera uno nuevo y desactiva el anterior).
-     */
     public String renovarToken(Patient patient) {
         return generarToken(patient);
     }

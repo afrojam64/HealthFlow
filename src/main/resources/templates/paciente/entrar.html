@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Acceso al portal - HealthFlow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background-color: #F3F4F6; }
+        .card { border-radius: 24px; border: none; }
+        .btn-primary { background: #2A7F6E; border: none; }
+        .btn-primary:hover { background: #1E5F51; }
+    </style>
+</head>
+<body class="d-flex align-items-center" style="min-height: 100vh;">
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-5 text-center">
+                    <i class="bi bi-heart-pulse-fill text-primary" style="font-size: 3rem;"></i>
+                    <h3 class="mt-3">Portal del Paciente</h3>
+                    <p class="text-muted">Ingresa tu correo electrónico y te enviaremos un enlace mágico para acceder a tu historial y gestionar tus citas.</p>
+                    <form th:action="@{/paciente/enviar-enlace}" method="post" class="mt-4">
+                        <div class="mb-3">
+                            <input type="email" name="email" class="form-control form-control-lg" placeholder="tu@email.com" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">Enviar enlace</button>
+                    </form>
+                    <div th:if="${mensaje}" class="alert alert-success mt-3" th:text="${mensaje}"></div>
+                    <div th:if="${error}" class="alert alert-danger mt-3" th:text="${error}"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

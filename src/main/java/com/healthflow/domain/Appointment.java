@@ -3,7 +3,9 @@ package com.healthflow.domain;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 @Entity
@@ -72,4 +74,8 @@ public class Appointment extends BaseEntity {
 
     public MedicalRecord getMedicalRecord() { return medicalRecord; }
     public void setMedicalRecord(MedicalRecord medicalRecord) { this.medicalRecord = medicalRecord; }
+
+    public LocalDateTime getLocalDateTime(String zoneId) {
+        return getDateTime().atZoneSameInstant(ZoneId.of(zoneId)).toLocalDateTime();
+    }
 }
