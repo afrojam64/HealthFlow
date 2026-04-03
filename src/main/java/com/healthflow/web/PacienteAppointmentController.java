@@ -21,7 +21,6 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/paciente")
@@ -42,7 +41,6 @@ public class PacienteAppointmentController {
         this.schedulingService = schedulingService;
     }
 
-    // Mostrar formulario de agendamiento
     @GetMapping("/agendar")
     public String mostrarAgendar(HttpSession session, Model model, RedirectAttributes redirectAttributes) {
         UUID pacienteId = (UUID) session.getAttribute("pacienteId");
@@ -51,21 +49,19 @@ public class PacienteAppointmentController {
         Patient patient = patientRepo.findById(pacienteId).orElse(null);
         if (patient == null) return "redirect:/paciente/entrar";
 
-        // Obtener el profesional de la última cita del paciente
         Appointment ultimaCita = appointmentRepo.findTopByPatientIdOrderByDateTimeDesc(pacienteId).orElse(null);
         UUID professionalId = null;
         if (ultimaCita != null) {
             professionalId = ultimaCita.getProfessional().getId();
         } else {
-            // Si no tiene citas, redirigir al agendamiento público
             redirectAttributes.addFlashAttribute("errorMessage", "No tienes citas previas. Por favor agenda desde la página pública.");
-            return "redirect:/public/" + (ultimaCita != null ? ultimaCita.getProfessional().getSlug() : "");
+            return "redirect:/public/";
         }
 
         Professional professional = professionalRepo.findById(professionalId).orElse(null);
         if (professional == null) {
             redirectAttributes.addFlashAttribute("errorMessage", "Médico no encontrado.");
-            return "redirect:/paciente/dashboard?token=" + session.getAttribute("token");
+            return "redirect:/paciente/dashboard";
         }
 
         model.addAttribute("professional", professional);
@@ -75,7 +71,6 @@ public class PacienteAppointmentController {
         return "paciente/agendar";
     }
 
-    // Procesar el agendamiento
     @PostMapping("/agendar")
     public String agendarCita(@RequestParam("professionalId") UUID professionalId,
                               @RequestParam("dateTime") String dateTimeStr,
@@ -87,7 +82,7 @@ public class PacienteAppointmentController {
         try {
             OffsetDateTime dateTime = OffsetDateTime.parse(dateTimeStr);
             Appointment cita = schedulingService.bookForPatient(professionalId, pacienteId, dateTime);
-            redirectAttributes.addFlashAttribute("successMessage", "Cita agendada correctamente. Revisa tu correo.");
+            redirectAttributes.addFlashAttribute("successMessage", "Cita agendada correctamente.");
             return "redirect:/paciente/mis-citas";
         } catch (DomainException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
@@ -98,7 +93,6 @@ public class PacienteAppointmentController {
         }
     }
 
-    // Listar citas
     @GetMapping("/mis-citas")
     public String misCitas(HttpSession session, Model model) {
         UUID pacienteId = (UUID) session.getAttribute("pacienteId");
@@ -112,7 +106,6 @@ public class PacienteAppointmentController {
         List<CitaDTO> pasadas = new ArrayList<>();
 
         for (Appointment cita : citas) {
-            // Convertir a zona local
             LocalDateTime localDateTime = cita.getDateTime().atZoneSameInstant(zone).toLocalDateTime();
             CitaDTO dto = new CitaDTO(cita, localDateTime);
             if (cita.getDateTime().isAfter(now)) {
@@ -127,7 +120,6 @@ public class PacienteAppointmentController {
         return "paciente/mis-citas";
     }
 
-    // Clase DTO interna
     public static class CitaDTO {
         private final Appointment cita;
         private final LocalDateTime fechaLocal;
@@ -138,14 +130,14 @@ public class PacienteAppointmentController {
         }
         public Appointment getCita() { return cita; }
         public LocalDateTime getFechaLocal() { return fechaLocal; }
-        // Getters para Thymeleaf (delegados)
         public String getStatus() { return cita.getStatus().name(); }
         public Professional getProfessional() { return cita.getProfessional(); }
     }
 
-    // Cancelar cita
     @PostMapping("/cancelar/{appointmentId}")
-    public String cancelarCita(@PathVariable UUID appointmentId, HttpSession session, RedirectAttributes redirectAttributes) {
+    public String cancelarCita(@PathVariable("appointmentId") UUID appointmentId,
+                               HttpSession session,
+                               RedirectAttributes redirectAttributes) {
         UUID pacienteId = (UUID) session.getAttribute("pacienteId");
         if (pacienteId == null) return "redirect:/paciente/entrar";
 
@@ -160,14 +152,14 @@ public class PacienteAppointmentController {
         }
         cita.setStatus(AppointmentStatus.CANCELADA);
         appointmentRepo.save(cita);
-        // Opcional: enviar notificación
         redirectAttributes.addFlashAttribute("successMessage", "Cita cancelada correctamente.");
         return "redirect:/paciente/mis-citas";
     }
 
-    // Mostrar formulario de reprogramación
     @GetMapping("/reprogramar/{appointmentId}")
-    public String mostrarReprogramar(@PathVariable UUID appointmentId, HttpSession session, Model model, RedirectAttributes redirectAttributes) {
+    public String mostrarReprogramar(@PathVariable("appointmentId") UUID appointmentId,
+                                     HttpSession session, Model model,
+                                     RedirectAttributes redirectAttributes) {
         UUID pacienteId = (UUID) session.getAttribute("pacienteId");
         if (pacienteId == null) return "redirect:/paciente/entrar";
 
@@ -178,15 +170,13 @@ public class PacienteAppointmentController {
         }
         model.addAttribute("cita", cita);
         model.addAttribute("professionalId", cita.getProfessional().getId());
-        // Reutilizar la misma vista agendar.html pero con fecha actual precargada?
-        // Podemos crear una vista específica reprogramar.html o reutilizar agendar.html con parámetro.
-        // Por simplicidad, crearemos una vista nueva.
+        model.addAttribute("professional", cita.getProfessional());
+        model.addAttribute("fechaActual", cita.getDateTime().toString());
         return "paciente/reprogramar";
     }
 
-    // Procesar reprogramación
     @PostMapping("/reprogramar/{appointmentId}")
-    public String reprogramarCita(@PathVariable UUID appointmentId,
+    public String reprogramarCita(@PathVariable("appointmentId") UUID appointmentId,
                                   @RequestParam("newDateTime") String newDateTimeStr,
                                   HttpSession session,
                                   RedirectAttributes redirectAttributes) {
@@ -200,7 +190,6 @@ public class PacienteAppointmentController {
         }
         OffsetDateTime newDateTime = OffsetDateTime.parse(newDateTimeStr);
         try {
-            // Llamar a un método en SchedulingService para reprogramar (validar disponibilidad)
             schedulingService.rescheduleAppointment(appointmentId, newDateTime);
             redirectAttributes.addFlashAttribute("successMessage", "Cita reprogramada correctamente.");
         } catch (DomainException e) {

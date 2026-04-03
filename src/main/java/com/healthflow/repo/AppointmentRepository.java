@@ -43,29 +43,14 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     );
 
     long countByDateTimeBetween(OffsetDateTime start, OffsetDateTime end);
-
     long countByDateTimeAfter(OffsetDateTime since);
-
     long countByStatus(AppointmentStatus status);
-
     List<Appointment> findByDateTimeBetweenOrderByDateTimeAsc(OffsetDateTime start, OffsetDateTime end);
 
-    // ========== NUEVOS MÉTODOS PARA EL MÓDULO DE PACIENTES ==========
-
-    /**
-     * Encuentra la última cita (más reciente) de un paciente con un profesional específico.
-     */
+    // Módulo de pacientes
     Optional<Appointment> findTopByPatientIdAndProfessionalIdOrderByDateTimeDesc(UUID patientId, UUID professionalId);
-
-    /**
-     * Encuentra todas las citas de un paciente con un profesional específico, ordenadas por fecha descendente.
-     */
     List<Appointment> findByPatientIdAndProfessionalIdOrderByDateTimeDesc(UUID patientId, UUID professionalId);
 
-    /**
-     * Busca todas las citas de un profesional en un rango de fechas que tengan un estado específico.
-     * Incluye las relaciones con paciente y registro médico para evitar lazy loading.
-     */
     @Query("SELECT a FROM Appointment a " +
             "LEFT JOIN FETCH a.patient " +
             "LEFT JOIN FETCH a.medicalRecord mr " +
@@ -80,17 +65,15 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("end") OffsetDateTime end,
             @Param("status") AppointmentStatus status);
 
-
-    // NUEVO: contar citas por estado y rango de fechas
     @Query("SELECT COUNT(a) FROM Appointment a WHERE a.status = :status AND a.dateTime BETWEEN :start AND :end")
     long countByStatusAndDateTimeBetween(@Param("status") AppointmentStatus status,
                                          @Param("start") OffsetDateTime start,
                                          @Param("end") OffsetDateTime end);
 
     List<Appointment> findByPatientIdOrderByDateTimeDesc(UUID patientId);
-
-    // En AppointmentRepository.java
     Optional<Appointment> findTopByPatientIdOrderByDateTimeDesc(UUID patientId);
 
-
+    // Métodos para verificar existencia de citas (evitar duplicados)
+    boolean existsByProfessionalIdAndDateTime(UUID professionalId, OffsetDateTime dateTime);
+    boolean existsByProfessionalIdAndDateTimeAndIdNot(UUID professionalId, OffsetDateTime dateTime, UUID id);
 }

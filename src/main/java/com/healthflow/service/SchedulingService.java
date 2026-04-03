@@ -49,22 +49,19 @@ public class SchedulingService {
         this.minLeadMinutes = minLeadMinutes;
     }
 
+    // Obtiene los horarios libres para un profesional en una fecha determinada
     public List<OffsetDateTime> getFreeSlots(UUID professionalId, LocalDate date) {
-        // 1. Verificar si hay una excepción puntual para este día
         List<AgendaException> exceptions = agendaExceptionRepository.findByProfessional_IdAndDate(professionalId, date);
         if (!exceptions.isEmpty()) {
             AgendaException ex = exceptions.get(0);
             if (ex.getType() == ExceptionType.BLOQUEO) {
-                return List.of(); // Día completamente bloqueado
+                return List.of();
             } else if (ex.getType() == ExceptionType.EXTRA && ex.getStartTime() != null && ex.getEndTime() != null) {
-                // Usar solo el rango extra, ignorar la base semanal
                 return generateSlotsForRange(professionalId, date, ex.getStartTime(), ex.getEndTime());
             }
-            // Si es EXTRA sin horarios, no se debe mostrar nada (podría tratarse como bloqueo)
             return List.of();
         }
 
-        // 2. Si no hay excepción, continuar con la lógica normal (base semanal)
         LocalDate weekStartDate = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         int dayOfWeek = date.getDayOfWeek().getValue();
 
@@ -81,7 +78,7 @@ public class SchedulingService {
                 temp.setEndTime(wa.getEndTime());
                 rangos.add(temp);
             } else {
-                return List.of(); // Bloqueo semanal
+                return List.of();
             }
         } else {
             rangos = availabilityBaseRepository
@@ -91,7 +88,6 @@ public class SchedulingService {
             }
         }
 
-        // 3. Obtener citas reservadas
         OffsetDateTime startOfDay = date.atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime endOfDay = date.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
         Set<LocalTime> reservedSlots = appointmentRepository
@@ -118,8 +114,8 @@ public class SchedulingService {
         return freeSlots;
     }
 
+    // Genera slots para un rango horario específico (usado en excepciones EXTRA)
     private List<OffsetDateTime> generateSlotsForRange(UUID professionalId, LocalDate date, LocalTime start, LocalTime end) {
-        // Obtener citas reservadas para el día
         OffsetDateTime startOfDay = date.atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime endOfDay = date.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
         Set<LocalTime> reservedSlots = appointmentRepository
@@ -142,6 +138,7 @@ public class SchedulingService {
         return freeSlots;
     }
 
+    // Agendamiento público (crea o actualiza paciente)
     @Transactional
     public Appointment book(UUID professionalId, Patient patientPayload, OffsetDateTime dateTime) {
         if (dateTime == null) {
@@ -189,12 +186,14 @@ public class SchedulingService {
         appt.setProfessional(professional);
         appt.setPatient(patient);
         appt.setDateTime(dateTime);
+        appt.setAccessToken(UUID.randomUUID());
 
         Appointment saved = this.appointmentRepository.save(appt);
         notificationService.sendBookingEmail(patient.getEmail(), saved);
         return saved;
     }
 
+    // Valida si una cita puede ser reprogramada a un nuevo horario (sin persistir)
     public void validateRescheduleOrThrow(UUID professionalId, UUID appointmentId, OffsetDateTime newDateTime) {
         if (newDateTime == null) {
             throw new DomainException("newDateTime es obligatorio");
@@ -235,7 +234,7 @@ public class SchedulingService {
         }
     }
 
-    // En SchedulingService.java
+    // Agendamiento para paciente ya existente (desde portal del paciente) - cita confirmada automáticamente
     @Transactional
     public Appointment bookForPatient(UUID professionalId, UUID patientId, OffsetDateTime dateTime) {
         Professional professional = professionalRepository.findById(professionalId)
@@ -243,40 +242,59 @@ public class SchedulingService {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new DomainException("Paciente no encontrado"));
 
-        // Validar disponibilidad (misma lógica que en book)
-        // ... (copiar validaciones de book: verificar slot libre, no duplicado, etc.)
+        // Validar fecha/hora usando la misma lógica que en book()
+        if (dateTime == null) {
+            throw new DomainException("dateTime es obligatorio");
+        }
+        ZonedDateTime now = ZonedDateTime.now(zoneId);
+        ZonedDateTime minAllowed = now.plusMinutes(minLeadMinutes);
+        ZonedDateTime requested = dateTime.atZoneSameInstant(zoneId);
+        if (requested.isBefore(minAllowed)) {
+            throw new DomainException("No puedes agendar en el pasado o con menos de " + minLeadMinutes + " minutos de anticipación.");
+        }
+        LocalDate date = requested.toLocalDate();
+        LocalTime time = requested.toLocalTime().withSecond(0).withNano(0);
+        if ((time.getMinute() % slotMinutes) != 0) {
+            throw new DomainException("Hora inválida: debe caer en intervalos de " + slotMinutes + " minutos.");
+        }
+        List<OffsetDateTime> freeSlots = getFreeSlots(professionalId, date);
+        boolean isFree = freeSlots.stream().anyMatch(s ->
+                s.atZoneSameInstant(zoneId).toLocalTime().withSecond(0).withNano(0).equals(time)
+        );
+        if (!isFree) {
+            throw new DomainException("Ese horario ya no está disponible. Por favor elige otro.");
+        }
 
-        // Crear cita
+        // Crear cita con estado CONFIRMADA
         Appointment appointment = new Appointment();
         appointment.setProfessional(professional);
         appointment.setPatient(patient);
         appointment.setDateTime(dateTime);
-        appointment.setStatus(AppointmentStatus.PENDIENTE); // o CONFIRMADA si es automático
+        appointment.setStatus(AppointmentStatus.CONFIRMADA);
         appointment.setAccessToken(UUID.randomUUID());
 
-        // Guardar
         Appointment saved = appointmentRepository.save(appointment);
-
-        // Enviar notificación
         notificationService.sendBookingEmail(patient.getEmail(), saved);
-
         return saved;
     }
 
+    // Reprogramar cita existente (desde portal del paciente) - se confirma automáticamente
     @Transactional
     public void rescheduleAppointment(UUID appointmentId, OffsetDateTime newDateTime) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new DomainException("Cita no encontrada"));
-        // Verificar que no esté atendida o cancelada
+
         if (appointment.getStatus() == AppointmentStatus.ATENDIDA || appointment.getStatus() == AppointmentStatus.CANCELADA) {
             throw new DomainException("No se puede reprogramar una cita atendida o cancelada.");
         }
-        // Verificar disponibilidad del nuevo horario (usar la misma lógica de validación de book)
-        // ... (validar que el slot esté libre)
+
+        // Validar disponibilidad del nuevo horario usando el método existente
+        validateRescheduleOrThrow(appointment.getProfessional().getId(), appointmentId, newDateTime);
+
+        // Actualizar cita
         appointment.setDateTime(newDateTime);
-        appointment.setStatus(AppointmentStatus.PENDIENTE); // o mantener el estado
+        appointment.setStatus(AppointmentStatus.CONFIRMADA);
         appointmentRepository.save(appointment);
-        // Enviar notificación
         notificationService.sendRescheduleEmail(appointment.getPatient().getEmail(), appointment);
     }
 }
