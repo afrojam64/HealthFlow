@@ -45,10 +45,18 @@ public class MedicalRecordService {
         return medicalRecordRepository.save(newRecord);
     }
 
+    /**
+     * Persiste los datos clínicos de una consulta, incluyendo los tres campos separados
+     * (enfermedad actual, examen físico, concepto) en lugar del antiguo campo "evolución".
+     * También guarda diagnósticos, RIPS y prescripción.
+     * No modifica registros bloqueados ni citas de fechas distintas a la actual.
+     */
     @Transactional
     public MedicalRecord saveMedicalRecord(UUID appointmentId,
                                            String reason,
-                                           String evolution,
+                                           String enfermedadActual,
+                                           String examenFisico,
+                                           String concepto,
                                            String prescription,
                                            String mainDiagnosis,
                                            Long finalidadId,
@@ -78,18 +86,18 @@ public class MedicalRecordService {
             throw new DomainException("La historia clínica solo puede ser editada el día de la cita.");
         }
 
-        System.out.println("📅 Fecha cita: " + appointmentDate + " - Fecha hoy: " + today);
-
+        // Asignar los campos clínicos
         record.setReason(reason);
-        record.setEvolution(evolution);
+        record.setEnfermedadActual(enfermedadActual);
+        record.setExamenFisico(examenFisico);
+        record.setConcepto(concepto);
         record.setPrescription(prescription);
         record.setMainDiagnosis(mainDiagnosis);
-
-        // Guardar los nuevos campos de diagnósticos relacionados
         record.setRelatedDiagnosis1(relatedDiagnosis1);
         record.setRelatedDiagnosis2(relatedDiagnosis2);
         record.setComplicationDiagnosis(complicationDiagnosis);
 
+        // RIPS: finalidad consulta
         if (finalidadId != null) {
             CatalogoFinalidadConsulta finalidad = finalidadRepo.findById(finalidadId)
                     .orElseThrow(() -> new DomainException("Finalidad de consulta no válida"));
@@ -98,6 +106,7 @@ public class MedicalRecordService {
             record.setFinalidadConsulta(null);
         }
 
+        // RIPS: causa externa
         if (causaExternaId != null) {
             CatalogoCausaExterna causa = causaExternaRepo.findById(causaExternaId)
                     .orElseThrow(() -> new DomainException("Causa externa no válida"));
@@ -106,25 +115,15 @@ public class MedicalRecordService {
             record.setCausaExterna(null);
         }
 
+        // Valores económicos y CUPS
         record.setValorServicio(valorServicio);
         record.setCuotaModeradora(cuotaModeradora);
         record.setCopago(copago);
         record.setCodigoCups(codigoCups);
 
-        System.out.println("💾 Guardando en BD:");
-        System.out.println("   relatedDiagnosis1: " + record.getRelatedDiagnosis1());
-        System.out.println("   relatedDiagnosis2: " + record.getRelatedDiagnosis2());
-        System.out.println("   complicationDiagnosis: " + record.getComplicationDiagnosis());
-        System.out.println("💾 Guardando en BD:");
-        System.out.println("   ID del record: " + record.getId());
-        System.out.println("   relatedDiagnosis1: " + record.getRelatedDiagnosis1());
-        System.out.println("   relatedDiagnosis2: " + record.getRelatedDiagnosis2());
-        System.out.println("   complicationDiagnosis: " + record.getComplicationDiagnosis());
-        System.out.println("   mainDiagnosis: " + record.getMainDiagnosis());
-        System.out.println("   ¿locked? " + record.getLocked());
-
         return medicalRecordRepository.save(record);
     }
+
 
     @Transactional
     public void markAsAttendedAndLock(UUID appointmentId) {

@@ -71,7 +71,25 @@ public class MedicalRecord extends BaseEntity {
     @Column(name = "dx_complicacion", length = 10)
     private String complicationDiagnosis;
 
-    // Getters y Setters
+    @Column(name = "enfermedad_actual", columnDefinition = "TEXT")
+    private String enfermedadActual;
+
+    @Column(name = "examen_fisico", columnDefinition = "TEXT")
+    private String examenFisico;
+
+    @Column(name = "concepto", columnDefinition = "TEXT")
+    private String concepto;
+
+    // Getters y setters para los nuevos campos
+    public String getEnfermedadActual() { return enfermedadActual; }
+    public void setEnfermedadActual(String enfermedadActual) { this.enfermedadActual = enfermedadActual; }
+
+    public String getExamenFisico() { return examenFisico; }
+    public void setExamenFisico(String examenFisico) { this.examenFisico = examenFisico; }
+
+    public String getConcepto() { return concepto; }
+    public void setConcepto(String concepto) { this.concepto = concepto; }
+
     public Appointment getAppointment() { return appointment; }
     public void setAppointment(Appointment appointment) { this.appointment = appointment; }
 

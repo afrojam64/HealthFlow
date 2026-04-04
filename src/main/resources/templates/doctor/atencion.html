@@ -41,9 +41,35 @@
                                 <label for="reason" class="form-label">Motivo de la Consulta</label>
                                 <textarea id="reason" name="reason" class="form-control" rows="3" required th:text="${medicalRecord?.reason}"></textarea>
                             </div>
-                            <div class="col-12">
+                            <!-- <div class="col-12">
                                 <label for="evolution" class="form-label">Evolución</label>
                                 <textarea id="evolution" name="evolution" class="form-control" rows="8" required th:text="${medicalRecord?.evolution}"></textarea>
+                            </div>-->
+                            <div th:if="${medicalRecord != null && medicalRecord.evolution != null && medicalRecord.evolution != '' && medicalRecord.enfermedadActual == null && medicalRecord.examenFisico == null && medicalRecord.concepto == null}">
+                                <!-- Registro antiguo: mostrar el campo evolution único -->
+                                <div class="col-12">
+                                    <label for="evolutionOld" class="form-label">Evolución / Hallazgos (registro antiguo)</label>
+                                    <textarea id="evolutionOld" class="form-control" rows="8" readonly disabled th:text="${medicalRecord.evolution}"></textarea>
+                                    <input type="hidden" name="evolution" th:value="${medicalRecord.evolution}">
+                                    <small class="text-muted">Este es un registro anterior. Para nuevas consultas se usarán los campos separados.</small>
+                                </div>
+                            </div>
+                            <div th:unless="${medicalRecord != null && medicalRecord.evolution != null && medicalRecord.evolution != '' && medicalRecord.enfermedadActual == null && medicalRecord.examenFisico == null && medicalRecord.concepto == null}">
+                                <div class="col-12">
+                                    <label for="enfermedadActual" class="form-label">Enfermedad actual</label>
+                                    <textarea id="enfermedadActual" name="enfermedadActual" class="form-control" rows="4" th:text="${medicalRecord?.enfermedadActual}"></textarea>
+                                    <small class="text-muted">Descripción cronológica de los síntomas.</small>
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <label for="examenFisico" class="form-label">Examen físico</label>
+                                    <textarea id="examenFisico" name="examenFisico" class="form-control" rows="4" th:text="${medicalRecord?.examenFisico}"></textarea>
+                                    <small class="text-muted">Hallazgos, signos vitales, etc.</small>
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <label for="concepto" class="form-label">Concepto / Análisis y plan</label>
+                                    <textarea id="concepto" name="concepto" class="form-control" rows="4" th:text="${medicalRecord?.concepto}"></textarea>
+                                    <small class="text-muted">Diagnóstico diferencial, plan de manejo, recomendaciones.</small>
+                                </div>
                             </div>
 
                             <!-- Diagnóstico Principal con autocompletado -->
@@ -187,12 +213,29 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-12">
+                                    <!--<div class="col-12">
                                         <div class="d-flex gap-2 align-items-start">
                                             <i class="bi bi-activity fs-5 text-secondary mt-1"></i>
                                             <div>
                                                 <strong class="d-block text-secondary mb-1">Evolución / Hallazgos</strong>
                                                 <p class="mb-0" th:text="${rec.evolution} ?: 'No registrado'"></p>
+                                            </div>
+                                        </div>
+                                    </div>-->
+
+                                    <div class="col-12">
+                                        <div class="d-flex gap-2 align-items-start">
+                                            <i class="bi bi-activity fs-5 text-secondary mt-1"></i>
+                                            <div>
+                                                <strong class="d-block text-secondary mb-1">Evolución / Hallazgos</strong>
+                                                <div th:if="${rec.enfermedadActual != null or rec.examenFisico != null or rec.concepto != null}">
+                                                    <p><strong>Enfermedad actual:</strong> <span th:text="${rec.enfermedadActual} ?: 'N/A'"></span></p>
+                                                    <p><strong>Examen físico:</strong> <span th:text="${rec.examenFisico} ?: 'N/A'"></span></p>
+                                                    <p><strong>Concepto:</strong> <span th:text="${rec.concepto} ?: 'N/A'"></span></p>
+                                                </div>
+                                                <div th:unless="${rec.enfermedadActual != null or rec.examenFisico != null or rec.concepto != null}">
+                                                    <p class="mb-0" th:text="${rec.evolution} ?: 'No registrado'"></p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

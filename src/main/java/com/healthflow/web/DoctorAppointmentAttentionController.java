@@ -67,10 +67,17 @@ public class DoctorAppointmentAttentionController {
         return "fragments/layout";
     }
 
+    /**
+     * Guarda o actualiza la historia clínica de una cita.
+     * Recibe los datos del formulario de atención clínica, incluyendo los nuevos campos
+     * enfermedad actual, examen físico y concepto, y delega el guardado al servicio.
+     */
     @PostMapping("/{id}/guardar")
     public String saveClinicalNote(@PathVariable("id") UUID appointmentId,
                                    @RequestParam("reason") String reason,
-                                   @RequestParam("evolution") String evolution,
+                                   @RequestParam(name = "enfermedadActual", required = false) String enfermedadActual,
+                                   @RequestParam(name = "examenFisico", required = false) String examenFisico,
+                                   @RequestParam(name = "concepto", required = false) String concepto,
                                    @RequestParam(name = "prescription", required = false) String prescription,
                                    @RequestParam(name = "mainDiagnosis", required = false) String mainDiagnosis,
                                    @RequestParam(name = "finalidadId", required = false) Long finalidadId,
@@ -84,14 +91,11 @@ public class DoctorAppointmentAttentionController {
                                    @RequestParam(name = "complicationDiagnosis", required = false) String complicationDiagnosis,
                                    @RequestParam(name = "accion", required = false) String accion,
                                    RedirectAttributes redirectAttributes) {
-
         try {
-            // 1. Guardar siempre los datos clínicos
-            medicalRecordService.saveMedicalRecord(appointmentId, reason, evolution, prescription, mainDiagnosis,
-                    finalidadId, causaExternaId, valorServicio, cuotaModeradora, copago, codigoCups,
-                    relatedDiagnosis1, relatedDiagnosis2, complicationDiagnosis);
+            medicalRecordService.saveMedicalRecord(appointmentId, reason, enfermedadActual, examenFisico, concepto,
+                    prescription, mainDiagnosis, finalidadId, causaExternaId, valorServicio, cuotaModeradora,
+                    copago, codigoCups, relatedDiagnosis1, relatedDiagnosis2, complicationDiagnosis);
 
-            // 2. Si la acción es finalizar, cerrar la consulta
             if ("finalizar".equals(accion)) {
                 medicalRecordService.markAsAttendedAndLock(appointmentId);
                 redirectAttributes.addFlashAttribute("successMessage", "Consulta finalizada y cerrada correctamente.");
