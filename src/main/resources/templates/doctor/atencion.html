@@ -41,12 +41,9 @@
                                 <label for="reason" class="form-label">Motivo de la Consulta</label>
                                 <textarea id="reason" name="reason" class="form-control" rows="3" required th:text="${medicalRecord?.reason}"></textarea>
                             </div>
-                            <!-- <div class="col-12">
-                                <label for="evolution" class="form-label">Evolución</label>
-                                <textarea id="evolution" name="evolution" class="form-control" rows="8" required th:text="${medicalRecord?.evolution}"></textarea>
-                            </div>-->
+
+                            <!-- Registro antiguo vs nuevos campos -->
                             <div th:if="${medicalRecord != null && medicalRecord.evolution != null && medicalRecord.evolution != '' && medicalRecord.enfermedadActual == null && medicalRecord.examenFisico == null && medicalRecord.concepto == null}">
-                                <!-- Registro antiguo: mostrar el campo evolution único -->
                                 <div class="col-12">
                                     <label for="evolutionOld" class="form-label">Evolución / Hallazgos (registro antiguo)</label>
                                     <textarea id="evolutionOld" class="form-control" rows="8" readonly disabled th:text="${medicalRecord.evolution}"></textarea>
@@ -72,18 +69,38 @@
                                 </div>
                             </div>
 
+                            <!-- Sección de medicamentos (Fórmula médica) -->
+                            <div class="col-12 mt-4">
+                                <label class="form-label fw-semibold">Medicamentos (Fórmula médica)</label>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-4">
+                                        <input type="text" id="medicamentoSearch" class="form-control" placeholder="Buscar medicamento...">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="text" id="dosis" class="form-control" placeholder="Dosis (ej: 500mg)">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="text" id="frecuencia" class="form-control" placeholder="Frecuencia (ej: cada 8h)">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="text" id="cantidad" class="form-control" placeholder="Cantidad (ej: 30)">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" id="addMedicamentoBtn" class="btn btn-primary w-100">Agregar</button>
+                                    </div>
+                                </div>
+                                <div id="medicamentosList" class="list-group mb-3"></div>
+                                <input type="hidden" id="prescripcionJson" name="prescriptionJson">
+                                <textarea id="prescription" name="prescription" class="form-control" rows="4" th:text="${medicalRecord?.prescription}" placeholder="Opcional: escriba la fórmula manualmente"></textarea>
+                                <button type="button" id="generarPdfBtn" class="btn btn-outline-primary mt-2">Generar PDF de fórmula</button>
+                            </div>
+
                             <!-- Diagnóstico Principal con autocompletado -->
                             <div class="col-md-6">
                                 <label for="mainDiagnosis" class="form-label">Diagnóstico Principal (CIE-10)</label>
                                 <input type="text" id="mainDiagnosis" name="mainDiagnosis" class="form-control"
-                                       placeholder="Escriba código o descripción" list="diagnosticosList"
-                                       th:value="${medicalRecord?.mainDiagnosis}" autocomplete="off">
-                                <small class="text-muted">Ej: M79.1, J06, etc.</small>
-                            </div>
-
-                            <div class="col-12">
-                                <label for="prescription" class="form-label">Prescripción / Fórmula Médica</label>
-                                <textarea id="prescription" name="prescription" class="form-control" rows="4" th:text="${medicalRecord?.prescription}"></textarea>
+                                       placeholder="Escriba código o descripción" th:value="${medicalRecord?.mainDiagnosis}" autocomplete="off">
+                                <small class="text-muted">Ej: I10, E11, J06.9</small>
                             </div>
 
                             <!-- Sección RIPS -->
@@ -131,20 +148,17 @@
                                     <div class="col-md-4">
                                         <label for="relatedDiagnosis1" class="form-label">Diagnóstico Relacionado 1 (CIE-10)</label>
                                         <input type="text" id="relatedDiagnosis1" name="relatedDiagnosis1" class="form-control"
-                                               placeholder="Escriba código o descripción" list="diagnosticosList"
-                                               th:value="${medicalRecord?.relatedDiagnosis1}" autocomplete="off">
+                                               placeholder="Escriba código o descripción" th:value="${medicalRecord?.relatedDiagnosis1}" autocomplete="off">
                                     </div>
                                     <div class="col-md-4">
                                         <label for="relatedDiagnosis2" class="form-label">Diagnóstico Relacionado 2 (CIE-10)</label>
                                         <input type="text" id="relatedDiagnosis2" name="relatedDiagnosis2" class="form-control"
-                                               placeholder="Escriba código o descripción" list="diagnosticosList"
-                                               th:value="${medicalRecord?.relatedDiagnosis2}" autocomplete="off">
+                                               placeholder="Escriba código o descripción" th:value="${medicalRecord?.relatedDiagnosis2}" autocomplete="off">
                                     </div>
                                     <div class="col-md-4">
                                         <label for="complicationDiagnosis" class="form-label">Diagnóstico de Complicación (CIE-10)</label>
                                         <input type="text" id="complicationDiagnosis" name="complicationDiagnosis" class="form-control"
-                                               placeholder="Escriba código o descripción" list="diagnosticosList"
-                                               th:value="${medicalRecord?.complicationDiagnosis}" autocomplete="off">
+                                               placeholder="Escriba código o descripción" th:value="${medicalRecord?.complicationDiagnosis}" autocomplete="off">
                                     </div>
                                 </div>
                             </div>
@@ -213,16 +227,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <!--<div class="col-12">
-                                        <div class="d-flex gap-2 align-items-start">
-                                            <i class="bi bi-activity fs-5 text-secondary mt-1"></i>
-                                            <div>
-                                                <strong class="d-block text-secondary mb-1">Evolución / Hallazgos</strong>
-                                                <p class="mb-0" th:text="${rec.evolution} ?: 'No registrado'"></p>
-                                            </div>
-                                        </div>
-                                    </div>-->
-
                                     <div class="col-12">
                                         <div class="d-flex gap-2 align-items-start">
                                             <i class="bi bi-activity fs-5 text-secondary mt-1"></i>
@@ -260,6 +264,201 @@
     </div>
 </div>
 
-<datalist id="diagnosticosList">
-    <option th:each="d : ${diagnosticos}" th:value="${d.codigo}" th:text="${d.codigo + ' - ' + d.descripcion}"></option>
-</datalist>
+<!-- Scripts unificados al final -->
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    document.addEventListener('DOMContentLoaded', function() {
+        // ========== CONFIGURACIÓN CIE-10 (TomSelect) ==========
+        const cie10Config = {
+            valueField: 'codigo',
+            labelField: 'descripcion',
+            searchField: ['codigo', 'descripcion'],
+            load: function(query, callback) {
+                if (!query || query.length < 2) return callback();
+                fetch(`/api/cie10/search?query=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        callback(data.map(item => ({
+                            codigo: item.codigo,
+                            descripcion: item.descripcion
+                        })));
+                    })
+                    .catch(() => callback());
+            },
+            render: {
+                option: function(item, escape) {
+                    return `<div><strong>${escape(item.codigo)}</strong> – ${escape(item.descripcion)}</div>`;
+                },
+                item: function(item, escape) {
+                    return `<div>${escape(item.codigo)} – ${escape(item.descripcion)}</div>`;
+                }
+            },
+            create: false,
+            maxOptions: 10,
+            placeholder: 'Escriba código o descripción...'
+        };
+
+        // Inicializar diagnóstico principal
+        const mainDiagnosisInput = document.getElementById('mainDiagnosis');
+        if (mainDiagnosisInput) new TomSelect(mainDiagnosisInput, cie10Config);
+
+        // Inicializar diagnósticos relacionados
+        const related1 = document.getElementById('relatedDiagnosis1');
+        if (related1) new TomSelect(related1, cie10Config);
+        const related2 = document.getElementById('relatedDiagnosis2');
+        if (related2) new TomSelect(related2, cie10Config);
+        const complication = document.getElementById('complicationDiagnosis');
+        if (complication) new TomSelect(complication, cie10Config);
+
+        // ========== SECCIÓN DE MEDICAMENTOS ==========
+        const medicamentoInput = document.getElementById('medicamentoSearch');
+        if (!medicamentoInput) {
+            console.error('No se encontró el campo medicamentoSearch');
+            return;
+        }
+
+        // Inicializar TomSelect para medicamentos
+        new TomSelect(medicamentoInput, {
+            valueField: 'id',
+            labelField: 'nombreGenerico',
+            searchField: 'nombreGenerico',
+            load: function(query, callback) {
+                if (!query || query.length < 2) return callback();
+                fetch(`/api/medicamentos/search?query=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => callback(data))
+                    .catch(() => callback());
+            },
+            render: {
+                option: function(item, escape) {
+                    return `<div><strong>${escape(item.nombreGenerico)}</strong> ${escape(item.presentacion || '')} ${escape(item.concentracion || '')}</div>`;
+                },
+                item: function(item, escape) {
+                    return `<div>${escape(item.nombreGenerico)}</div>`;
+                }
+            },
+            create: false,
+            maxOptions: 10,
+            placeholder: 'Escriba nombre del medicamento...'
+        });
+
+        let medicamentos = [];
+
+        function updateMedicamentosList() {
+            const container = document.getElementById('medicamentosList');
+            if (!container) return;
+            if (medicamentos.length === 0) {
+                container.innerHTML = '<div class="text-muted">No hay medicamentos agregados.</div>';
+                document.getElementById('prescripcionJson').value = '';
+                return;
+            }
+            let html = '';
+            medicamentos.forEach((med, idx) => {
+                html += `<div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${escapeHtml(med.nombre)}</strong><br>
+                                <small>${escapeHtml(med.dosis)} - ${escapeHtml(med.frecuencia)} - Cant: ${escapeHtml(med.cantidad)}</small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarMedicamento(${idx})">Eliminar</button>
+                         </div>`;
+            });
+            container.innerHTML = html;
+            document.getElementById('prescripcionJson').value = JSON.stringify(medicamentos);
+            const prescriptionTextarea = document.getElementById('prescription');
+            if (prescriptionTextarea && !prescriptionTextarea.value.trim()) {
+                const textoPrescripcion = medicamentos.map(m => `${m.nombre}: ${m.dosis} ${m.frecuencia} (${m.cantidad} unidades)`).join('\n');
+                prescriptionTextarea.value = textoPrescripcion;
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        window.eliminarMedicamento = function(idx) {
+            medicamentos.splice(idx, 1);
+            updateMedicamentosList();
+        };
+
+        const addBtn = document.getElementById('addMedicamentoBtn');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                // Obtener la instancia de TomSelect desde el elemento original
+                const tsInstance = medicamentoInput.tomselect;
+                if (!tsInstance) {
+                    alert('Error de inicialización. Recarga la página.');
+                    return;
+                }
+                const selectedId = tsInstance.getValue();
+                if (!selectedId) {
+                    alert('Seleccione un medicamento de la lista.');
+                    return;
+                }
+                const selectedOption = tsInstance.getOption(selectedId);
+                const selectedText = selectedOption ? selectedOption.textContent : '';
+                if (!selectedText) {
+                    alert('Seleccione un medicamento válido.');
+                    return;
+                }
+                const dosis = document.getElementById('dosis').value.trim();
+                const frecuencia = document.getElementById('frecuencia').value.trim();
+                const cantidad = document.getElementById('cantidad').value.trim() || '1';
+                if (!dosis || !frecuencia) {
+                    alert('Complete dosis y frecuencia.');
+                    return;
+                }
+                medicamentos.push({
+                    id: selectedId,
+                    nombre: selectedText,
+                    dosis: dosis,
+                    frecuencia: frecuencia,
+                    cantidad: cantidad
+                });
+                tsInstance.clear();
+                document.getElementById('dosis').value = '';
+                document.getElementById('frecuencia').value = '';
+                document.getElementById('cantidad').value = '';
+                updateMedicamentosList();
+            });
+        }
+
+        // Generar PDF de fórmula
+        const pdfBtn = document.getElementById('generarPdfBtn');
+        if (pdfBtn) {
+            pdfBtn.addEventListener('click', () => {
+                const appointmentId = /*[[${appointment.id}]]*/ '';
+                if (!appointmentId) {
+                    alert('No se puede generar el PDF: falta ID de la cita.');
+                    return;
+                }
+                if (medicamentos.length === 0) {
+                    alert('No hay medicamentos en la fórmula. Agregue al menos uno.');
+                    return;
+                }
+                document.getElementById('prescripcionJson').value = JSON.stringify(medicamentos);
+                const form = document.querySelector('form');
+                const formData = new FormData(form);
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                }).then(response => {
+                    if (response.ok) {
+                        window.location.href = `/doctor/citas/${appointmentId}/prescription-pdf`;
+                    } else {
+                        alert('Error al guardar la prescripción. Intente de nuevo.');
+                    }
+                }).catch(error => {
+                    console.error('Error:', error);
+                    alert('Error de conexión.');
+                });
+            });
+        }
+    });
+    /*]]>*/
+</script>

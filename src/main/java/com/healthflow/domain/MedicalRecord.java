@@ -80,7 +80,13 @@ public class MedicalRecord extends BaseEntity {
     @Column(name = "concepto", columnDefinition = "TEXT")
     private String concepto;
 
-    // Getters y setters para los nuevos campos
+    @Column(name = "prescripcion_json", columnDefinition = "JSONB")
+    private String prescripcionJson;  // Almacena un JSON con la lista de medicamentos
+
+    // Getters y setters
+    public String getPrescripcionJson() { return prescripcionJson; }
+    public void setPrescripcionJson(String prescripcionJson) { this.prescripcionJson = prescripcionJson; }
+
     public String getEnfermedadActual() { return enfermedadActual; }
     public void setEnfermedadActual(String enfermedadActual) { this.enfermedadActual = enfermedadActual; }
 

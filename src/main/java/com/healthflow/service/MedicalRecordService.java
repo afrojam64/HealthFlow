@@ -58,6 +58,7 @@ public class MedicalRecordService {
                                            String examenFisico,
                                            String concepto,
                                            String prescription,
+                                           String prescriptionJson,
                                            String mainDiagnosis,
                                            Long finalidadId,
                                            Long causaExternaId,
@@ -92,6 +93,7 @@ public class MedicalRecordService {
         record.setExamenFisico(examenFisico);
         record.setConcepto(concepto);
         record.setPrescription(prescription);
+        record.setPrescripcionJson(prescriptionJson);
         record.setMainDiagnosis(mainDiagnosis);
         record.setRelatedDiagnosis1(relatedDiagnosis1);
         record.setRelatedDiagnosis2(relatedDiagnosis2);
