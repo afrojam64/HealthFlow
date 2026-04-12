@@ -14,6 +14,10 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
+    <!-- MetaEtiquetas CSRF -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
     <!-- Estilos personalizados HealthFlow -->
     <style>
         :root {
@@ -484,7 +488,6 @@
                         <span th:text="${username}">Usuario</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-person"></i> Mi Perfil</a></li>
                         <li><a class="dropdown-item" href="#"><i class="bi bi-gear"></i> Configuración</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
@@ -524,6 +527,9 @@
                     </a>
                     <a href="/doctor/reportes/rips" class="list-group-item list-group-item-action">
                         <i class="bi bi-graph-up"></i> Reportes RIPS
+                    </a>
+                    <a href="/doctor/perfil" class="list-group-item list-group-item-action">
+                        <i class="bi bi-person"></i> Mi Perfil
                     </a>
                     <a href="#" class="list-group-item list-group-item-action">
                         <i class="bi bi-gear"></i> Configuración

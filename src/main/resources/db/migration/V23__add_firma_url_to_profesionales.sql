@@ -1,0 +1,1 @@
+ALTER TABLE profesionales ADD COLUMN firma_url VARCHAR(500);

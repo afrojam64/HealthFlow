@@ -169,14 +169,52 @@
                             <button type="submit" name="accion" value="guardar" class="btn btn-secondary px-5">
                                 <i class="bi bi-save me-2"></i>Guardar Borrador
                             </button>
+                            <button type="button" id="remisionBtn" class="btn btn-outline-primary px-5 ms-3">
+                                <i class="bi bi-send me-2"></i>Remitir a especialista
+                            </button>
                             <button type="submit" name="accion" value="finalizar" class="btn btn-primary px-5 ms-3"
                                     th:disabled="${medicalRecord != null && medicalRecord.locked}">
-                                <i class="bi bi-check-circle-fill me-2"></i>
-                                Finalizar y Cerrar Consulta
+                                <i class="bi bi-check-circle-fill me-2"></i>Finalizar y Cerrar Consulta
                             </button>
                         </div>
                     </fieldset>
                 </form>
+
+                <!-- Modal de remisión -->
+                <div class="modal fade" id="remisionModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="bi bi-send me-2"></i>Remitir a especialista</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="especialidad" class="form-label">Especialidad destino</label>
+                                    <select id="especialidad" class="form-select" required>
+                                        <option th:each="esp : ${especialidades}" th:value="${esp.nombre}" th:text="${esp.nombre}"></option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="prioridad" class="form-label">Prioridad</label>
+                                    <select id="prioridad" class="form-select" required>
+                                        <option value="URGENTE">Urgente</option>
+                                        <option value="PRIORITARIA">Prioritaria</option>
+                                        <option value="RUTINARIA">Rutinaria</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="motivoRemision" class="form-label">Motivo de remisión</label>
+                                    <textarea id="motivoRemision" class="form-control" rows="3" required></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="button" id="confirmarRemisionBtn" class="btn btn-primary">Generar remisión</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -491,6 +529,57 @@
                 }
             });
         }
+
+        // Remisión
+        document.getElementById('remisionBtn').addEventListener('click', () => {
+            new bootstrap.Modal(document.getElementById('remisionModal')).show();
+        });
+
+        document.getElementById('confirmarRemisionBtn').addEventListener('click', async () => {
+            const especialidad = document.getElementById('especialidad').value;
+            const prioridad = document.getElementById('prioridad').value;
+            const motivo = document.getElementById('motivoRemision').value;
+            if (!especialidad || !prioridad || !motivo) {
+                alert('Complete todos los campos.');
+                return;
+            }
+            // Recoger snapshot de los campos actuales del formulario
+            const snapshotData = {
+                enfermedadActual: document.getElementById('enfermedadActual') ? document.getElementById('enfermedadActual').value : '',
+                examenFisico: document.getElementById('examenFisico') ? document.getElementById('examenFisico').value : '',
+                mainDiagnosis: document.getElementById('mainDiagnosis') ? document.getElementById('mainDiagnosis').value : '',
+                concepto: document.getElementById('concepto') ? document.getElementById('concepto').value : '',
+                medicamentos: document.getElementById('prescripcionJson') ? document.getElementById('prescripcionJson').value : ''
+            };
+            const appointmentId = /*[[${appointment.id}]]*/ '';
+            const payload = { motivo, especialidad, prioridad, snapshotData };
+            try {
+                const response = await fetch(`/doctor/citas/${appointmentId}/remision`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `remision_${appointmentId}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                    alert('Remisión generada y guardada automáticamente. El paciente recibirá el enlace por correo.');
+                    bootstrap.Modal.getInstance(document.getElementById('remisionModal')).hide();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + (error.error || 'No se pudo generar la remisión'));
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Error de conexión.');
+            }
+        });
     });
     /*]]>*/
 </script>

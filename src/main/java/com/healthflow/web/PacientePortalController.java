@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.UUID;
 
@@ -36,26 +37,29 @@ public class PacientePortalController {
     }
 
     @PostMapping("/enviar-enlace")
-    public String enviarEnlace(@RequestParam("email") String email, Model model) {
+    public String enviarEnlace(@RequestParam("email") String email,
+                               RedirectAttributes redirectAttributes) {
         Patient patient = patientRepo.findByEmail(email).orElse(null);
         if (patient == null) {
-            model.addAttribute("error", "No existe un paciente con ese correo electrónico.");
-            return "paciente/entrar";
+            redirectAttributes.addFlashAttribute("error", "No existe un paciente con ese correo electrónico.");
+            return "redirect:/paciente/entrar";
         }
+
         String token = tokenService.generarToken(patient);
         String portalUrl = "http://localhost:8080/paciente/dashboard?token=" + token;
         notificationService.sendPortalAccessEmail(patient.getEmail(),
                 patient.getFirstName() + " " + patient.getLastName(),
                 portalUrl);
-        model.addAttribute("mensaje", "Hemos enviado un enlace de acceso a tu correo electrónico.");
-        return "paciente/entrar";
+
+        // Redirigir directamente al dashboard con el token
+        return "redirect:/paciente/dashboard?token=" + token;
     }
 
-    // Dashboard con manejo de sesión y redirección limpia
     @GetMapping("/dashboard")
     public String dashboard(@RequestParam(value = "token", required = false) String token,
                             HttpSession session,
-                            Model model) {
+                            Model model,
+                            RedirectAttributes redirectAttributes) {
         // Si ya hay sesión, mostrar dashboard directamente
         if (session.getAttribute("pacienteId") != null) {
             UUID pacienteId = (UUID) session.getAttribute("pacienteId");
@@ -69,10 +73,12 @@ public class PacientePortalController {
                 Patient patient = tokenService.validarToken(token);
                 session.setAttribute("pacienteId", patient.getId());
                 session.setAttribute("pacienteNombre", patient.getFirstName() + " " + patient.getLastName());
-                return "redirect:/paciente/dashboard"; // Redirige sin token
+                // Opcional: mensaje flash de bienvenida
+                redirectAttributes.addFlashAttribute("mensaje", "¡Bienvenido! También te hemos enviado un enlace a tu correo por si lo necesitas más tarde.");
+                return "redirect:/paciente/dashboard";
             } catch (RuntimeException e) {
-                model.addAttribute("error", e.getMessage());
-                return "paciente/entrar";
+                redirectAttributes.addFlashAttribute("error", e.getMessage());
+                return "redirect:/paciente/entrar";
             }
         }
         return "redirect:/paciente/entrar";

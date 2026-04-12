@@ -3,8 +3,8 @@ package com.healthflow.web;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.healthflow.domain.*;
 import com.healthflow.repo.*;
-import com.healthflow.service.DomainException;
-import com.healthflow.service.MedicalRecordService;
+import com.healthflow.service.*;
+import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
@@ -14,27 +14,29 @@ import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.pdf.canvas.draw.SolidLine;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.SolidBorder;
-import com.itextpdf.layout.element.Cell;
-import com.itextpdf.layout.element.LineSeparator;
-import com.itextpdf.layout.element.Paragraph;
-import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.element.*;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -54,6 +56,12 @@ public class DoctorAppointmentAttentionController {
     private final UserRepository userRepository;
     private final ProfessionalRepository professionalRepository;
     private final ZoneId zoneId;
+    private final QrCodeService qrCodeService;
+    private final DocumentoFirmadoRepository documentoFirmadoRepository;
+    private final String publicBaseUrl;
+    private final RemisionService remisionService;
+    private final EspecialidadRepository especialidadRepository;
+    private final DocumentoService documentoService;
 
     public DoctorAppointmentAttentionController(AppointmentRepository appointmentRepository,
                                                 MedicalRecordService medicalRecordService,
@@ -63,7 +71,10 @@ public class DoctorAppointmentAttentionController {
                                                 DiagnosticoCIE10Repository diagnosticoRepo,
                                                 UserRepository userRepository,
                                                 ProfessionalRepository professionalRepository,
-                                                @Value("${healthflow.timezone:America/Bogota}") String timezone) {
+                                                @Value("${healthflow.timezone:America/Bogota}") String timezone,
+                                                QrCodeService qrCodeService,
+                                                DocumentoFirmadoRepository documentoFirmadoRepository,
+                                                @Value("${healthflow.publicBaseUrl:http://localhost:8080}") String publicBaseUrl, RemisionService remisionService, EspecialidadRepository especialidadRepository, DocumentoService documentoService) {
         this.appointmentRepository = appointmentRepository;
         this.medicalRecordService = medicalRecordService;
         this.medicalRecordRepository = medicalRecordRepository;
@@ -73,6 +84,12 @@ public class DoctorAppointmentAttentionController {
         this.userRepository = userRepository;
         this.professionalRepository = professionalRepository;
         this.zoneId = ZoneId.of(timezone);
+        this.qrCodeService = qrCodeService;
+        this.documentoFirmadoRepository = documentoFirmadoRepository;
+        this.publicBaseUrl = publicBaseUrl;
+        this.remisionService = remisionService;
+        this.especialidadRepository = especialidadRepository;
+        this.documentoService = documentoService;
     }
 
     private Professional getCurrentProfessional() {
@@ -105,6 +122,7 @@ public class DoctorAppointmentAttentionController {
         model.addAttribute("finalidades", finalidades);
         model.addAttribute("causas", causas);
         model.addAttribute("diagnosticos", diagnosticos);
+        model.addAttribute("especialidades", especialidadRepository.findAll());
         model.addAttribute("title", "Atención Clínica");
 
         model.addAttribute("contenido", "doctor/atencion");
@@ -318,20 +336,49 @@ public class DoctorAppointmentAttentionController {
     @PostMapping("/{id}/prescription-pdf")
     public ResponseEntity<byte[]> generatePrescriptionPdfFromJson(@PathVariable("id") UUID appointmentId,
                                                                   @RequestBody Map<String, Object> payload) throws Exception {
-        // Obtener la cita y el paciente (para los datos de cabecera)
+        // Obtener la cita, paciente y profesional
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new DomainException("Cita no encontrada"));
         Patient patient = appointment.getPatient();
         Professional professional = getCurrentProfessional();
 
-        // Obtener la lista de medicamentos del JSON
+        // Obtener medicamentos del payload
         @SuppressWarnings("unchecked")
         List<Map<String, String>> medicamentos = (List<Map<String, String>>) payload.get("medicamentos");
         if (medicamentos == null || medicamentos.isEmpty()) {
             throw new DomainException("No hay medicamentos en la fórmula.");
         }
 
-        // Generar el PDF (igual que antes)
+        // Generar token único para verificación
+        UUID token = UUID.randomUUID();
+        DocumentoFirmado docFirmado = new DocumentoFirmado();
+        docFirmado.setToken(token);
+        docFirmado.setTipoDocumento("FORMULA_MEDICA");
+        docFirmado.setReferenciaId(appointmentId);
+        docFirmado.setFechaCreacion(OffsetDateTime.now(zoneId));
+        String metadata = String.format("{\"paciente\":\"%s\", \"medico\":\"%s\", \"paciente_doc\":\"%s\"}",
+                patient.getFirstName() + " " + patient.getLastName(),
+                professional.getFullName(),
+                patient.getDocNumber());
+        docFirmado.setMetadata(metadata);
+        documentoFirmadoRepository.save(docFirmado);
+
+        // URL de verificación
+        String verificationUrl = publicBaseUrl + "/public/verify/document?token=" + token;
+
+        // Generar QR
+        byte[] qrImage = qrCodeService.generateQrCode(verificationUrl, 150, 150);
+
+        // Cargar firma si existe
+        byte[] firmaImage = null;
+        if (professional.getFirmaUrl() != null) {
+            Path firmaPath = Path.of(professional.getFirmaUrl());
+            if (Files.exists(firmaPath)) {
+                firmaImage = Files.readAllBytes(firmaPath);
+            }
+        }
+
+        // Generar PDF
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PdfWriter writer = new PdfWriter(baos);
         PdfDocument pdf = new PdfDocument(writer);
@@ -354,7 +401,7 @@ public class DoctorAppointmentAttentionController {
             document.add(headerSub);
             document.add(new Paragraph(" "));
 
-            // Fecha de generación
+            // Fecha
             String fechaGeneracion = LocalDateTime.now(zoneId).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
             Paragraph fecha = new Paragraph("Generado: " + fechaGeneracion)
                     .setFont(normalFont).setFontSize(9)
@@ -362,7 +409,7 @@ public class DoctorAppointmentAttentionController {
             document.add(fecha);
             document.add(new Paragraph(" "));
 
-            // Datos del paciente y médico
+            // Datos paciente y médico
             Table patientTable = new Table(UnitValue.createPercentArray(new float[]{30, 70}))
                     .setWidth(UnitValue.createPercentValue(100))
                     .setBorder(new SolidBorder(new DeviceRgb(229, 231, 235), 1))
@@ -403,7 +450,7 @@ public class DoctorAppointmentAttentionController {
             document.add(medTable);
             document.add(new Paragraph(" "));
 
-            // Indicaciones adicionales (si se envían)
+            // Indicaciones adicionales
             String indicaciones = (String) payload.get("indicaciones");
             if (indicaciones != null && !indicaciones.isEmpty()) {
                 Paragraph indicacionesTitle = new Paragraph("Indicaciones adicionales")
@@ -420,14 +467,36 @@ public class DoctorAppointmentAttentionController {
                     .setFont(boldFont).setFontSize(10)
                     .setTextAlignment(TextAlignment.CENTER);
             document.add(firmaTitle);
-            Paragraph firmaLinea = new Paragraph("_________________________")
-                    .setFont(normalFont).setFontSize(10)
-                    .setTextAlignment(TextAlignment.CENTER);
-            document.add(firmaLinea);
+            if (firmaImage != null) {
+                Image firmaImg = new Image(ImageDataFactory.create(firmaImage));
+                firmaImg.setWidth(120);
+                firmaImg.setHeight(60);
+                firmaImg.setTextAlignment(TextAlignment.CENTER);
+                document.add(firmaImg);
+            } else {
+                Paragraph firmaLinea = new Paragraph("_________________________")
+                        .setFont(normalFont).setFontSize(10)
+                        .setTextAlignment(TextAlignment.CENTER);
+                document.add(firmaLinea);
+            }
             Paragraph nombreMedico = new Paragraph(professional.getFullName())
                     .setFont(normalFont).setFontSize(9)
                     .setTextAlignment(TextAlignment.CENTER);
             document.add(nombreMedico);
+
+            // Código QR
+            if (qrImage != null) {
+                Image qrImg = new Image(ImageDataFactory.create(qrImage));
+                qrImg.setWidth(80);
+                qrImg.setHeight(80);
+                qrImg.setTextAlignment(TextAlignment.RIGHT);
+                document.add(qrImg);
+                Paragraph qrNote = new Paragraph("Escanee para verificar autenticidad")
+                        .setFont(normalFont).setFontSize(7)
+                        .setFontColor(new DeviceRgb(107, 114, 128))
+                        .setTextAlignment(TextAlignment.RIGHT);
+                document.add(qrNote);
+            }
 
             // Footer
             SolidLine footerLine = new SolidLine(1f);
@@ -451,5 +520,36 @@ public class DoctorAppointmentAttentionController {
         } catch (IOException e) {
             throw new RuntimeException("Error al generar PDF de prescripción", e);
         }
+    }
+
+    @PostMapping("/{id}/remision")
+    public ResponseEntity<byte[]> generarRemision(@PathVariable("id") UUID appointmentId,
+                                                  @RequestBody Map<String, Object> payload) throws Exception {
+        String motivo = (String) payload.get("motivo");
+        String especialidad = (String) payload.get("especialidad");
+        String prioridad = (String) payload.get("prioridad");
+        @SuppressWarnings("unchecked")
+        Map<String, String> snapshotData = (Map<String, String>) payload.get("snapshotData");
+        if (snapshotData == null) {
+            throw new DomainException("No se pudo obtener el resumen clínico.");
+        }
+        Professional professional = getCurrentProfessional();
+        String firmaUrl = professional.getFirmaUrl();
+        byte[] pdfBytes = remisionService.generarRemision(appointmentId, motivo, especialidad, prioridad, snapshotData, firmaUrl);
+
+        // Guardar automáticamente como documento (para envío de correo)
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new DomainException("Cita no encontrada"));
+        String fileName = "remision_" + appointmentId + ".pdf";
+        java.nio.file.Path tempFile = java.nio.file.Files.createTempFile("remision_", ".pdf");
+        java.nio.file.Files.write(tempFile, pdfBytes);
+        MultipartFile multipartFile = new MockMultipartFile("file", fileName, "application/pdf", pdfBytes);
+        documentoService.uploadDocument(appointment.getPatient().getId(), multipartFile,
+                "Remisión a " + especialidad + " - " + motivo.substring(0, Math.min(motivo.length(), 50)), null, 30);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", fileName);
+        return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }
 }

@@ -27,7 +27,10 @@ public class Professional extends BaseEntity {
     private String specialty;
 
     @Column(name = "slug", unique = true, length = 100)
-    private String slug; // +++++ nuevo campo
+    private String slug;
+
+    @Column(name = "firma_url", length = 500)
+    private String firmaUrl;
 
     // +++++ getter y setter para slug
     public String getSlug() { return slug; }
@@ -68,4 +71,8 @@ public class Professional extends BaseEntity {
     public void setSpecialty(String specialty) {
         this.specialty = specialty;
     }
+
+    public String getFirmaUrl() { return firmaUrl; }
+
+    public void setFirmaUrl(String firmaUrl) { this.firmaUrl = firmaUrl; }
 }

@@ -1,0 +1,13 @@
+CREATE TABLE remisiones (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cita_id UUID NOT NULL REFERENCES citas(id) ON DELETE CASCADE,
+    token UUID NOT NULL UNIQUE,
+    motivo TEXT NOT NULL,
+    especialidad VARCHAR(100) NOT NULL,
+    prioridad VARCHAR(20) NOT NULL CHECK (prioridad IN ('URGENTE', 'PRIORITARIA', 'RUTINARIA')),
+    snapshot TEXT NOT NULL,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    version INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);

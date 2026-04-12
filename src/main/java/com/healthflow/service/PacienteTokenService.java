@@ -3,6 +3,7 @@ package com.healthflow.service;
 import com.healthflow.domain.PacienteToken;
 import com.healthflow.domain.Patient;
 import com.healthflow.repo.PacienteTokenRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,9 +15,12 @@ import java.util.UUID;
 public class PacienteTokenService {
 
     private final PacienteTokenRepository tokenRepo;
+    private final int expirationHours;
 
-    public PacienteTokenService(PacienteTokenRepository tokenRepo) {
+    public PacienteTokenService(PacienteTokenRepository tokenRepo,
+                                @Value("${healthflow.paciente.token-expiration-hours:24}") int expirationHours) {
         this.tokenRepo = tokenRepo;
+        this.expirationHours = expirationHours;
     }
 
     public String generarToken(Patient patient) {
@@ -28,7 +32,7 @@ public class PacienteTokenService {
                 });
 
         String tokenValue = UUID.randomUUID().toString();
-        LocalDateTime expiresAt = LocalDateTime.now().plusYears(1);
+        LocalDateTime expiresAt = LocalDateTime.now().plusHours(expirationHours);
 
         PacienteToken token = new PacienteToken(patient, tokenValue, expiresAt);
         tokenRepo.save(token);
@@ -41,7 +45,7 @@ public class PacienteTokenService {
                 .orElseThrow(() -> new RuntimeException("Token inválido o inactivo"));
 
         if (pacienteToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Token expirado");
+            throw new RuntimeException("El enlace ha expirado. Solicite uno nuevo.");
         }
 
         return pacienteToken.getPatient();
