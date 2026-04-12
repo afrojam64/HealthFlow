@@ -27,6 +27,7 @@
             <!-- Formulario único -->
             <div class="form-section mb-4">
                 <form th:action="@{/doctor/citas/{id}/guardar(id=${appointment.id})}" method="post">
+
                     <div th:if="${medicalRecord != null && medicalRecord.locked}" class="locked-alert">
                         <i class="bi bi-lock-fill me-2"></i>
                         <strong>Consulta Cerrada.</strong> Este registro ya fue guardado y no puede ser modificado.
@@ -446,37 +447,48 @@
         // Generar PDF de fórmula
         const pdfBtn = document.getElementById('generarPdfBtn');
         if (pdfBtn) {
-            pdfBtn.addEventListener('click', (e) => {
-                e.preventDefault(); // Evita el envío normal del formulario
-
+            pdfBtn.addEventListener('click', async () => {
                 const appointmentId = /*[[${appointment.id}]]*/ '';
                 if (!appointmentId) {
                     alert('No se puede generar el PDF: falta ID de la cita.');
                     return;
                 }
-
                 if (medicamentos.length === 0) {
                     alert('No hay medicamentos en la fórmula. Agregue al menos uno.');
                     return;
                 }
-
-                // Actualizar el campo oculto con el JSON actual
-                document.getElementById('prescripcionJson').value = JSON.stringify(medicamentos);
-
-                // Crear un campo oculto para la acción "pdf" si no existe
-                let accionInput = document.querySelector('form input[name="accion"]');
-                if (!accionInput) {
-                    accionInput = document.createElement('input');
-                    accionInput.type = 'hidden';
-                    accionInput.name = 'accion';
-                    document.querySelector('form').appendChild(accionInput);
+                // Preparar el payload
+                const payload = {
+                    medicamentos: medicamentos,
+                    indicaciones: document.getElementById('prescription').value
+                };
+                try {
+                    const response = await fetch(`/doctor/citas/${appointmentId}/prescription-pdf`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) {
+                        // Descargar el PDF
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `prescripcion_${appointmentId}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        a.remove();
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + (error.error || 'No se pudo generar el PDF'));
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error de conexión.');
                 }
-                accionInput.value = 'pdf';
-
-                // Asegurar que el formulario se envíe al endpoint de guardar (no al PDF)
-                const form = document.querySelector('form');
-                form.action = `/doctor/citas/${appointmentId}/guardar`;
-                form.submit();
             });
         }
     });

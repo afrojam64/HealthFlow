@@ -124,6 +124,8 @@ public class MedicalRecordService {
         record.setCodigoCups(codigoCups);
 
         System.out.println("prescriptionJson recibido: " + prescriptionJson);
+        System.out.println("=== saveMedicalRecord ===");
+        System.out.println("prescriptionJson recibido: " + prescriptionJson);
 
         return medicalRecordRepository.save(record);
     }

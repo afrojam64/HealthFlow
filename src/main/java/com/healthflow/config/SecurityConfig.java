@@ -42,7 +42,10 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable()); // Por ahora, luego habilitaremos para producción
+        // CSRF activo por defecto, pero se ignora para la ruta del PDF
+        http.csrf(csrf -> csrf
+                .ignoringRequestMatchers("/doctor/citas/*/prescription-pdf")
+        );
 
         http.authorizeHttpRequests(auth -> auth
                         // Rutas públicas
