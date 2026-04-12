@@ -355,20 +355,16 @@
             let html = '';
             medicamentos.forEach((med, idx) => {
                 html += `<div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>${escapeHtml(med.nombre)}</strong><br>
-                                <small>${escapeHtml(med.dosis)} - ${escapeHtml(med.frecuencia)} - Cant: ${escapeHtml(med.cantidad)}</small>
-                            </div>
-                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarMedicamento(${idx})">Eliminar</button>
-                         </div>`;
+                        <div>
+                            <strong>${escapeHtml(med.nombre)}</strong><br>
+                            <small>${escapeHtml(med.dosis)} - ${escapeHtml(med.frecuencia)} - Cant: ${escapeHtml(med.cantidad)}</small>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarMedicamento(${idx})">Eliminar</button>
+                     </div>`;
             });
             container.innerHTML = html;
             document.getElementById('prescripcionJson').value = JSON.stringify(medicamentos);
-            const prescriptionTextarea = document.getElementById('prescription');
-            if (prescriptionTextarea && !prescriptionTextarea.value.trim()) {
-                const textoPrescripcion = medicamentos.map(m => `${m.nombre}: ${m.dosis} ${m.frecuencia} (${m.cantidad} unidades)`).join('\n');
-                prescriptionTextarea.value = textoPrescripcion;
-            }
+            // NO actualizar el textarea de prescription automáticamente
         }
 
         function escapeHtml(str) {
@@ -389,7 +385,6 @@
         const addBtn = document.getElementById('addMedicamentoBtn');
         if (addBtn) {
             addBtn.addEventListener('click', () => {
-                // Obtener la instancia de TomSelect desde el elemento original
                 const tsInstance = medicamentoInput.tomselect;
                 if (!tsInstance) {
                     alert('Error de inicialización. Recarga la página.');
@@ -428,35 +423,60 @@
             });
         }
 
+        // ========== FUNCIÓN PARA OBTENER TOKEN CSRF ==========
+        function getCsrfToken() {
+            // Prioridad 1: campo oculto _csrf dentro del formulario (Thymeleaf lo genera automáticamente)
+            const csrfInput = document.querySelector('form input[name="_csrf"]');
+            if (csrfInput && csrfInput.value) {
+                console.log('CSRF obtenido desde campo oculto');
+                return csrfInput.value;
+            }
+            // Prioridad 2: cookie XSRF-TOKEN (para CSRF con protección basada en cookie)
+            const name = 'XSRF-TOKEN';
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) {
+                console.log('CSRF obtenido desde cookie');
+                return parts.pop().split(';').shift();
+            }
+            console.warn('No se encontró token CSRF en el formulario ni en la cookie');
+            return null;
+        }
+
         // Generar PDF de fórmula
         const pdfBtn = document.getElementById('generarPdfBtn');
         if (pdfBtn) {
-            pdfBtn.addEventListener('click', () => {
+            pdfBtn.addEventListener('click', (e) => {
+                e.preventDefault(); // Evita el envío normal del formulario
+
                 const appointmentId = /*[[${appointment.id}]]*/ '';
                 if (!appointmentId) {
                     alert('No se puede generar el PDF: falta ID de la cita.');
                     return;
                 }
+
                 if (medicamentos.length === 0) {
                     alert('No hay medicamentos en la fórmula. Agregue al menos uno.');
                     return;
                 }
+
+                // Actualizar el campo oculto con el JSON actual
                 document.getElementById('prescripcionJson').value = JSON.stringify(medicamentos);
+
+                // Crear un campo oculto para la acción "pdf" si no existe
+                let accionInput = document.querySelector('form input[name="accion"]');
+                if (!accionInput) {
+                    accionInput = document.createElement('input');
+                    accionInput.type = 'hidden';
+                    accionInput.name = 'accion';
+                    document.querySelector('form').appendChild(accionInput);
+                }
+                accionInput.value = 'pdf';
+
+                // Asegurar que el formulario se envíe al endpoint de guardar (no al PDF)
                 const form = document.querySelector('form');
-                const formData = new FormData(form);
-                fetch(form.action, {
-                    method: 'POST',
-                    body: formData
-                }).then(response => {
-                    if (response.ok) {
-                        window.location.href = `/doctor/citas/${appointmentId}/prescription-pdf`;
-                    } else {
-                        alert('Error al guardar la prescripción. Intente de nuevo.');
-                    }
-                }).catch(error => {
-                    console.error('Error:', error);
-                    alert('Error de conexión.');
-                });
+                form.action = `/doctor/citas/${appointmentId}/guardar`;
+                form.submit();
             });
         }
     });

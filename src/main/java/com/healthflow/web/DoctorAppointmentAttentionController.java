@@ -115,10 +115,11 @@ public class DoctorAppointmentAttentionController {
      * Guarda o actualiza la historia clínica de una cita.
      * Recibe los datos del formulario de atención clínica, incluyendo los nuevos campos
      * enfermedad actual, examen físico y concepto, y delega el guardado al servicio.
+     * Si la acción es "pdf", redirige al endpoint de generación de PDF después de guardar.
      */
     @PostMapping("/{id}/guardar")
     public String saveClinicalNote(@PathVariable("id") UUID appointmentId,
-                                   @RequestParam("reason") String reason,
+                                   @RequestParam(name = "reason", required = false) String reason,
                                    @RequestParam(name = "enfermedadActual", required = false) String enfermedadActual,
                                    @RequestParam(name = "examenFisico", required = false) String examenFisico,
                                    @RequestParam(name = "concepto", required = false) String concepto,
@@ -145,6 +146,8 @@ public class DoctorAppointmentAttentionController {
                 medicalRecordService.markAsAttendedAndLock(appointmentId);
                 redirectAttributes.addFlashAttribute("successMessage", "Consulta finalizada y cerrada correctamente.");
                 return "redirect:/dashboard";
+            } else if ("pdf".equals(accion)) {
+                return "redirect:/doctor/citas/" + appointmentId + "/prescription-pdf";
             } else {
                 redirectAttributes.addFlashAttribute("successMessage", "Borrador guardado correctamente.");
                 return "redirect:/doctor/citas/" + appointmentId + "/atender";
@@ -156,7 +159,7 @@ public class DoctorAppointmentAttentionController {
     }
 
     /**
-     * Genera y descarga el PDF de la fórmula médica para una cita.
+     * Genera y descarga el PDF de la fórmula médica a partir de los datos ya guardados en la base de datos.
      * Utiliza iText 7 para construir el documento.
      */
     @GetMapping("/{id}/prescription-pdf")

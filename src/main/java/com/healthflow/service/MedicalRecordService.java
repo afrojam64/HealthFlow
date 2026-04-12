@@ -123,6 +123,8 @@ public class MedicalRecordService {
         record.setCopago(copago);
         record.setCodigoCups(codigoCups);
 
+        System.out.println("prescriptionJson recibido: " + prescriptionJson);
+
         return medicalRecordRepository.save(record);
     }
 
