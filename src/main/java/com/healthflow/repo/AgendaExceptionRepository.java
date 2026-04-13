@@ -1,10 +1,12 @@
 package com.healthflow.repo;
 
 import com.healthflow.domain.AgendaException;
+import com.healthflow.domain.ExceptionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface AgendaExceptionRepository extends JpaRepository<AgendaException, UUID> {
@@ -14,4 +16,7 @@ public interface AgendaExceptionRepository extends JpaRepository<AgendaException
     //List<AgendaException> findByProfessionalIdAndFechaBetween(UUID professionalId, LocalDate start, LocalDate end);
 
     List<AgendaException> findByProfessional_IdAndDateBetween(UUID professionalId, LocalDate start, LocalDate end);
+
+    Optional<AgendaException> findByProfessionalIdAndDateAndType(UUID professionalId, LocalDate date, ExceptionType type);
+
 }

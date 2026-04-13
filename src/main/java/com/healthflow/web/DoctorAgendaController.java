@@ -184,13 +184,39 @@ public class DoctorAgendaController {
                 throw new DomainException("No se recibieron configuraciones por día.");
             }
 
-            // Validar cada día
+            // Validar y procesar cada día
             for (DiaConfig dia : dias) {
                 LocalDate fecha = LocalDate.parse(dia.getFecha());
                 if (fecha.isBefore(today)) {
                     throw new DomainException("No se puede configurar un día pasado: " + fecha);
                 }
-                if (dia.getActivo() != null && !dia.getActivo()) continue;
+
+                // Si el día está marcado como inactivo (bloqueo)
+                if (dia.getActivo() != null && !dia.getActivo()) {
+                    // Eliminar cualquier excepción EXTRA que pudiera haber para esta fecha
+                    agendaExceptionRepository.findByProfessionalIdAndDateAndType(professional.getId(), fecha, ExceptionType.EXTRA)
+                            .ifPresent(agendaExceptionRepository::delete);
+
+                    // Crear o actualizar excepción de bloqueo
+                    Optional<AgendaException> existingBlock = agendaExceptionRepository
+                            .findByProfessionalIdAndDateAndType(professional.getId(), fecha, ExceptionType.BLOQUEO);
+                    if (existingBlock.isEmpty()) {
+                        AgendaException block = new AgendaException();
+                        block.setProfessional(professional);
+                        block.setDate(fecha);
+                        block.setType(ExceptionType.BLOQUEO);
+                        block.setStartTime(null);
+                        block.setEndTime(null);
+                        agendaExceptionRepository.save(block);
+                    }
+                    continue; // No guardar disponibilidad normal
+                }
+
+                // Si el día está activo, eliminar cualquier bloqueo existente
+                agendaExceptionRepository.findByProfessionalIdAndDateAndType(professional.getId(), fecha, ExceptionType.BLOQUEO)
+                        .ifPresent(agendaExceptionRepository::delete);
+
+                // Validar horarios (solo si está activo)
                 LocalTime startTime = LocalTime.parse(dia.getHoraInicio());
                 LocalTime endTime = LocalTime.parse(dia.getHoraFin());
                 if (fecha.isEqual(today) && startTime.isBefore(now)) {
@@ -202,8 +228,9 @@ public class DoctorAgendaController {
                 }
             }
 
-            // Agrupar por semana y guardar
+            // Agrupar por semana y guardar (solo días activos)
             Map<LocalDate, List<DiaConfig>> porSemana = dias.stream()
+                    .filter(d -> d.getActivo() == null || d.getActivo()) // solo días activos
                     .collect(Collectors.groupingBy(d -> {
                         LocalDate fecha = LocalDate.parse(d.getFecha());
                         return fecha.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
@@ -215,7 +242,6 @@ public class DoctorAgendaController {
                 for (DiaConfig dia : entry.getValue()) {
                     LocalDate fecha = LocalDate.parse(dia.getFecha());
                     if (fecha.isBefore(today)) continue;
-                    if (dia.getActivo() != null && !dia.getActivo()) continue;
                     LocalTime startTime = LocalTime.parse(dia.getHoraInicio());
                     LocalTime endTime = LocalTime.parse(dia.getHoraFin());
 

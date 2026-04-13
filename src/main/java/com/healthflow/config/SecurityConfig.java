@@ -44,7 +44,7 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         // CSRF activo por defecto, pero se ignora para la ruta del PDF
         http.csrf(csrf -> csrf
-                .ignoringRequestMatchers("/doctor/citas/*/prescription-pdf",
+                .ignoringRequestMatchers("/doctor/agenda/save", "/doctor/citas/*/prescription-pdf",
                         "/doctor/citas/*/remision", "/api/doctor/firma")
         );
 
