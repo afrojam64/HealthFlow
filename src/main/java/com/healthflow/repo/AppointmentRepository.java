@@ -3,6 +3,7 @@ package com.healthflow.repo;
 import com.healthflow.domain.Appointment;
 import com.healthflow.domain.AppointmentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -76,4 +77,14 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     // Métodos para verificar existencia de citas (evitar duplicados)
     boolean existsByProfessionalIdAndDateTime(UUID professionalId, OffsetDateTime dateTime);
     boolean existsByProfessionalIdAndDateTimeAndIdNot(UUID professionalId, OffsetDateTime dateTime, UUID id);
+
+    /**
+     * Actualiza a NO_ATENDIDA las citas con fecha anterior a la actual y estados PENDIENTE o CONFIRMADA.
+     * @param now Fecha/hora actual (inicio del día)
+     * @return número de registros actualizados
+     */
+    @Modifying
+    @Query("UPDATE Appointment a SET a.status = com.healthflow.domain.AppointmentStatus.NO_ATENDIDA " +
+            "WHERE a.dateTime < :hoy AND a.status IN (com.healthflow.domain.AppointmentStatus.PENDIENTE, com.healthflow.domain.AppointmentStatus.CONFIRMADA)")
+    int updatePastAppointmentsToNotAttended(@Param("hoy") OffsetDateTime hoy);
 }

@@ -1,7 +1,9 @@
 package com.healthflow.web;
 
+import com.healthflow.domain.Documento;
 import com.healthflow.domain.Patient;
 import com.healthflow.domain.Professional;
+import com.healthflow.repo.DocumentoRepository;
 import com.healthflow.repo.PatientRepository;
 import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.repo.UserRepository;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
@@ -33,6 +36,7 @@ public class PatientController {
     private final ProfessionalRepository professionalRepository;
     private final UserRepository userRepository;
     private final PatientRepository patientRepository;
+    private final DocumentoRepository documentoRepository;
     private final ZoneId zoneId;
     private final DocumentoService documentoService;
 
@@ -40,11 +44,14 @@ public class PatientController {
                              ProfessionalRepository professionalRepository,
                              UserRepository userRepository,
                              PatientRepository patientRepository,
-                             @org.springframework.beans.factory.annotation.Value("${healthflow.timezone:America/Bogota}") String tz, DocumentoService documentoService) {
+                             DocumentoRepository documentoRepository,
+                             @org.springframework.beans.factory.annotation.Value("${healthflow.timezone:America/Bogota}") String tz,
+                             DocumentoService documentoService) {
         this.patientService = patientService;
         this.professionalRepository = professionalRepository;
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
+        this.documentoRepository = documentoRepository;
         this.zoneId = ZoneId.of(tz);
         this.documentoService = documentoService;
     }
@@ -92,20 +99,50 @@ public class PatientController {
         model.addAttribute("filtroFechaDesde", fechaDesde);
         model.addAttribute("filtroFechaHasta", fechaHasta);
         model.addAttribute("title", "Mis Pacientes - HealthFlow");
-        model.addAttribute("contenido", "doctor/pacientes"); // ← CORREGIDO: añadido ":: content"
+        model.addAttribute("contenido", "doctor/pacientes");
 
         return "fragments/layout";
     }
 
     @GetMapping("/pacientes/{id}/historial")
-    public String verHistorial(@PathVariable("id") UUID patientId, Model model) {
+    public String verHistorial(
+            @PathVariable("id") UUID patientId,
+            @RequestParam(name = "origen", required = false) String origen,
+            @RequestParam(name = "tipo", required = false) String tipoDocumento,
+            @RequestParam(name = "fechaDesde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaDesde,
+            @RequestParam(name = "fechaHasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta,
+            Model model) {
 
         UUID professionalId = getCurrentProfessionalId();
-
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new DomainException("Paciente no encontrado"));
 
         var historial = patientService.obtenerHistorialPaciente(patientId, professionalId);
+
+        List<Documento> todosDocumentos = documentoService.getDocumentsByPatient(patientId);
+        List<Documento> documentosMedico = new ArrayList<>();
+        List<Documento> documentosPaciente = new ArrayList<>();
+
+        OffsetDateTime start = (fechaDesde != null) ? fechaDesde.atStartOfDay(zoneId).toOffsetDateTime() : null;
+        OffsetDateTime end = (fechaHasta != null) ? fechaHasta.atTime(23, 59, 59).atZone(zoneId).toOffsetDateTime() : null;
+
+        for (Documento doc : todosDocumentos) {
+            if (origen != null && !origen.isEmpty() && !doc.getOrigen().equals(origen)) continue;
+            if (tipoDocumento != null && !tipoDocumento.isEmpty() && !tipoDocumento.equals(doc.getTipoDocumento())) continue;
+            if (start != null && doc.getCreatedAt().isBefore(start)) continue;
+            if (end != null && doc.getCreatedAt().isAfter(end)) continue;
+
+            if ("MEDICO".equals(doc.getOrigen())) {
+                documentosMedico.add(doc);
+            } else if ("PACIENTE".equals(doc.getOrigen())) {
+                documentosPaciente.add(doc);
+            }
+        }
+
+        documentosMedico.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+        documentosPaciente.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+
+        List<String> tiposDocumento = List.of("FORMULA", "REMISION", "LABORATORIO", "RADIOGRAFIA", "OTRO");
 
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         LocalDate today = LocalDate.now(zoneId);
@@ -113,7 +150,6 @@ public class PatientController {
                 today.getDayOfMonth() + " de " +
                 today.getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + " de " +
                 today.getYear();
-
         String fechaTablaCitas = today.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + ", " +
                 today.getDayOfMonth() + " de " +
                 today.getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "ES"));
@@ -132,9 +168,15 @@ public class PatientController {
 
         model.addAttribute("patient", patient);
         model.addAttribute("historial", historial);
-        model.addAttribute("documentos", documentoService.getDocumentsByPatient(patientId));
+        model.addAttribute("documentosMedico", documentosMedico);
+        model.addAttribute("documentosPaciente", documentosPaciente);
+        model.addAttribute("tiposDocumento", tiposDocumento);
+        model.addAttribute("filtroOrigen", origen);
+        model.addAttribute("filtroTipo", tipoDocumento);
+        model.addAttribute("filtroFechaDesde", fechaDesde);
+        model.addAttribute("filtroFechaHasta", fechaHasta);
         model.addAttribute("title", "Historial de " + patient.getFirstName() + " - HealthFlow");
-        model.addAttribute("contenido", "doctor/historial-paciente"); // ← CORREGIDO: añadido ":: content"
+        model.addAttribute("contenido", "doctor/historial-paciente");
 
         return "fragments/layout";
     }

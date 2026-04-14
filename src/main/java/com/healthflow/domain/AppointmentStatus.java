@@ -4,7 +4,8 @@ public enum AppointmentStatus {
   PENDIENTE("Pendiente"),
   CONFIRMADA("Confirmada"),
   CANCELADA("Cancelada"),
-  ATENDIDA("Atendida");
+  ATENDIDA("Atendida"),
+  NO_ATENDIDA("No Atendida");
 
   private final String displayName;
 

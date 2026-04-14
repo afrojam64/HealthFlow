@@ -51,7 +51,7 @@
                         </a>
                     </li>
                     <li class="nav-item mt-3">
-                        <a class="nav-link text-danger" href="/paciente/logout">
+                        <a class="nav-link text-danger" th:href="@{/paciente/logout}" onclick="localStorage.removeItem('pacienteToken');">
                             <i class="bi bi-box-arrow-right"></i> Salir
                         </a>
                     </li>
@@ -100,5 +100,64 @@
         </div>
     </div>
 </div>
+<script th:inline="javascript">
+    // Si hay token en la URL, guardarlo en localStorage y limpiar URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    if (token) {
+        localStorage.setItem('pacienteToken', token);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // Función para obtener header de autenticación
+    function getAuthHeader() {
+        const t = localStorage.getItem('pacienteToken');
+        return t ? { 'Authorization': 'Bearer ' + t } : {};
+    }
+
+    // Interceptar fetch para incluir token automáticamente en rutas del paciente
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+        if (typeof url === 'string' && (url.startsWith('/paciente/') || url.startsWith('/api/paciente/'))) {
+            options.headers = { ...options.headers, ...getAuthHeader() };
+        }
+        return originalFetch(url, options).then(response => {
+            if (response.status === 401) {
+                localStorage.removeItem('pacienteToken');
+                window.location.href = '/paciente/entrar';
+            }
+            return response;
+        });
+    };
+</script><script th:inline="javascript">
+    // Si hay token en la URL, guardarlo en localStorage y limpiar URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    if (token) {
+        localStorage.setItem('pacienteToken', token);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // Función para obtener header de autenticación
+    function getAuthHeader() {
+        const t = localStorage.getItem('pacienteToken');
+        return t ? { 'Authorization': 'Bearer ' + t } : {};
+    }
+
+    // Interceptar fetch para incluir token automáticamente en rutas del paciente
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+        if (typeof url === 'string' && (url.startsWith('/paciente/') || url.startsWith('/api/paciente/'))) {
+            options.headers = { ...options.headers, ...getAuthHeader() };
+        }
+        return originalFetch(url, options).then(response => {
+            if (response.status === 401) {
+                localStorage.removeItem('pacienteToken');
+                window.location.href = '/paciente/entrar';
+            }
+            return response;
+        });
+    };
+</script>
 </body>
 </html>

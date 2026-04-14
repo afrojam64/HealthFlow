@@ -16,6 +16,8 @@
         .upload-area { border: 2px dashed #dee2e6; border-radius: 20px; padding: 2rem; text-align: center; cursor: pointer; transition: 0.3s; }
         .upload-area:hover { border-color: var(--primary); background-color: var(--primary-light); }
         .btn-health { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 8px; }
+        .icono-doc { font-size: 1.2rem; margin-right: 5px; }
+        .filtros-card { background-color: #f8f9fa; border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; }
     </style>
 </head>
 <body>
@@ -63,6 +65,13 @@
                                 <div id="fileList" class="mt-2"></div>
                             </div>
                             <div class="mb-3">
+                                <label class="form-label fw-semibold">Tipo de documento</label>
+                                <select class="form-control" name="tipoDocumento">
+                                    <option value="">Seleccione...</option>
+                                    <option th:each="t : ${tiposDocumento}" th:value="${t}" th:text="${t}"></option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
                                 <label class="form-label fw-semibold">Descripción (opcional)</label>
                                 <textarea class="form-control" name="description" rows="2" placeholder="Ej: Resultados de laboratorio..."></textarea>
                             </div>
@@ -77,26 +86,93 @@
                     </div>
                 </div>
 
-                <!-- Listado de documentos subidos -->
-                <h4 class="mt-4"><i class="bi bi-archive me-2 text-primary"></i>Documentos subidos</h4>
-                <div th:if="${documentos != null and not documentos.isEmpty()}">
-                    <table class="table table-hover align-middle">
+                <!-- Filtros (simple para tipo de documento) -->
+                <div class="filtros-card">
+                    <form method="get" th:action="@{/paciente/subir-documento}" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo</label>
+                            <select name="tipo" class="form-select">
+                                <option value="">Todos</option>
+                                <option th:each="t : ${tiposDocumento}" th:value="${t}" th:text="${t}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Origen</label>
+                            <select name="origen" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="MEDICO">Médico</option>
+                                <option value="PACIENTE">Paciente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                        </div>
+                        <div class="col-md-2">
+                            <a th:href="@{/paciente/subir-documento}" class="btn btn-secondary w-100">Limpiar</a>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Documentos subidos por el médico -->
+                <h5 class="mt-4"><i class="bi bi-person-badge me-2 text-primary"></i>Documentos subidos por el médico</h5>
+                <div th:if="${documentosMedico != null and not documentosMedico.isEmpty()}" class="table-responsive">
+                    <table class="table table-sm table-hover">
                         <thead class="table-light">
-                        <tr><th>Nombre</th><th>Descripción</th><th>Subido</th><th>Expira</th><th></th></tr>
+                        <tr><th>Tipo</th><th>Nombre</th><th>Descripción</th><th>Fecha subida</th><th>Expira</th><th>Acciones</th></tr>
                         </thead>
                         <tbody>
-                        <tr th:each="doc : ${documentos}">
-                            <td th:text="${doc.fileName}">archivo.pdf</td>
-                            <td th:text="${doc.description}">-</td>
+                        <tr th:each="doc : ${documentosMedico}">
+                            <td class="text-center">
+                                <i th:if="${doc.tipoDocumento == 'FORMULA'}" class="bi bi-capsule icono-doc text-primary" title="Fórmula médica"></i>
+                                <i th:if="${doc.tipoDocumento == 'REMISION'}" class="bi bi-send icono-doc text-info" title="Remisión"></i>
+                                <i th:if="${doc.tipoDocumento == 'LABORATORIO'}" class="bi bi-flask icono-doc text-success" title="Laboratorio"></i>
+                                <i th:if="${doc.tipoDocumento == 'RADIOGRAFIA'}" class="bi bi-image icono-doc text-warning" title="Radiografía"></i>
+                                <i th:if="${doc.tipoDocumento == null or doc.tipoDocumento == 'OTRO'}" class="bi bi-file-earmark-text icono-doc text-secondary" title="Otro"></i>
+                            </td>
+                            <td th:text="${doc.fileName}"></td>
+                            <td th:text="${doc.description}"></td>
                             <td th:text="${#temporals.format(doc.createdAt, 'dd/MM/yyyy')}"></td>
                             <td th:text="${#temporals.format(doc.expirationDate, 'dd/MM/yyyy')}"></td>
-                            <td><a th:href="@{/api/public/documentos/{token}(token=${doc.token})}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Descargar</a></td>
+                            <td>
+                                <a th:href="@{/api/public/documentos/{token}(token=${doc.token})}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Descargar</a>
+                            </td>
                         </tr>
                         </tbody>
                     </table>
                 </div>
-                <div th:if="${documentos == null or documentos.isEmpty()}" class="alert alert-light text-center py-4">
-                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>No has subido ningún documento aún.
+                <div th:if="${documentosMedico == null or documentosMedico.isEmpty()}" class="alert alert-light text-center py-2">
+                    <i class="bi bi-file-earmark-x fs-4 d-block mb-1"></i> No hay documentos subidos por el médico.
+                </div>
+
+                <!-- Documentos subidos por el paciente -->
+                <h5 class="mt-4"><i class="bi bi-person-circle me-2 text-success"></i>Mis documentos subidos</h5>
+                <div th:if="${documentosPaciente != null and not documentosPaciente.isEmpty()}" class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                        <tr><th>Tipo</th><th>Nombre</th><th>Descripción</th><th>Fecha subida</th><th>Expira</th><th>Acciones</th></tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="doc : ${documentosPaciente}">
+                            <td class="text-center">
+                                <i th:if="${doc.tipoDocumento == 'FORMULA'}" class="bi bi-capsule icono-doc text-primary" title="Fórmula médica"></i>
+                                <i th:if="${doc.tipoDocumento == 'REMISION'}" class="bi bi-send icono-doc text-info" title="Remisión"></i>
+                                <i th:if="${doc.tipoDocumento == 'LABORATORIO'}" class="bi bi-flask icono-doc text-success" title="Laboratorio"></i>
+                                <i th:if="${doc.tipoDocumento == 'RADIOGRAFIA'}" class="bi bi-image icono-doc text-warning" title="Radiografía"></i>
+                                <i th:if="${doc.tipoDocumento == null or doc.tipoDocumento == 'OTRO'}" class="bi bi-file-earmark-text icono-doc text-secondary" title="Otro"></i>
+                            </td>
+                            <td th:text="${doc.fileName}"></td>
+                            <td th:text="${doc.description}"></td>
+                            <td th:text="${#temporals.format(doc.createdAt, 'dd/MM/yyyy')}"></td>
+                            <td th:text="${#temporals.format(doc.expirationDate, 'dd/MM/yyyy')}"></td>
+                            <td>
+                                <a th:href="@{/api/public/documentos/{token}(token=${doc.token})}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Descargar</a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${documentosPaciente == null or documentosPaciente.isEmpty()}" class="alert alert-light text-center py-2">
+                    <i class="bi bi-file-earmark-x fs-4 d-block mb-1"></i> No has subido ningún documento aún.
                 </div>
             </div>
         </div>
@@ -120,6 +196,37 @@
         html += '</ul>';
         fileListDiv.innerHTML = html;
     }
+</script>
+
+<script th:inline="javascript">
+    // Si hay token en la URL, guardarlo en localStorage y limpiar URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    if (token) {
+        localStorage.setItem('pacienteToken', token);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // Función para obtener header de autenticación
+    function getAuthHeader() {
+        const t = localStorage.getItem('pacienteToken');
+        return t ? { 'Authorization': 'Bearer ' + t } : {};
+    }
+
+    // Interceptar fetch para incluir token automáticamente en rutas del paciente
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+        if (typeof url === 'string' && (url.startsWith('/paciente/') || url.startsWith('/api/paciente/'))) {
+            options.headers = { ...options.headers, ...getAuthHeader() };
+        }
+        return originalFetch(url, options).then(response => {
+            if (response.status === 401) {
+                localStorage.removeItem('pacienteToken');
+                window.location.href = '/paciente/entrar';
+            }
+            return response;
+        });
+    };
 </script>
 </body>
 </html>

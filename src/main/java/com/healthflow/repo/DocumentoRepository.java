@@ -18,4 +18,16 @@ public interface DocumentoRepository extends JpaRepository<Documento, UUID> {
 
     @Query("DELETE FROM Documento d WHERE d.expirationDate < :now")
     void deleteExpired(@Param("now") OffsetDateTime now);
+
+    // Listar documentos de un paciente por origen (MEDICO/PACIENTE)
+    List<Documento> findByPatientIdAndOrigenOrderByCreatedAtDesc(UUID patientId, String origen);
+
+    // Filtrar por tipo de documento adicionalmente
+    List<Documento> findByPatientIdAndOrigenAndTipoDocumentoOrderByCreatedAtDesc(UUID patientId, String origen, String tipoDocumento);
+
+    // Filtrar por rango de fechas
+    List<Documento> findByPatientIdAndOrigenAndCreatedAtBetweenOrderByCreatedAtDesc(UUID patientId, String origen, OffsetDateTime start, OffsetDateTime end);
+
+    // Filtro combinado (tipo + fechas)
+    List<Documento> findByPatientIdAndOrigenAndTipoDocumentoAndCreatedAtBetweenOrderByCreatedAtDesc(UUID patientId, String origen, String tipoDocumento, OffsetDateTime start, OffsetDateTime end);
 }

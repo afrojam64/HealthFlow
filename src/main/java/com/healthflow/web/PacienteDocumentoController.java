@@ -2,7 +2,8 @@ package com.healthflow.web;
 
 import com.healthflow.domain.Documento;
 import com.healthflow.service.DocumentoService;
-import jakarta.servlet.http.HttpSession;
+import com.healthflow.service.DomainException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -22,11 +23,19 @@ public class PacienteDocumentoController {
         this.documentoService = documentoService;
     }
 
+    private UUID getAuthenticatedPatientId() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof UUID) {
+            return (UUID) principal;
+        }
+        throw new DomainException("No autenticado");
+    }
+
     @GetMapping("/subir-documento")
-    public String mostrarFormulario(HttpSession session, Model model) {
-        UUID pacienteId = (UUID) session.getAttribute("pacienteId");
-        if (pacienteId == null) return "redirect:/paciente/entrar";
+    public String mostrarFormulario(Model model) {
+        UUID pacienteId = getAuthenticatedPatientId();
         List<Documento> documentos = documentoService.getDocumentsByPatient(pacienteId);
+        // Separar por origen (MEDICO / PACIENTE) igual que antes
         model.addAttribute("documentos", documentos);
         return "paciente/subir-documento";
     }
@@ -35,13 +44,12 @@ public class PacienteDocumentoController {
     public String subirDocumento(@RequestParam("files") List<MultipartFile> files,
                                  @RequestParam(value = "description", required = false) String description,
                                  @RequestParam(value = "expirationDays", required = false) Integer expirationDays,
-                                 HttpSession session,
+                                 @RequestParam(value = "tipoDocumento", required = false) String tipoDocumento,
                                  RedirectAttributes redirectAttributes) {
-        UUID pacienteId = (UUID) session.getAttribute("pacienteId");
-        if (pacienteId == null) return "redirect:/paciente/entrar";
+        UUID pacienteId = getAuthenticatedPatientId();
         try {
             int days = (expirationDays != null && expirationDays > 0) ? expirationDays : 30;
-            documentoService.uploadMultipleDocuments(pacienteId, files, description, null, days);
+            documentoService.uploadMultipleDocuments(pacienteId, files, description, null, days, "PACIENTE", tipoDocumento);
             redirectAttributes.addFlashAttribute("successMessage", "Documentos subidos correctamente.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Error: " + e.getMessage());

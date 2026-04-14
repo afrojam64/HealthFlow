@@ -138,15 +138,12 @@
                             <span th:case="'CONFIRMADA'" class="badge-confirmada">Confirmada</span>
                             <span th:case="'ATENDIDA'" class="badge-atendida">Atendida</span>
                             <span th:case="'CANCELADA'" class="badge-cancelada">Cancelada</span>
+                            <span th:case="'NO_ATENDIDA'" class="badge-no-atendida">No Atendida</span>
                             <span th:case="*">Desconocido</span>
                         </span>
                 </td>
                 <td class="text-end">
-                    <a th:if="${cita.status.name() == 'PENDIENTE' and !cita.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')).toLocalDate().isAfter(today)}"
-                       th:href="@{/doctor/citas/{id}/atender(id=${cita.id})}" class="btn btn-sm btn-health">
-                        <i class="bi bi-file-earmark-medical me-1"></i>Atender
-                    </a>
-                    <a th:if="${cita.status.name() == 'CONFIRMADA' and !cita.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')).toLocalDate().isAfter(today)}"
+                    <a th:if="${(cita.status.name() == 'PENDIENTE' or cita.status.name() == 'CONFIRMADA') and cita.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')).toLocalDate().isAfter(today)}"
                        th:href="@{/doctor/citas/{id}/atender(id=${cita.id})}" class="btn btn-sm btn-health">
                         <i class="bi bi-file-earmark-medical me-1"></i>Atender
                     </a>

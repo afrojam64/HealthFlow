@@ -43,7 +43,19 @@ public class Documento extends BaseEntity {
     @Column(name = "fecha_expiracion", nullable = false)
     private OffsetDateTime expirationDate;
 
-    // Getters y Setters
+    @Column(name = "origen", nullable = false, length = 20)
+    private String origen = "MEDICO";
+
+    @Column(name = "tipo_documento", length = 50)
+    private String tipoDocumento;
+
+    // Getters y setters
+    public String getOrigen() { return origen; }
+    public void setOrigen(String origen) { this.origen = origen; }
+
+    public String getTipoDocumento() { return tipoDocumento; }
+    public void setTipoDocumento(String tipoDocumento) { this.tipoDocumento = tipoDocumento; }
+
     public Patient getPatient() { return patient; }
     public void setPatient(Patient patient) { this.patient = patient; }
 

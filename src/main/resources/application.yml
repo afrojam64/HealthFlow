@@ -35,3 +35,6 @@ healthflow:
   upload-dir: uploads # ← nueva
   document:
       expiration-days: 7
+  jwt:
+    secret: "miClaveSecretaSuperSegura1234567890"  # Cambiar en producción
+    expiration-hours: 24

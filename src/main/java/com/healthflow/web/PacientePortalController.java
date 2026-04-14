@@ -2,9 +2,12 @@ package com.healthflow.web;
 
 import com.healthflow.domain.Patient;
 import com.healthflow.repo.PatientRepository;
+import com.healthflow.service.JwtService;
 import com.healthflow.service.NotificationService;
 import com.healthflow.service.PacienteTokenService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,13 +25,15 @@ public class PacientePortalController {
     private final PatientRepository patientRepo;
     private final PacienteTokenService tokenService;
     private final NotificationService notificationService;
+    private final JwtService jwtService;
 
     public PacientePortalController(PatientRepository patientRepo,
                                     PacienteTokenService tokenService,
-                                    NotificationService notificationService) {
+                                    NotificationService notificationService, JwtService jwtService) {
         this.patientRepo = patientRepo;
         this.tokenService = tokenService;
         this.notificationService = notificationService;
+        this.jwtService = jwtService;
     }
 
     @GetMapping("/entrar")
@@ -45,7 +50,7 @@ public class PacientePortalController {
             return "redirect:/paciente/entrar";
         }
 
-        String token = tokenService.generarToken(patient);
+        String token = jwtService.generateToken(patient);
         String portalUrl = "http://localhost:8080/paciente/dashboard?token=" + token;
         notificationService.sendPortalAccessEmail(patient.getEmail(),
                 patient.getFirstName() + " " + patient.getLastName(),
@@ -57,29 +62,19 @@ public class PacientePortalController {
 
     @GetMapping("/dashboard")
     public String dashboard(@RequestParam(value = "token", required = false) String token,
-                            HttpSession session,
-                            Model model,
-                            RedirectAttributes redirectAttributes) {
-        // Si ya hay sesión, mostrar dashboard directamente
-        if (session.getAttribute("pacienteId") != null) {
-            UUID pacienteId = (UUID) session.getAttribute("pacienteId");
-            Patient patient = patientRepo.findById(pacienteId).orElse(null);
-            model.addAttribute("patient", patient);
+                            HttpServletResponse response,
+                            Model model) {
+        // Si ya hay autenticación en el contexto (por el filtro), redirigir sin token
+        if (token == null && SecurityContextHolder.getContext().getAuthentication() != null &&
+                SecurityContextHolder.getContext().getAuthentication().getPrincipal() instanceof UUID) {
             return "paciente/dashboard";
         }
-        // Si no hay sesión pero hay token, validar y crear sesión
+        // Si hay token en URL, validarlo y redirigir a la misma URL sin token (se guardará en localStorage por JS)
         if (token != null) {
-            try {
-                Patient patient = tokenService.validarToken(token);
-                session.setAttribute("pacienteId", patient.getId());
-                session.setAttribute("pacienteNombre", patient.getFirstName() + " " + patient.getLastName());
-                // Opcional: mensaje flash de bienvenida
-                redirectAttributes.addFlashAttribute("mensaje", "¡Bienvenido! También te hemos enviado un enlace a tu correo por si lo necesitas más tarde.");
-                return "redirect:/paciente/dashboard";
-            } catch (RuntimeException e) {
-                redirectAttributes.addFlashAttribute("error", e.getMessage());
-                return "redirect:/paciente/entrar";
-            }
+            // El filtro ya validará el token y establecerá la autenticación.
+            // La vista se encargará de guardar el token en localStorage y eliminar de la URL.
+            model.addAttribute("token", token);
+            return "paciente/dashboard";
         }
         return "redirect:/paciente/entrar";
     }

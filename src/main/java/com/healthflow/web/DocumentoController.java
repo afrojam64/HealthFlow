@@ -62,12 +62,12 @@ public class DocumentoController {
                                  @RequestParam(value = "description", required = false) String description,
                                  @RequestParam(value = "appointmentId", required = false) UUID appointmentId,
                                  @RequestParam(value = "expirationDays", required = false) Integer expirationDays,
+                                 @RequestParam(value = "tipoDocumento", required = false) String tipoDocumento,
                                  RedirectAttributes redirectAttributes) {
         try {
             int days = (expirationDays != null && expirationDays > 0) ? expirationDays : defaultExpirationDays;
-            List<Documento> docs = documentoService.uploadMultipleDocuments(patientId, files, description, appointmentId, days);
-            redirectAttributes.addFlashAttribute("successMessage",
-                    "Documentos subidos correctamente (" + docs.size() + "). Se ha enviado un correo al paciente con los enlaces.");
+            List<Documento> docs = documentoService.uploadMultipleDocuments(patientId, files, description, appointmentId, days, "MEDICO", tipoDocumento);
+            redirectAttributes.addFlashAttribute("successMessage", "Documentos subidos correctamente (" + docs.size() + ").");
         } catch (IOException | DomainException e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Error al subir: " + e.getMessage());
         }

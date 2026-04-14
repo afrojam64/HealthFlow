@@ -2,65 +2,51 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <style>
+        .icono-doc { font-size: 1.2rem; margin-right: 5px; }
+        .filtros-card { background-color: #f8f9fa; border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; }
+    </style>
 </head>
 <body>
 <div th:fragment="content">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="text-primary mb-1">
-                <i class="bi bi-person-lines-fill me-2"></i>Historial Clínico
-            </h2>
-            <p class="text-muted" th:text="${patient.firstName + ' ' + patient.lastName + ' - ' + patient.docNumber}">
-                Juan Pérez - 12345678
-            </p>
+            <h2 class="text-primary mb-1"><i class="bi bi-person-lines-fill me-2"></i>Historial Clínico</h2>
+            <p class="text-muted" th:text="${patient.firstName + ' ' + patient.lastName + ' - ' + patient.docNumber}"></p>
         </div>
-        <a href="/doctor/pacientes" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>Volver
-        </a>
+        <a href="/doctor/pacientes" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Volver</a>
     </div>
 
-    <!-- Mensajes flash -->
     <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
     <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
-    <!-- Opciones adicionales (descargar/enviar) -->
     <div class="d-flex justify-content-end gap-2 mb-4">
-        <a th:href="@{/doctor/pacientes/{id}/pdf(id=${patient.id})}" class="btn btn-outline-primary" target="_blank">
-            <i class="bi bi-download me-1"></i>Descargar PDF
-        </a>
-        <button class="btn btn-outline-primary" disabled>
-            <i class="bi bi-envelope me-1"></i>Enviar al paciente
-        </button>
+        <a th:href="@{/doctor/pacientes/{id}/pdf(id=${patient.id})}" class="btn btn-outline-primary" target="_blank"><i class="bi bi-download me-1"></i>Descargar PDF</a>
+        <button class="btn btn-outline-primary" disabled><i class="bi bi-envelope me-1"></i>Enviar al paciente</button>
     </div>
 
-    <!-- Listado de citas -->
+    <!-- Citas -->
     <div class="accordion" id="historialAccordion">
-        <div th:if="${historial.isEmpty()}" class="alert alert-info">
-            Este paciente no tiene citas registradas con usted.
-        </div>
-        <div class="accordion-item" th:each="cita, iterStat : ${historial}" th:attr="data-index=${iterStat.index}">
+        <div th:if="${historial.isEmpty()}" class="alert alert-info">Este paciente no tiene citas registradas con usted.</div>
+        <div class="accordion-item" th:each="cita, iterStat : ${historial}">
             <h2 class="accordion-header" th:id="'heading' + ${iterStat.index}">
                 <button class="accordion-button" type="button" data-bs-toggle="collapse"
                         th:attr="data-bs-target='#collapse' + ${iterStat.index}"
                         th:classappend="${!iterStat.first} ? 'collapsed' : ''">
-                    <span class="fw-bold me-3" th:text="${#temporals.format(cita.fecha, 'dd/MM/yyyy HH:mm')}">15/03/2026 09:00</span>
-                    <span class="badge ms-2" th:classappend="${cita.estado.name() == 'ATENDIDA' ? 'bg-success' :
-                                                                          (cita.estado.name() == 'PENDIENTE' ? 'bg-warning' : 'bg-secondary')}"
-                          th:text="${cita.estado}">Atendida</span>
+                    <span class="fw-bold me-3" th:text="${#temporals.format(cita.fecha, 'dd/MM/yyyy HH:mm')}"></span>
+                    <span class="badge ms-2" th:classappend="${cita.estado.name() == 'ATENDIDA' ? 'bg-success' : (cita.estado.name() == 'PENDIENTE' ? 'bg-warning' : 'bg-secondary')}" th:text="${cita.estado}"></span>
                     <span th:if="${!cita.tieneRegistro}" class="badge bg-secondary ms-2">Sin registro</span>
                 </button>
             </h2>
-            <div th:id="'collapse' + ${iterStat.index}" class="accordion-collapse collapse"
-                 th:classappend="${iterStat.first} ? 'show' : ''"
-                 th:attr="aria-labelledby='heading' + ${iterStat.index}">
+            <div th:id="'collapse' + ${iterStat.index}" class="accordion-collapse collapse" th:classappend="${iterStat.first} ? 'show' : ''">
                 <div class="accordion-body">
                     <div th:if="${cita.tieneRegistro}">
-                        <p><strong>Motivo:</strong> <span th:text="${cita.registro.reason}">Dolor de cabeza</span></p>
-                        <p><strong>Diagnóstico (CIE-10):</strong> <span th:text="${cita.registro.mainDiagnosis}">R51</span></p>
+                        <p><strong>Motivo:</strong> <span th:text="${cita.registro.reason}"></span></p>
+                        <p><strong>Diagnóstico (CIE-10):</strong> <span th:text="${cita.registro.mainDiagnosis}"></span></p>
                         <p><strong>Evolución:</strong></p>
-                        <p class="border-start border-3 ps-3" th:text="${cita.registro.evolution}">Evolución detallada...</p>
+                        <p class="border-start border-3 ps-3" th:text="${cita.registro.evolution}"></p>
                         <p><strong>Prescripción:</strong></p>
-                        <p class="border-start border-3 ps-3" th:text="${cita.registro.prescription}">Prescripción...</p>
+                        <p class="border-start border-3 ps-3" th:text="${cita.registro.prescription}"></p>
                     </div>
                     <div th:if="${!cita.tieneRegistro}">
                         <p class="text-muted">Esta cita no tiene un registro clínico asociado.</p>
@@ -70,18 +56,14 @@
         </div>
     </div>
 
-    <!-- Sección de documentos -->
+    <!-- Documentos -->
     <div class="mt-5">
         <hr class="my-4">
-        <h4 class="text-primary mb-3">
-            <i class="bi bi-file-earmark-text me-2"></i> Documentos del paciente
-        </h4>
+        <h4 class="text-primary mb-3"><i class="bi bi-file-earmark-text me-2"></i> Documentos del paciente</h4>
 
-        <!-- Formulario de subida -->
+        <!-- Subir documento -->
         <div class="card mb-4">
-            <div class="card-header bg-light">
-                <h6 class="mb-0">Subir nuevo documento</h6>
-            </div>
+            <div class="card-header bg-light"><h6 class="mb-0">Subir nuevo documento</h6></div>
             <div class="card-body">
                 <form th:action="@{/doctor/documentos/paciente/{id}/upload(id=${patient.id})}" method="post" enctype="multipart/form-data">
                     <div class="mb-3">
@@ -98,51 +80,116 @@
                         <input type="number" class="form-control" id="expirationDays" name="expirationDays" value="7" min="1" max="365">
                         <div class="form-text">El enlace expirará después de este número de días.</div>
                     </div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-upload me-1"></i> Subir documento
-                    </button>
+                    <div class="mb-3">
+                        <label for="tipoDocumento" class="form-label">Tipo de documento</label>
+                        <select class="form-control" id="tipoDocumento" name="tipoDocumento">
+                            <option value="">Seleccione...</option>
+                            <option value="FORMULA">Fórmula médica</option>
+                            <option value="REMISION">Remisión</option>
+                            <option value="LABORATORIO">Laboratorio</option>
+                            <option value="RADIOGRAFIA">Radiografía</option>
+                            <option value="OTRO">Otro</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i> Subir documento</button>
                 </form>
             </div>
         </div>
 
-        <!-- Listado de documentos -->
-        <div th:if="${documentos != null and not documentos.isEmpty()}" class="table-responsive">
+        <!-- Filtros -->
+        <div class="filtros-card">
+            <form method="get" th:action="@{/doctor/pacientes/{id}/historial(id=${patient.id})}" class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label">Origen</label>
+                    <select name="origen" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="MEDICO" th:selected="${filtroOrigen == 'MEDICO'}">Médico</option>
+                        <option value="PACIENTE" th:selected="${filtroOrigen == 'PACIENTE'}">Paciente</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Tipo</label>
+                    <select name="tipo" class="form-select">
+                        <option value="">Todos</option>
+                        <option th:each="t : ${tiposDocumento}" th:value="${t}" th:text="${t}" th:selected="${filtroTipo == t}"></option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Fecha desde</label>
+                    <input type="date" name="fechaDesde" class="form-control" th:value="${filtroFechaDesde}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Fecha hasta</label>
+                    <input type="date" name="fechaHasta" class="form-control" th:value="${filtroFechaHasta}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                </div>
+                <div class="col-md-2">
+                    <a th:href="@{/doctor/pacientes/{id}/historial(id=${patient.id})}" class="btn btn-secondary w-100">Limpiar</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Documentos del médico -->
+        <h5 class="mt-4"><i class="bi bi-person-badge me-2 text-primary"></i>Documentos subidos por el médico</h5>
+        <div th:if="${documentosMedico != null and not documentosMedico.isEmpty()}" class="table-responsive">
             <table class="table table-sm table-hover">
-                <thead class="table-light">
-                <tr>
-                    <th>Nombre</th>
-                    <th>Descripción</th>
-                    <th>Fecha subida</th>
-                    <th>Expira</th>
-                    <th>Enlace</th>
-                    <th></th>
-                </tr>
-                </thead>
+                <thead class="table-light"><tr><th>Tipo</th><th>Nombre</th><th>Descripción</th><th>Fecha subida</th><th>Expira</th><th>Acciones</th></tr></thead>
                 <tbody>
-                <tr th:each="doc : ${documentos}">
-                    <td th:text="${doc.fileName}">archivo.pdf</td>
-                    <td th:text="${doc.description}">Descripción</td>
-                    <td th:text="${#temporals.format(doc.createdAt, 'dd/MM/yyyy')}">01/01/2026</td>
-                    <td th:text="${#temporals.format(doc.expirationDate, 'dd/MM/yyyy')}">31/12/2026</td>
-                    <td>
-                        <a th:href="@{/api/public/documentos/{token}(token=${doc.token})}" target="_blank" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-link-45deg"></i> Descargar
-                        </a>
+                <tr th:each="doc : ${documentosMedico}">
+                    <td class="text-center">
+                        <i th:if="${doc.tipoDocumento == 'FORMULA'}" class="bi bi-capsule icono-doc text-primary" title="Fórmula médica"></i>
+                        <i th:if="${doc.tipoDocumento == 'REMISION'}" class="bi bi-send icono-doc text-info" title="Remisión"></i>
+                        <i th:if="${doc.tipoDocumento == 'LABORATORIO'}" class="bi bi-flask icono-doc text-success" title="Laboratorio"></i>
+                        <i th:if="${doc.tipoDocumento == 'RADIOGRAFIA'}" class="bi bi-image icono-doc text-warning" title="Radiografía"></i>
+                        <i th:if="${doc.tipoDocumento == null or doc.tipoDocumento == 'OTRO'}" class="bi bi-file-earmark-text icono-doc text-secondary" title="Otro"></i>
                     </td>
+                    <td th:text="${doc.fileName}"></td>
+                    <td th:text="${doc.description}"></td>
+                    <td th:text="${#temporals.format(doc.createdAt, 'dd/MM/yyyy')}"></td>
+                    <td th:text="${#temporals.format(doc.expirationDate, 'dd/MM/yyyy')}"></td>
                     <td>
+                        <a th:href="@{/api/public/documentos/{token}(token=${doc.token})}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Descargar</a>
                         <form th:action="@{/doctor/documentos/{id}/delete(id=${doc.id})}" method="post" style="display:inline;">
-                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar este documento?')">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar este documento?')"><i class="bi bi-trash"></i></button>
                         </form>
                     </td>
                 </tr>
                 </tbody>
             </table>
         </div>
-        <div th:if="${documentos == null or documentos.isEmpty()}" class="alert alert-light text-center py-3">
-            <i class="bi bi-file-earmark-x fs-4 d-block mb-1"></i>
-            No hay documentos subidos para este paciente.
+        <div th:if="${documentosMedico == null or documentosMedico.isEmpty()}" class="alert alert-light text-center py-2">
+            <i class="bi bi-file-earmark-x fs-4 d-block mb-1"></i> No hay documentos subidos por el médico.
+        </div>
+
+        <!-- Documentos del paciente -->
+        <h5 class="mt-4"><i class="bi bi-person-circle me-2 text-success"></i>Documentos subidos por el paciente</h5>
+        <div th:if="${documentosPaciente != null and not documentosPaciente.isEmpty()}" class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead class="table-light"><tr><th>Tipo</th><th>Nombre</th><th>Descripción</th><th>Fecha subida</th><th>Expira</th><th>Acciones</th></tr></thead>
+                <tbody>
+                <tr th:each="doc : ${documentosPaciente}">
+                    <td class="text-center">
+                        <i th:if="${doc.tipoDocumento == 'FORMULA'}" class="bi bi-capsule icono-doc text-primary" title="Fórmula médica"></i>
+                        <i th:if="${doc.tipoDocumento == 'REMISION'}" class="bi bi-send icono-doc text-info" title="Remisión"></i>
+                        <i th:if="${doc.tipoDocumento == 'LABORATORIO'}" class="bi bi-flask icono-doc text-success" title="Laboratorio"></i>
+                        <i th:if="${doc.tipoDocumento == 'RADIOGRAFIA'}" class="bi bi-image icono-doc text-warning" title="Radiografía"></i>
+                        <i th:if="${doc.tipoDocumento == null or doc.tipoDocumento == 'OTRO'}" class="bi bi-file-earmark-text icono-doc text-secondary" title="Otro"></i>
+                    </td>
+                    <td th:text="${doc.fileName}"></td>
+                    <td th:text="${doc.description}"></td>
+                    <td th:text="${#temporals.format(doc.createdAt, 'dd/MM/yyyy')}"></td>
+                    <td th:text="${#temporals.format(doc.expirationDate, 'dd/MM/yyyy')}"></td>
+                    <td>
+                        <a th:href="@{/api/public/documentos/{token}(token=${doc.token})}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Descargar</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${documentosPaciente == null or documentosPaciente.isEmpty()}" class="alert alert-light text-center py-2">
+            <i class="bi bi-file-earmark-x fs-4 d-block mb-1"></i> No hay documentos subidos por el paciente.
         </div>
     </div>
 </div>

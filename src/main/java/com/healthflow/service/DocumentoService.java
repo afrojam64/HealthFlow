@@ -86,13 +86,41 @@ public class DocumentoService {
         return saved;
     }
 
-    // Método para múltiples archivos: guarda todos y envía un solo correo
+    /**
+     * Método original (sobrecarga) que mantiene compatibilidad con llamadas existentes.
+     * Por defecto, asigna origen = "MEDICO" y tipoDocumento = null.
+     */
     @Transactional
     public List<Documento> uploadMultipleDocuments(UUID patientId, List<MultipartFile> files,
                                                    String description, UUID appointmentId,
                                                    int expirationDays) throws IOException {
+        return uploadMultipleDocuments(patientId, files, description, appointmentId, expirationDays, "MEDICO", null);
+    }
+
+    /**
+     * Método completo con parámetros origen y tipoDocumento.
+     * Sube múltiples archivos, los asocia a un paciente y envía un correo con los enlaces de descarga.
+     *
+     * @param patientId      ID del paciente
+     * @param files          Lista de archivos a subir
+     * @param description    Descripción general (se asigna a cada documento)
+     * @param appointmentId  ID de la cita (opcional, puede ser null)
+     * @param expirationDays Días de validez del enlace
+     * @param origen         Origen del documento: "MEDICO" o "PACIENTE"
+     * @param tipoDocumento  Tipo de documento: "FORMULA", "REMISION", "LABORATORIO", "RADIOGRAFIA", "OTRO" (puede ser null)
+     * @return Lista de documentos guardados
+     */
+    @Transactional
+    public List<Documento> uploadMultipleDocuments(UUID patientId, List<MultipartFile> files,
+                                                   String description, UUID appointmentId,
+                                                   int expirationDays, String origen, String tipoDocumento) throws IOException {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new DomainException("Paciente no encontrado"));
+
+        // Valor por defecto para origen (por si acaso)
+        if (origen == null || origen.isEmpty()) {
+            origen = "MEDICO";
+        }
 
         List<Documento> savedDocs = new ArrayList<>();
         for (MultipartFile file : files) {
@@ -113,6 +141,8 @@ public class DocumentoService {
             doc.setDescription(description != null ? description : originalFilename);
             doc.setToken(UUID.randomUUID());
             doc.setExpirationDate(OffsetDateTime.now().plus(expirationDays, ChronoUnit.DAYS));
+            doc.setOrigen(origen);               // ← NUEVO
+            doc.setTipoDocumento(tipoDocumento); // ← NUEVO
             savedDocs.add(documentoRepository.save(doc));
         }
 

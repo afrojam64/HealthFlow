@@ -1,10 +1,76 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>Detalle de cita | HealthFlow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root { --primary: #2A7F6E; --primary-dark: #1E5F51; --primary-light: #E8F5F2; }
+        body { background-color: #F9FAFB; }
+        .sidebar { background: white; border-radius: 16px; padding: 1rem; position: sticky; top: 20px; }
+        .sidebar .nav-link { color: #4B5563; border-radius: 12px; margin-bottom: 0.5rem; padding: 0.7rem 1rem; }
+        .sidebar .nav-link.active { background: var(--primary); color: white; }
+        .sidebar .nav-link i { margin-right: 10px; }
+        .content-card { background: white; border-radius: 24px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    </style>
 </head>
 <body>
-$END$
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2">
+            <div class="sidebar">
+                <div class="text-center mb-4">
+                    <i class="bi bi-person-circle fs-1" style="color: var(--primary);"></i>
+                    <h5 class="mt-2" th:text="${session.pacienteNombre}">Paciente</h5>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a class="nav-link" th:href="@{/paciente/dashboard}"><i class="bi bi-house-door"></i> Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" th:href="@{/paciente/agendar}"><i class="bi bi-calendar-plus"></i> Agendar cita</a></li>
+                    <li class="nav-item"><a class="nav-link" th:href="@{/paciente/mis-citas}"><i class="bi bi-calendar-check"></i> Mis citas</a></li>
+                    <li class="nav-item"><a class="nav-link" th:href="@{/paciente/subir-documento}"><i class="bi bi-upload"></i> Mis documentos</a></li>
+                    <li class="nav-item mt-3"><a class="nav-link text-danger" th:href="@{/paciente/logout}"><i class="bi bi-box-arrow-right"></i> Salir</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="col-md-9 col-lg-10">
+            <div class="content-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="text-primary"><i class="bi bi-calendar-check me-2"></i>Detalle de cita</h2>
+                    <a th:href="@{/paciente/mis-citas}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Volver</a>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Fecha:</strong> <span th:text="${#temporals.format(cita.dateTime, 'dd/MM/yyyy HH:mm')}"></span></p>
+                        <p><strong>Médico:</strong> <span th:text="${cita.professional.fullName}"></span></p>
+                        <p><strong>Especialidad:</strong> <span th:text="${cita.professional.specialty}"></span></p>
+                        <p><strong>Estado:</strong>
+                            <span class="badge" th:classappend="${cita.status.name() == 'CONFIRMADA' ? 'bg-success' : (cita.status.name() == 'ATENDIDA' ? 'bg-secondary' : (cita.status.name() == 'NO_ATENDIDA' ? 'bg-danger' : 'bg-warning'))}" th:text="${cita.status.displayName}"></span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Motivo de consulta:</strong> <span th:text="${record?.reason} ?: 'No registrado'"></span></p>
+                        <p><strong>Diagnóstico (CIE-10):</strong> <span th:text="${record?.mainDiagnosis} ?: 'No registrado'"></span></p>
+                    </div>
+                </div>
+
+                <div th:if="${record != null}">
+                    <hr>
+                    <h5>Evolución / Hallazgos</h5>
+                    <p th:text="${record.evolution} ?: 'No registrado'"></p>
+                    <h5>Prescripción</h5>
+                    <p th:text="${record.prescription} ?: 'No registrado'"></p>
+                </div>
+                <div th:if="${record == null}">
+                    <div class="alert alert-light">No hay registro clínico disponible para esta cita.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>

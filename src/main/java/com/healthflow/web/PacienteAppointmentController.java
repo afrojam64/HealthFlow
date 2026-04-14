@@ -1,15 +1,13 @@
 package com.healthflow.web;
 
-import com.healthflow.domain.Appointment;
-import com.healthflow.domain.AppointmentStatus;
-import com.healthflow.domain.Patient;
-import com.healthflow.domain.Professional;
+import com.healthflow.domain.*;
 import com.healthflow.repo.AppointmentRepository;
 import com.healthflow.repo.PatientRepository;
 import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.service.DomainException;
 import com.healthflow.service.SchedulingService;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -41,11 +39,17 @@ public class PacienteAppointmentController {
         this.schedulingService = schedulingService;
     }
 
-    @GetMapping("/agendar")
-    public String mostrarAgendar(HttpSession session, Model model, RedirectAttributes redirectAttributes) {
-        UUID pacienteId = (UUID) session.getAttribute("pacienteId");
-        if (pacienteId == null) return "redirect:/paciente/entrar";
+    private UUID getAuthenticatedPatientId() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof UUID) {
+            return (UUID) principal;
+        }
+        throw new DomainException("No autenticado");
+    }
 
+    @GetMapping("/agendar")
+    public String mostrarAgendar(Model model, RedirectAttributes redirectAttributes) {
+        UUID pacienteId = getAuthenticatedPatientId();
         Patient patient = patientRepo.findById(pacienteId).orElse(null);
         if (patient == null) return "redirect:/paciente/entrar";
 
@@ -74,11 +78,8 @@ public class PacienteAppointmentController {
     @PostMapping("/agendar")
     public String agendarCita(@RequestParam("professionalId") UUID professionalId,
                               @RequestParam("dateTime") String dateTimeStr,
-                              HttpSession session,
                               RedirectAttributes redirectAttributes) {
-        UUID pacienteId = (UUID) session.getAttribute("pacienteId");
-        if (pacienteId == null) return "redirect:/paciente/entrar";
-
+        UUID pacienteId = getAuthenticatedPatientId();
         try {
             OffsetDateTime dateTime = OffsetDateTime.parse(dateTimeStr);
             Appointment cita = schedulingService.bookForPatient(professionalId, pacienteId, dateTime);
@@ -94,10 +95,8 @@ public class PacienteAppointmentController {
     }
 
     @GetMapping("/mis-citas")
-    public String misCitas(HttpSession session, Model model) {
-        UUID pacienteId = (UUID) session.getAttribute("pacienteId");
-        if (pacienteId == null) return "redirect:/paciente/entrar";
-
+    public String misCitas(Model model) {
+        UUID pacienteId = getAuthenticatedPatientId();
         List<Appointment> citas = appointmentRepo.findByPatientIdOrderByDateTimeDesc(pacienteId);
         ZoneId zone = ZoneId.of("America/Bogota");
         OffsetDateTime now = OffsetDateTime.now(zone);
@@ -136,11 +135,8 @@ public class PacienteAppointmentController {
 
     @PostMapping("/cancelar/{appointmentId}")
     public String cancelarCita(@PathVariable("appointmentId") UUID appointmentId,
-                               HttpSession session,
                                RedirectAttributes redirectAttributes) {
-        UUID pacienteId = (UUID) session.getAttribute("pacienteId");
-        if (pacienteId == null) return "redirect:/paciente/entrar";
-
+        UUID pacienteId = getAuthenticatedPatientId();
         Appointment cita = appointmentRepo.findById(appointmentId).orElse(null);
         if (cita == null || !cita.getPatient().getId().equals(pacienteId)) {
             redirectAttributes.addFlashAttribute("errorMessage", "Cita no encontrada.");
@@ -196,5 +192,29 @@ public class PacienteAppointmentController {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
         return "redirect:/paciente/mis-citas";
+    }
+
+    /**
+     * Muestra los detalles de una cita específica del paciente.
+     */
+    @GetMapping("/detalle-cita/{appointmentId}")
+    public String detalleCita(@PathVariable("appointmentId") UUID appointmentId,
+                              HttpSession session,
+                              Model model) {
+        UUID pacienteId = (UUID) session.getAttribute("pacienteId");
+        if (pacienteId == null) return "redirect:/paciente/entrar";
+
+        Appointment cita = appointmentRepo.findById(appointmentId)
+                .orElseThrow(() -> new DomainException("Cita no encontrada"));
+        if (!cita.getPatient().getId().equals(pacienteId)) {
+            throw new DomainException("No tienes permiso para ver esta cita");
+        }
+
+        MedicalRecord record = cita.getMedicalRecord();
+        model.addAttribute("cita", cita);
+        model.addAttribute("record", record);
+        model.addAttribute("title", "Detalle de cita - HealthFlow");
+        model.addAttribute("contenido", "paciente/detalle-cita");
+        return "paciente/detalle-cita";
     }
 }
