@@ -38,3 +38,5 @@ healthflow:
   jwt:
     secret: "miClaveSecretaSuperSegura1234567890"  # Cambiar en producción
     expiration-hours: 24
+    receta:
+      expiration-days: 30

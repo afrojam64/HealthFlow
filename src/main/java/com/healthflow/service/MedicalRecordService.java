@@ -17,17 +17,19 @@ public class MedicalRecordService {
     private final AppointmentRepository appointmentRepository;
     private final CatalogoFinalidadConsultaRepository finalidadRepo;
     private final CatalogoCausaExternaRepository causaExternaRepo;
+    private final RecetaService recetaService; // inyectar en constructor
     private final ZoneId zoneId;
 
     public MedicalRecordService(MedicalRecordRepository medicalRecordRepository,
                                 AppointmentRepository appointmentRepository,
                                 CatalogoFinalidadConsultaRepository finalidadRepo,
-                                CatalogoCausaExternaRepository causaExternaRepo,
+                                CatalogoCausaExternaRepository causaExternaRepo, RecetaService recetaService,
                                 @org.springframework.beans.factory.annotation.Value("${healthflow.timezone:America/Bogota}") String tz) {
         this.medicalRecordRepository = medicalRecordRepository;
         this.appointmentRepository = appointmentRepository;
         this.finalidadRepo = finalidadRepo;
         this.causaExternaRepo = causaExternaRepo;
+        this.recetaService = recetaService;
         this.zoneId = ZoneId.of(tz);
     }
 
@@ -127,7 +129,17 @@ public class MedicalRecordService {
         System.out.println("=== saveMedicalRecord ===");
         System.out.println("prescriptionJson recibido: " + prescriptionJson);
 
-        return medicalRecordRepository.save(record);
+        MedicalRecord saved = medicalRecordRepository.save(record);
+
+        if (prescriptionJson != null && !prescriptionJson.isEmpty()) {
+            try {
+                recetaService.crearRecetaDesdeJson(appointmentId, prescriptionJson, record.getPrescription());
+            } catch (Exception e) {
+                System.err.println("Error al generar receta electrónica: " + e.getMessage());
+            }
+        }
+
+        return saved;
     }
 
 

@@ -143,7 +143,7 @@
                         </span>
                 </td>
                 <td class="text-end">
-                    <a th:if="${(cita.status.name() == 'PENDIENTE' or cita.status.name() == 'CONFIRMADA') and cita.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')).toLocalDate().isAfter(today)}"
+                    <a th:if="${(cita.status.name() == 'PENDIENTE' or cita.status.name() == 'CONFIRMADA') and cita.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')).toLocalDate().isEqual(today)}"
                        th:href="@{/doctor/citas/{id}/atender(id=${cita.id})}" class="btn btn-sm btn-health">
                         <i class="bi bi-file-earmark-medical me-1"></i>Atender
                     </a>
