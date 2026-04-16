@@ -27,9 +27,12 @@ public class JwtService {
     }
 
     public String generateToken(Patient patient) {
+        if (patient == null || patient.getId() == null) {
+            throw new IllegalArgumentException("Paciente o ID nulo");
+        }
         Instant now = Instant.now();
         Instant expiration = now.plus(expirationHours, ChronoUnit.HOURS);
-        return Jwts.builder()
+        String token = Jwts.builder()
                 .subject(patient.getId().toString())
                 .claim("name", patient.getFirstName() + " " + patient.getLastName())
                 .claim("email", patient.getEmail())
@@ -38,6 +41,8 @@ public class JwtService {
                 .expiration(Date.from(expiration))
                 .signWith(secretKey)
                 .compact();
+        System.out.println("Token generado: " + token); // Para depuración
+        return token;
     }
 
     public Claims validateToken(String token) {

@@ -6,7 +6,6 @@ import com.healthflow.repo.PatientRepository;
 import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.service.DomainException;
 import com.healthflow.service.SchedulingService;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -58,16 +57,14 @@ public class PacienteAppointmentController {
         if (ultimaCita != null) {
             professionalId = ultimaCita.getProfessional().getId();
         } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "No tienes citas previas. Por favor agenda desde la página pública.");
+            redirectAttributes.addFlashAttribute("errorMessage", "No tienes citas previas. Agenda desde la página pública.");
             return "redirect:/public/";
         }
-
         Professional professional = professionalRepo.findById(professionalId).orElse(null);
         if (professional == null) {
             redirectAttributes.addFlashAttribute("errorMessage", "Médico no encontrado.");
             return "redirect:/paciente/dashboard";
         }
-
         model.addAttribute("professional", professional);
         model.addAttribute("professionalId", professionalId);
         model.addAttribute("patient", patient);
@@ -119,20 +116,6 @@ public class PacienteAppointmentController {
         return "paciente/mis-citas";
     }
 
-    public static class CitaDTO {
-        private final Appointment cita;
-        private final LocalDateTime fechaLocal;
-
-        public CitaDTO(Appointment cita, LocalDateTime fechaLocal) {
-            this.cita = cita;
-            this.fechaLocal = fechaLocal;
-        }
-        public Appointment getCita() { return cita; }
-        public LocalDateTime getFechaLocal() { return fechaLocal; }
-        public String getStatus() { return cita.getStatus().name(); }
-        public Professional getProfessional() { return cita.getProfessional(); }
-    }
-
     @PostMapping("/cancelar/{appointmentId}")
     public String cancelarCita(@PathVariable("appointmentId") UUID appointmentId,
                                RedirectAttributes redirectAttributes) {
@@ -154,11 +137,9 @@ public class PacienteAppointmentController {
 
     @GetMapping("/reprogramar/{appointmentId}")
     public String mostrarReprogramar(@PathVariable("appointmentId") UUID appointmentId,
-                                     HttpSession session, Model model,
+                                     Model model,
                                      RedirectAttributes redirectAttributes) {
-        UUID pacienteId = (UUID) session.getAttribute("pacienteId");
-        if (pacienteId == null) return "redirect:/paciente/entrar";
-
+        UUID pacienteId = getAuthenticatedPatientId();
         Appointment cita = appointmentRepo.findById(appointmentId).orElse(null);
         if (cita == null || !cita.getPatient().getId().equals(pacienteId)) {
             redirectAttributes.addFlashAttribute("errorMessage", "Cita no encontrada.");
@@ -174,11 +155,8 @@ public class PacienteAppointmentController {
     @PostMapping("/reprogramar/{appointmentId}")
     public String reprogramarCita(@PathVariable("appointmentId") UUID appointmentId,
                                   @RequestParam("newDateTime") String newDateTimeStr,
-                                  HttpSession session,
                                   RedirectAttributes redirectAttributes) {
-        UUID pacienteId = (UUID) session.getAttribute("pacienteId");
-        if (pacienteId == null) return "redirect:/paciente/entrar";
-
+        UUID pacienteId = getAuthenticatedPatientId();
         Appointment cita = appointmentRepo.findById(appointmentId).orElse(null);
         if (cita == null || !cita.getPatient().getId().equals(pacienteId)) {
             redirectAttributes.addFlashAttribute("errorMessage", "Cita no encontrada.");
@@ -194,27 +172,32 @@ public class PacienteAppointmentController {
         return "redirect:/paciente/mis-citas";
     }
 
-    /**
-     * Muestra los detalles de una cita específica del paciente.
-     */
     @GetMapping("/detalle-cita/{appointmentId}")
-    public String detalleCita(@PathVariable("appointmentId") UUID appointmentId,
-                              HttpSession session,
-                              Model model) {
-        UUID pacienteId = (UUID) session.getAttribute("pacienteId");
-        if (pacienteId == null) return "redirect:/paciente/entrar";
-
+    public String detalleCita(@PathVariable("appointmentId") UUID appointmentId, Model model) {
+        UUID pacienteId = getAuthenticatedPatientId();
         Appointment cita = appointmentRepo.findById(appointmentId)
                 .orElseThrow(() -> new DomainException("Cita no encontrada"));
         if (!cita.getPatient().getId().equals(pacienteId)) {
             throw new DomainException("No tienes permiso para ver esta cita");
         }
-
         MedicalRecord record = cita.getMedicalRecord();
         model.addAttribute("cita", cita);
         model.addAttribute("record", record);
         model.addAttribute("title", "Detalle de cita - HealthFlow");
-        model.addAttribute("contenido", "paciente/detalle-cita");
         return "paciente/detalle-cita";
+    }
+
+    public static class CitaDTO {
+        private final Appointment cita;
+        private final LocalDateTime fechaLocal;
+
+        public CitaDTO(Appointment cita, LocalDateTime fechaLocal) {
+            this.cita = cita;
+            this.fechaLocal = fechaLocal;
+        }
+        public Appointment getCita() { return cita; }
+        public LocalDateTime getFechaLocal() { return fechaLocal; }
+        public String getStatus() { return cita.getStatus().name(); }
+        public Professional getProfessional() { return cita.getProfessional(); }
     }
 }

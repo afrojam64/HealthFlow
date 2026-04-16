@@ -4,6 +4,7 @@ import com.healthflow.service.CustomUserDetailsService;
 import com.healthflow.service.JwtService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -45,21 +46,30 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
+    // Cadena para paciente (stateless, JWT)
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // Añadir filtro JWT antes del filtro de autenticación por sesión
-        http.addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
+    @Order(1)
+    public SecurityFilterChain pacienteFilterChain(HttpSecurity http) throws Exception {
+        http.securityMatcher("/paciente/**")
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
 
+    // Cadena para el resto (médico, admin, público)
+    @Bean
+    @Order(2)
+    public SecurityFilterChain defaultFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf
                 .ignoringRequestMatchers("/doctor/agenda/save", "/doctor/citas/*/prescription-pdf",
                         "/doctor/citas/*/remision", "/api/doctor/firma")
         );
-
         http.authorizeHttpRequests(auth -> auth
                         .requestMatchers("/public/**", "/api/public/**").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers("/login", "/register").permitAll()
-                        .requestMatchers("/paciente/**").permitAll() // las rutas de paciente son públicas, el filtro JWT las protege
                         .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/doctor/**", "/api/doctor/**").hasAnyRole("ADMIN", "MEDICO")
                         .anyRequest().authenticated()
@@ -78,7 +88,6 @@ public class SecurityConfig {
                         .key("uniqueAndSecret")
                         .tokenValiditySeconds(86400)
                 );
-
         return http.build();
     }
 }

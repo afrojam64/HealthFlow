@@ -10,14 +10,20 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/paciente")
 public class PacienteDocumentoController {
 
     private final DocumentoService documentoService;
+    private final ZoneId zoneId = ZoneId.of("America/Bogota");
 
     public PacienteDocumentoController(DocumentoService documentoService) {
         this.documentoService = documentoService;
@@ -32,11 +38,47 @@ public class PacienteDocumentoController {
     }
 
     @GetMapping("/subir-documento")
-    public String mostrarFormulario(Model model) {
+    public String mostrarFormulario(
+            @RequestParam(value = "tipo", required = false) String tipoFiltro,
+            @RequestParam(value = "origen", required = false) String origenFiltro,
+            Model model) {
+
         UUID pacienteId = getAuthenticatedPatientId();
-        List<Documento> documentos = documentoService.getDocumentsByPatient(pacienteId);
-        // Separar por origen (MEDICO / PACIENTE) igual que antes
-        model.addAttribute("documentos", documentos);
+        List<Documento> todosDocumentos = documentoService.getDocumentsByPatient(pacienteId);
+
+        // Aplicar filtros
+        List<Documento> filtrados = todosDocumentos.stream()
+                .filter(d -> {
+                    if (tipoFiltro != null && !tipoFiltro.isEmpty() && !tipoFiltro.equals(d.getTipoDocumento()))
+                        return false;
+                    if (origenFiltro != null && !origenFiltro.isEmpty() && !origenFiltro.equals(d.getOrigen()))
+                        return false;
+                    return true;
+                })
+                .collect(Collectors.toList());
+
+        // Separar por origen
+        List<Documento> documentosMedico = filtrados.stream()
+                .filter(d -> "MEDICO".equals(d.getOrigen()))
+                .collect(Collectors.toList());
+        List<Documento> documentosPaciente = filtrados.stream()
+                .filter(d -> "PACIENTE".equals(d.getOrigen()))
+                .collect(Collectors.toList());
+
+        // Ordenar por fecha descendente
+        documentosMedico.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+        documentosPaciente.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+
+        List<String> tiposDocumento = List.of("LABORATORIO", "RADIOGRAFIA", "OTRO");
+
+        model.addAttribute("tiposDocumento", tiposDocumento);
+        model.addAttribute("documentosMedico", documentosMedico);
+        model.addAttribute("documentosPaciente", documentosPaciente);
+        // Mantener los filtros seleccionados en la vista
+        model.addAttribute("filtroTipo", tipoFiltro);
+        model.addAttribute("filtroOrigen", origenFiltro);
+        model.addAttribute("title", "Mis documentos - HealthFlow");
+
         return "paciente/subir-documento";
     }
 

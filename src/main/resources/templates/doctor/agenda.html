@@ -162,6 +162,30 @@
             background: var(--gray-100);
             border-color: var(--gray-300);
         }
+
+        /* ========== NUEVOS ESTILOS PARA CHECKBOXES DE SEMANAS (P6) ========== */
+        .week-checkboxes-row {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            gap: 1rem;
+            padding-bottom: 0.5rem;
+            margin: 0;
+        }
+        .week-checkboxes-row .col-auto {
+            flex: 0 0 auto;
+            min-width: 220px;
+        }
+        @media (min-width: 768px) {
+            .week-checkboxes-row {
+                flex-wrap: wrap;
+                overflow-x: visible;
+            }
+            .week-checkboxes-row .col-auto {
+                flex: 0 0 auto;
+                min-width: auto;
+            }
+        }
     </style>
 </head>
 <body>
@@ -245,7 +269,7 @@
     </div>
 </div>
 
-<!-- ========== MODALES UNIFICADOS ========== -->
+<!-- ========== MODALES UNIFICADOS (sin cambios) ========== -->
 
 <!-- Modal de edición por día (clic en celda) -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
@@ -440,14 +464,23 @@
         return d;
     }
 
-    // Mostrar rango de una semana (lunes a domingo)
+    // Mostrar rango de una semana (lunes a domingo) en formato corto
     function getWeekRangeText(date) {
         const monday = getMonday(date);
         const sunday = new Date(monday);
         sunday.setDate(monday.getDate() + 6);
-        const startStr = monday.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
-        const endStr = sunday.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
-        return `Semana del ${startStr} al ${endStr}`;
+
+        const startDay = monday.getDate();
+        const startMonth = monday.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '');
+        const endDay = sunday.getDate();
+        const endMonth = sunday.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '');
+        const year = monday.getFullYear();
+
+        if (monday.getFullYear() !== sunday.getFullYear()) {
+            const endYear = sunday.getFullYear();
+            return `Semana ${startDay} ${startMonth} ${year} – ${endDay} ${endMonth} ${endYear}`;
+        }
+        return `Semana ${startDay} ${startMonth} – ${endDay} ${endMonth} ${year}`;
     }
 
     function showNotification(message, isError = false) {
@@ -580,7 +613,7 @@
 
     // Generar checkboxes de semanas (siempre desde lunes a domingo)
     function generateWeekCheckboxes(weeks) {
-        let html = '<div class="row"><div class="col-12"><h6>Semanas disponibles:</h6></div>';
+        let html = '<div class="week-checkboxes-row row">';
         weeks.forEach((week, idx) => {
             const firstReal = week.find(cell => cell !== null);
             if (!firstReal) return;
@@ -591,7 +624,6 @@
             weekEnd.setDate(monday.getDate() + 6);
             const isPastWeek = weekEnd < today;
             const weekRange = getWeekRangeText(monday);
-            console.log(`Semana ${idx}: valor=${weekStartStr}, rango=${weekRange}`);
             html += `<div class="col-auto">
                         <div class="form-check">
                             <input class="form-check-input week-checkbox" type="checkbox" value="${weekStartStr}" id="week${idx}" ${isPastWeek ? 'disabled' : ''}>
@@ -607,7 +639,6 @@
             cb.addEventListener('change', () => {
                 selectedWeeks.clear();
                 document.querySelectorAll('.week-checkbox:checked').forEach(c => selectedWeeks.add(c.value));
-                console.log('Semanas seleccionadas:', Array.from(selectedWeeks));
                 updateSaveButtonState();
             });
         });
@@ -711,14 +742,12 @@
     // Cargar los datos de una semana en el modal de configuración por día
     function loadWeekConfig(weekStartStr) {
         console.log('loadWeekConfig recibió:', weekStartStr);
-        // Parsear localmente
         const baseDate = parseDateLocal(weekStartStr);
-        const monday = getMonday(baseDate); // Aunque ya debería ser lunes, aseguramos
+        const monday = getMonday(baseDate);
         const weekStart = monday;
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
 
-        // Mostrar rango de fechas
         const startStr = weekStart.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
         const endStr = weekEnd.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
         document.getElementById('weekRangeDisplay').innerHTML = `<i class="bi bi-calendar-week me-2"></i> Semana del ${startStr} al ${endStr}`;
@@ -806,7 +835,7 @@
             const startSelect = row.querySelector('.day-start');
             const endSelect = row.querySelector('.day-end');
             const activeCheck = row.querySelector('.day-active');
-            if (startSelect.disabled) return; // días pasados no se envían
+            if (startSelect.disabled) return;
             dias.push({
                 fecha: date,
                 horaInicio: startSelect.value,
@@ -1026,7 +1055,6 @@
             return;
         }
 
-        // Validar que la fecha inicial no sea posterior a la final
         if (startDate > endDate) {
             showNotification('La fecha desde no puede ser mayor que la fecha hasta.', true);
             return;
@@ -1035,7 +1063,6 @@
         const tipo = document.querySelector('input[name="exceptionType"]:checked').value;
         const motivo = document.getElementById('exceptionReason').value;
 
-        // Preparar payload con el rango
         const payload = {
             startDate: startDate,
             endDate: endDate,
@@ -1055,7 +1082,7 @@
         }
 
         try {
-            const response = await fetch('/doctor/agenda/exceptions/range', {  // nuevo endpoint
+            const response = await fetch('/doctor/agenda/exceptions/range', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -1064,13 +1091,9 @@
                 const error = await response.json();
                 throw new Error(error.message || 'Error al guardar excepción');
             }
-            const saved = await response.json();
             showNotification('Excepción(es) guardada(s) correctamente', false);
-            // Cerrar modal
             bootstrap.Modal.getInstance(document.getElementById('exceptionModal')).hide();
-            // Recargar calendario
             loadMonthCalendar();
-            // Limpiar formulario
             document.getElementById('exceptionStartDate').value = '';
             document.getElementById('exceptionEndDate').value = '';
             document.getElementById('exceptionReason').value = '';

@@ -4,6 +4,7 @@ import com.healthflow.service.JwtService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,14 +28,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        String path = request.getRequestURI();
-        if (!path.startsWith("/paciente/")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         String token = extractToken(request);
-        if (token != null) {
+        if (token != null && !token.isEmpty()) {
             try {
                 Claims claims = jwtService.validateToken(token);
                 UUID patientId = UUID.fromString(claims.getSubject());
@@ -44,20 +39,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 List.of(new SimpleGrantedAuthority("ROLE_" + role)));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception e) {
-                // Token inválido, no se establece autenticación
-                logger.warn("JWT inválido: " + e.getMessage());
+                // Token inválido o expirado – no se establece autenticación
             }
         }
         filterChain.doFilter(request, response);
     }
 
     private String extractToken(HttpServletRequest request) {
-        // Primero desde header Authorization
+        // 1. Cookie (prioridad)
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("pacienteToken".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        // 2. Header Authorization (para compatibilidad con fetch)
         String bearerToken = request.getHeader("Authorization");
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }
-        // Luego desde parámetro de URL (para el enlace mágico inicial)
+        // 3. Parámetro token (por si acaso)
         String tokenParam = request.getParameter("token");
         if (tokenParam != null && !tokenParam.isEmpty()) {
             return tokenParam;
