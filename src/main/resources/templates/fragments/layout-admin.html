@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} ?: 'HealthFlow - Admin'">HealthFlow - Administración</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --primary: #2A7F6E;
+            --primary-dark: #1E5F51;
+            --primary-light: #E8F5F2;
+        }
+        body { background-color: #F9FAFB; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .navbar-admin {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .sidebar {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 1rem;
+            position: sticky;
+            top: 20px;
+        }
+        .sidebar .nav-link {
+            color: #4B5563;
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            padding: 0.7rem 1rem;
+            transition: all 0.2s;
+        }
+        .sidebar .nav-link:hover {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+        }
+        .sidebar .nav-link.active {
+            background: var(--primary);
+            color: white;
+        }
+        .sidebar .nav-link i { margin-right: 10px; width: 24px; }
+        .footer {
+            background: white;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            border-radius: 16px 16px 0 0;
+            text-align: center;
+            color: #4B5563;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-admin">
+    <div class="container-fluid">
+        <a class="navbar-brand text-white" href="/admin/dashboard">
+            <i class="bi bi-shield-lock-fill me-2"></i>HealthFlow Admin
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle me-1"></i> <span th:text="${username}">Admin</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/admin/perfil"><i class="bi bi-person"></i> Mi Perfil</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form th:action="@{/logout}" method="post">
+                                <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Cerrar Sesión</button>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2">
+            <div class="sidebar">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/admin/dashboard}" th:classappend="${active == 'dashboard'} ? 'active' : ''">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/admin/usuarios}" th:classappend="${active == 'usuarios'} ? 'active' : ''">
+                            <i class="bi bi-people"></i> Usuarios
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/admin/profesionales}" th:classappend="${active == 'profesionales'} ? 'active' : ''">
+                            <i class="bi bi-hospital"></i> Profesionales
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/admin/pacientes}" th:classappend="${active == 'pacientes'} ? 'active' : ''">
+                            <i class="bi bi-person-badge"></i> Pacientes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/admin/citas}" th:classappend="${active == 'citas'} ? 'active' : ''">
+                            <i class="bi bi-calendar-week"></i> Citas
+                        </a>
+                    </li>
+                    <li class="nav-item mt-3">
+                        <a class="nav-link text-danger" th:href="@{/dashboard}">
+                            <i class="bi bi-arrow-left"></i> Volver al sistema
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Contenido dinámico -->
+        <div class="col-md-9 col-lg-10">
+            <div th:replace="~{${contenido}}"></div>
+        </div>
+    </div>
+</div>
+
+<footer class="footer">
+    <p class="mb-0">© 2026 HealthFlow - Panel de Administración | Datos seguros bajo Resolución 2275</p>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -46,4 +46,6 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     long countByCreatedAtBetween(OffsetDateTime start, OffsetDateTime end);
 
     Optional<Patient> findByEmail(String email);
+
+    List<Patient> findByDocNumberContainingIgnoreCaseOrFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(String docNumber, String firstName, String lastName);
 }

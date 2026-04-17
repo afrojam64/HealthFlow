@@ -1,0 +1,18 @@
+<div th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary"><i class="bi bi-hospital me-2"></i>Profesionales</h2>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light"><tr><th>Nombre</th><th>Especialidad</th><th>Registro Médico</th><th>Slug</th></tr></thead>
+            <tbody>
+            <tr th:each="p : ${profesionales}">
+                <td th:text="${p.fullName}">Dr. Pérez</td>
+                <td th:text="${p.specialty}">Medicina General</td>
+                <td th:text="${p.medicalRegistry}">12345</td>
+                <td th:text="${p.slug}">slug</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

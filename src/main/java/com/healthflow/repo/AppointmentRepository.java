@@ -87,4 +87,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     @Query("UPDATE Appointment a SET a.status = com.healthflow.domain.AppointmentStatus.NO_ATENDIDA " +
             "WHERE a.dateTime < :hoy AND a.status IN (com.healthflow.domain.AppointmentStatus.PENDIENTE, com.healthflow.domain.AppointmentStatus.CONFIRMADA)")
     int updatePastAppointmentsToNotAttended(@Param("hoy") OffsetDateTime hoy);
+
+    List<Appointment> findByProfessionalFullNameContainingIgnoreCase(String fullName);
+    List<Appointment> findByStatus(AppointmentStatus status);
+    List<Appointment> findByDateTimeBetween(OffsetDateTime start, OffsetDateTime end);
 }

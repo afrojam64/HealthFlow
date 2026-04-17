@@ -46,7 +46,6 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
-    // Cadena para paciente (stateless, JWT)
     @Bean
     @Order(1)
     public SecurityFilterChain pacienteFilterChain(HttpSecurity http) throws Exception {
@@ -58,7 +57,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // Cadena para el resto (médico, admin, público)
     @Bean
     @Order(2)
     public SecurityFilterChain defaultFilterChain(HttpSecurity http) throws Exception {
@@ -77,7 +75,15 @@ public class SecurityConfig {
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
-                        .defaultSuccessUrl("/dashboard", true)
+                        .successHandler((request, response, authentication) -> {
+                            boolean isAdmin = authentication.getAuthorities().stream()
+                                    .anyMatch(granted -> granted.getAuthority().equals("ROLE_ADMIN"));
+                            if (isAdmin) {
+                                response.sendRedirect("/admin/dashboard");
+                            } else {
+                                response.sendRedirect("/dashboard");
+                            }
+                        })
                         .permitAll()
                 )
                 .logout(logout -> logout
