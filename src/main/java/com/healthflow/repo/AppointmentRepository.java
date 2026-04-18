@@ -48,7 +48,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     long countByStatus(AppointmentStatus status);
     List<Appointment> findByDateTimeBetweenOrderByDateTimeAsc(OffsetDateTime start, OffsetDateTime end);
 
-    // Módulo de pacientes
     Optional<Appointment> findTopByPatientIdAndProfessionalIdOrderByDateTimeDesc(UUID patientId, UUID professionalId);
     List<Appointment> findByPatientIdAndProfessionalIdOrderByDateTimeDesc(UUID patientId, UUID professionalId);
 
@@ -74,15 +73,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     List<Appointment> findByPatientIdOrderByDateTimeDesc(UUID patientId);
     Optional<Appointment> findTopByPatientIdOrderByDateTimeDesc(UUID patientId);
 
-    // Métodos para verificar existencia de citas (evitar duplicados)
     boolean existsByProfessionalIdAndDateTime(UUID professionalId, OffsetDateTime dateTime);
     boolean existsByProfessionalIdAndDateTimeAndIdNot(UUID professionalId, OffsetDateTime dateTime, UUID id);
 
-    /**
-     * Actualiza a NO_ATENDIDA las citas con fecha anterior a la actual y estados PENDIENTE o CONFIRMADA.
-     * @param now Fecha/hora actual (inicio del día)
-     * @return número de registros actualizados
-     */
     @Modifying
     @Query("UPDATE Appointment a SET a.status = com.healthflow.domain.AppointmentStatus.NO_ATENDIDA " +
             "WHERE a.dateTime < :hoy AND a.status IN (com.healthflow.domain.AppointmentStatus.PENDIENTE, com.healthflow.domain.AppointmentStatus.CONFIRMADA)")
@@ -91,4 +84,102 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     List<Appointment> findByProfessionalFullNameContainingIgnoreCase(String fullName);
     List<Appointment> findByStatus(AppointmentStatus status);
     List<Appointment> findByDateTimeBetween(OffsetDateTime start, OffsetDateTime end);
+
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.professional.id = :professionalId AND a.dateTime BETWEEN :start AND :end")
+    long countByProfessionalIdAndDateTimeBetween(@Param("professionalId") UUID professionalId,
+                                                 @Param("start") OffsetDateTime start,
+                                                 @Param("end") OffsetDateTime end);
+
+    // --- Consultas JPQL originales (funcionales para algunos casos) ---
+    @Query("SELECT EXTRACT(MONTH FROM a.dateTime), EXTRACT(YEAR FROM a.dateTime), COUNT(a) " +
+            "FROM Appointment a WHERE a.dateTime BETWEEN :start AND :end " +
+            "GROUP BY EXTRACT(YEAR FROM a.dateTime), EXTRACT(MONTH FROM a.dateTime) " +
+            "ORDER BY EXTRACT(YEAR FROM a.dateTime), EXTRACT(MONTH FROM a.dateTime)")
+    List<Object[]> countAppointmentsGroupByMonth(@Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
+
+    @Query("SELECT EXTRACT(MONTH FROM a.dateTime), EXTRACT(YEAR FROM a.dateTime), COUNT(a) " +
+            "FROM Appointment a WHERE a.professional.id = :professionalId AND a.dateTime BETWEEN :start AND :end " +
+            "GROUP BY EXTRACT(YEAR FROM a.dateTime), EXTRACT(MONTH FROM a.dateTime) " +
+            "ORDER BY EXTRACT(YEAR FROM a.dateTime), EXTRACT(MONTH FROM a.dateTime)")
+    List<Object[]> countAppointmentsByProfessionalGroupByMonth(@Param("professionalId") UUID professionalId,
+                                                               @Param("start") OffsetDateTime start,
+                                                               @Param("end") OffsetDateTime end);
+
+    @Query("SELECT FUNCTION('DATE', a.dateTime), COUNT(a) " +
+            "FROM Appointment a WHERE a.professional.id = :professionalId AND a.dateTime BETWEEN :start AND :end " +
+            "GROUP BY FUNCTION('DATE', a.dateTime) ORDER BY FUNCTION('DATE', a.dateTime)")
+    List<Object[]> countAppointmentsByProfessionalGroupByDay(@Param("professionalId") UUID professionalId,
+                                                             @Param("start") OffsetDateTime start,
+                                                             @Param("end") OffsetDateTime end);
+
+    @Query("SELECT EXTRACT(YEAR FROM a.dateTime), COUNT(a) " +
+            "FROM Appointment a WHERE a.professional.id = :professionalId AND a.dateTime BETWEEN :start AND :end " +
+            "GROUP BY EXTRACT(YEAR FROM a.dateTime) ORDER BY EXTRACT(YEAR FROM a.dateTime)")
+    List<Object[]> countAppointmentsByProfessionalGroupByYear(@Param("professionalId") UUID professionalId,
+                                                              @Param("start") OffsetDateTime start,
+                                                              @Param("end") OffsetDateTime end);
+
+    @Query("SELECT COUNT(DISTINCT a.patient.id) FROM Appointment a " +
+            "WHERE a.professional.id = :professionalId AND a.dateTime BETWEEN :start AND :end")
+    long countDistinctPatientsByProfessional(@Param("professionalId") UUID professionalId,
+                                             @Param("start") OffsetDateTime start,
+                                             @Param("end") OffsetDateTime end);
+
+    @Query("SELECT a.patient.id, MIN(a.dateTime) FROM Appointment a " +
+            "WHERE a.professional.id = :professionalId AND a.dateTime BETWEEN :start AND :end " +
+            "GROUP BY a.patient.id")
+    List<Object[]> findFirstAppointmentDatePerPatient(@Param("professionalId") UUID professionalId,
+                                                      @Param("start") OffsetDateTime start,
+                                                      @Param("end") OffsetDateTime end);
+
+    @Query("SELECT a.professional.id, COUNT(DISTINCT a.patient.id) FROM Appointment a " +
+            "WHERE a.dateTime BETWEEN :start AND :end " +
+            "GROUP BY a.professional.id")
+    List<Object[]> countDistinctPatientsPerProfessional(@Param("start") OffsetDateTime start,
+                                                        @Param("end") OffsetDateTime end);
+
+    @Query("SELECT a.professional.id, COUNT(a) FROM Appointment a " +
+            "WHERE a.dateTime BETWEEN :start AND :end " +
+            "GROUP BY a.professional.id")
+    List<Object[]> countAppointmentsPerProfessional(@Param("start") OffsetDateTime start,
+                                                    @Param("end") OffsetDateTime end);
+
+    // --- NUEVAS CONSULTAS NATIVAS (PostgreSQL) para evitar problemas de tipos ---
+    // --- CONSULTAS NATIVAS CORREGIDAS (con nombres de columnas reales) ---
+
+    @Query(value = "SELECT EXTRACT(MONTH FROM fecha_hora) AS mes, EXTRACT(YEAR FROM fecha_hora) AS anio, COUNT(*) AS total " +
+            "FROM citas WHERE fecha_hora BETWEEN :start AND :end " +
+            "GROUP BY anio, mes ORDER BY anio, mes", nativeQuery = true)
+    List<Object[]> countAppointmentsGroupByMonthNative(@Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
+
+    @Query(value = "SELECT EXTRACT(MONTH FROM fecha_hora) AS mes, EXTRACT(YEAR FROM fecha_hora) AS anio, COUNT(*) AS total " +
+            "FROM citas WHERE profesional_id = :professionalId AND fecha_hora BETWEEN :start AND :end " +
+            "GROUP BY anio, mes ORDER BY anio, mes", nativeQuery = true)
+    List<Object[]> countAppointmentsByProfessionalGroupByMonthNative(@Param("professionalId") UUID professionalId,
+                                                                     @Param("start") OffsetDateTime start,
+                                                                     @Param("end") OffsetDateTime end);
+
+    @Query(value = "SELECT DATE(fecha_hora) AS dia, COUNT(*) AS total " +
+            "FROM citas WHERE profesional_id = :professionalId AND fecha_hora BETWEEN :start AND :end " +
+            "GROUP BY dia ORDER BY dia", nativeQuery = true)
+    List<Object[]> countAppointmentsByProfessionalGroupByDayNative(@Param("professionalId") UUID professionalId,
+                                                                   @Param("start") OffsetDateTime start,
+                                                                   @Param("end") OffsetDateTime end);
+
+    @Query(value = "SELECT EXTRACT(YEAR FROM fecha_hora) AS anio, COUNT(*) AS total " +
+            "FROM citas WHERE profesional_id = :professionalId AND fecha_hora BETWEEN :start AND :end " +
+            "GROUP BY anio ORDER BY anio", nativeQuery = true)
+    List<Object[]> countAppointmentsByProfessionalGroupByYearNative(@Param("professionalId") UUID professionalId,
+                                                                    @Param("start") OffsetDateTime start,
+                                                                    @Param("end") OffsetDateTime end);
+
+    @Query(value = "SELECT profesional_id, COUNT(DISTINCT paciente_id) FROM citas " +
+            "WHERE fecha_hora BETWEEN :start AND :end GROUP BY profesional_id", nativeQuery = true)
+    List<Object[]> countDistinctPatientsPerProfessionalNative(@Param("start") OffsetDateTime start,
+                                                              @Param("end") OffsetDateTime end);
+
+    @Query(value = "SELECT profesional_id, COUNT(*) FROM citas " +
+            "WHERE fecha_hora BETWEEN :start AND :end GROUP BY profesional_id", nativeQuery = true)
+    List<Object[]> countAppointmentsPerProfessionalNative(@Param("start") OffsetDateTime start,
+                                                          @Param("end") OffsetDateTime end);
 }

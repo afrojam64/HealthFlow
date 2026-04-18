@@ -8,9 +8,24 @@
 </head>
 <body class="bg-gray-100">
 <div class="flex h-screen">
-    <!-- Main content -->
     <main class="flex-1 p-8 overflow-y-auto">
         <h1 class="text-3xl font-semibold text-gray-800 mb-6">Panel de Administración</h1>
+
+        <!-- Filtro de fechas (lo dejamos como lo tenías) -->
+        <div class="bg-white rounded-lg shadow p-4 mb-6">
+            <form method="get" action="/admin/dashboard" class="flex flex-wrap gap-4 items-end">
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">Desde</label>
+                    <input type="date" name="desde" th:value="${fechaDesde}" class="border rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">Hasta</label>
+                    <input type="date" name="hasta" th:value="${fechaHasta}" class="border rounded px-3 py-2">
+                </div>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Aplicar filtro</button>
+                <a href="/admin/dashboard" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Limpiar</a>
+            </form>
+        </div>
 
         <!-- Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -32,10 +47,22 @@
             </div>
         </div>
 
-        <!-- Gráfico -->
-        <div class="bg-white rounded-lg shadow p-6">
+        <!-- Gráfico Citas por Mes -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
             <h2 class="text-xl font-semibold mb-4">Citas por Mes</h2>
-            <canvas id="citasChart" width="400" height="200"></canvas>
+            <canvas id="citasChart" style="max-height: 300px; width: 100%;"></canvas>
+        </div>
+
+        <!-- Nuevos gráficos -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">Pacientes por Profesional</h2>
+                <canvas id="pacientesPorProfChart" style="max-height: 400px; width: 100%;"></canvas>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">Citas por Profesional</h2>
+                <canvas id="citasPorProfChart" style="max-height: 400px; width: 100%;"></canvas>
+            </div>
         </div>
 
         <footer class="mt-8 text-center text-gray-500 text-sm">
@@ -44,16 +71,29 @@
     </main>
 </div>
 
-<script>
-    const citasPorMes = /*[[${citasPorMes}]]*/ [0,0,0,0,0,0,0,0,0,0,0,0];
-    const ctx = document.getElementById('citasChart').getContext('2d');
-    new Chart(ctx, {
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    // Datos enviados desde el controlador (usando nombres correctos)
+    const citasPorMesData = /*[[${citasPorMesData}]]*/ [0,0,0,0,0,0,0,0,0,0,0,0];
+    const profesionales = /*[[${profesionalesNombres}]]*/ [];
+    const pacientesData = /*[[${pacientesPorProfesionalData}]]*/ [];
+    const citasData = /*[[${citasPorProfesionalData}]]*/ [];
+
+    // Depuración en consola del navegador
+    console.log('citasPorMesData:', citasPorMesData);
+    console.log('profesionales:', profesionales);
+    console.log('pacientesData:', pacientesData);
+    console.log('citasData:', citasData);
+
+    // Gráfico de citas por mes
+    const ctxCitas = document.getElementById('citasChart').getContext('2d');
+    new Chart(ctxCitas, {
         type: 'bar',
         data: {
             labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
             datasets: [{
                 label: 'Número de citas',
-                data: citasPorMes,
+                data: citasPorMesData,
                 backgroundColor: 'rgba(54, 162, 235, 0.5)',
                 borderColor: 'rgba(54, 162, 235, 1)',
                 borderWidth: 1
@@ -61,11 +101,64 @@
         },
         options: {
             responsive: true,
-            scales: {
-                y: { beginAtZero: true, stepSize: 1 }
-            }
+            maintainAspectRatio: true,
+            scales: { y: { beginAtZero: true, stepSize: 1, precision: 0 } }
         }
     });
+
+    // Pacientes por profesional (barras horizontales)
+    if (profesionales.length) {
+        const ctxPacientes = document.getElementById('pacientesPorProfChart').getContext('2d');
+        new Chart(ctxPacientes, {
+            type: 'bar',
+            data: {
+                labels: profesionales,
+                datasets: [{
+                    label: 'Pacientes atendidos',
+                    data: pacientesData,
+                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    x: { beginAtZero: true, stepSize: 1, precision: 0, title: { display: true, text: 'Número de pacientes' } },
+                    y: { ticks: { autoSkip: false, maxRotation: 0, font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+    // Citas por profesional (barras verticales)
+    if (profesionales.length) {
+        const ctxCitasProf = document.getElementById('citasPorProfChart').getContext('2d');
+        new Chart(ctxCitasProf, {
+            type: 'bar',
+            data: {
+                labels: profesionales,
+                datasets: [{
+                    label: 'Citas realizadas',
+                    data: citasData,
+                    backgroundColor: 'rgba(153, 102, 255, 0.5)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: { beginAtZero: true, stepSize: 1, precision: 0, title: { display: true, text: 'Número de citas' } },
+                    x: { ticks: { autoSkip: false, maxRotation: 45, font: { size: 10 } } }
+                }
+            }
+        });
+    }
+    /*]]>*/
 </script>
 </body>
 </html>
