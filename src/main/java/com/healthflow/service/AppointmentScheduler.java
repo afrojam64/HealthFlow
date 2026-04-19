@@ -4,6 +4,8 @@ import com.healthflow.repo.AppointmentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,13 @@ public class AppointmentScheduler {
         this.zoneId = ZoneId.of(timezone);
     }
 
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
+    public void marcarCitasNoAtendidasAlInicio() {
+        log.info("Ejecutando actualización inicial de citas vencidas al iniciar la aplicación");
+        marcarCitasNoAtendidas();
+    }
+
     @Scheduled(cron = "0 0 0 * * *", zone = "America/Bogota")
     @Transactional
     public void marcarCitasNoAtendidas() {
@@ -33,6 +42,8 @@ public class AppointmentScheduler {
         int actualizadas = appointmentRepository.updatePastAppointmentsToNotAttended(hoyInicio);
         if (actualizadas > 0) {
             log.info("Se marcaron {} citas como NO_ATENDIDA (fecha anterior a {}).", actualizadas, hoyInicio);
+        } else {
+            log.debug("No hay citas vencidas para marcar.");
         }
     }
 }
