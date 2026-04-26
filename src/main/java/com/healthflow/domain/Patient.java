@@ -62,6 +62,15 @@ public class Patient extends BaseEntity {
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<PacienteToken> tokens = new ArrayList<>();
 
+    @Column(name = "tipo_usuario", length = 2)
+    private String userType = "01";
+
+    @Column(name = "cod_pais_residencia", length = 3)
+    private String countryResidenceCode = "170";
+
+    @Column(name = "cod_zona_residencia", length = 2)
+    private String zoneResidenceCode = "01";
+
     // Getters y Setters
     public String getDocType() { return docType; }
     public void setDocType(String docType) { this.docType = docType; }
@@ -106,4 +115,13 @@ public class Patient extends BaseEntity {
 
     public List<Appointment> getAppointments() { return appointments; }
     public void setAppointments(List<Appointment> appointments) { this.appointments = appointments; }
+
+    public String getUserType() { return userType; }
+    public void setUserType(String userType) { this.userType = userType; }
+
+    public String getCountryResidenceCode() { return countryResidenceCode; }
+    public void setCountryResidenceCode(String countryResidenceCode) { this.countryResidenceCode = countryResidenceCode; }
+
+    public String getZoneResidenceCode() { return zoneResidenceCode; }
+    public void setZoneResidenceCode(String zoneResidenceCode) { this.zoneResidenceCode = zoneResidenceCode; }
 }

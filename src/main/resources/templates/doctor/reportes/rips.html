@@ -21,17 +21,23 @@
             <p class="card-text">Selecciona el rango de fechas para generar el archivo JSON con los datos de las atenciones.</p>
 
             <form th:action="@{/doctor/reportes/rips/generar}" method="post" class="row g-3">
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label for="fechaInicio" class="form-label">Fecha inicial</label>
                     <input type="date" class="form-control" id="fechaInicio" name="fechaInicio"
                            th:value="${today}" required>
                 </div>
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label for="fechaFin" class="form-label">Fecha final</label>
                     <input type="date" class="form-control" id="fechaFin" name="fechaFin"
                            th:value="${today}" required>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
+                <div class="col-md-3">
+                    <label for="numFactura" class="form-label">Número de factura <span class="text-muted">(opcional)</span></label>
+                    <input type="text" class="form-control" id="numFactura" name="numFactura"
+                           placeholder="Ej: FAC-12345">
+                    <div class="form-text small">Obligatorio si tu perfil es LEGAL</div>
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-download me-1"></i> Generar
                     </button>
@@ -45,7 +51,6 @@
         </div>
     </div>
 
-    <!-- Leyenda de campos RIPS (opcional) -->
     <div class="card mt-4">
         <div class="card-header bg-light">
             <h6 class="mb-0"><i class="bi bi-journal-code me-2"></i>Campos incluidos en el reporte</h6>

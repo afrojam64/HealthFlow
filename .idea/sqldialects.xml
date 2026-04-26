@@ -12,6 +12,8 @@
     <file url="file://$PROJECT_DIR$/src/main/resources/db/migration/V27__add_origen_and_tipo_to_documentos.sql" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/src/main/resources/db/migration/V28__create_recetas_table.sql" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/src/main/resources/db/migration/V29__create_receta_medicamentos_table.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/src/main/resources/db/migration/V30__add_rips_facturacion_columns_and_table.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/src/main/resources/db/migration/V31__add_rips_patient_columns.sql" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/src/main/resources/db/migration/V9__insert_catalogos_rips.sql" dialect="GenericSQL" />
   </component>
 </project>

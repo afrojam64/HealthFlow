@@ -1,56 +1,58 @@
 package com.healthflow.web;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.healthflow.api.dto.rips.RipsDTO;
+import com.healthflow.domain.RipsGeneration;
 import com.healthflow.domain.Professional;
 import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.repo.UserRepository;
 import com.healthflow.service.DomainException;
 import com.healthflow.service.RipsService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.time.format.TextStyle;
-import java.util.Locale;
 import java.util.UUID;
 
 @Controller
 @RequestMapping("/doctor/reportes")
 public class RipsController {
 
-    private final RipsService ripsService;
-    private final ProfessionalRepository professionalRepository;
-    private final UserRepository userRepository;
-    private final ObjectMapper objectMapper;
+    @Autowired
+    private RipsService ripsService;
 
-    public RipsController(RipsService ripsService,
-                          ProfessionalRepository professionalRepository,
-                          UserRepository userRepository,
-                          ObjectMapper objectMapper) {
-        this.ripsService = ripsService;
-        this.professionalRepository = professionalRepository;
-        this.userRepository = userRepository;
-        this.objectMapper = objectMapper;
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ProfessionalRepository professionalRepository;
+
+    private String getUsername() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
+    }
+
+    private UUID getCurrentProfessionalId() {
+        String username = getUsername();
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new DomainException("Usuario no encontrado"));
+        Professional professional = professionalRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
+        return professional.getId();
     }
 
     @GetMapping("/rips")
     public String mostrarFormulario(Model model) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        String username = getUsername();
         LocalDate today = LocalDate.now();
 
-        // Variables necesarias para el layout
         model.addAttribute("username", username);
         model.addAttribute("today", today);
         model.addAttribute("title", "Reportes RIPS - HealthFlow");
@@ -60,42 +62,19 @@ public class RipsController {
     }
 
     @PostMapping("/rips/generar")
-    public ResponseEntity<byte[]> generarRips(
+    public void generarRips(
             @RequestParam("fechaInicio") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
-            @RequestParam("fechaFin") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin) {
+            @RequestParam("fechaFin") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+            @RequestParam(value = "numFactura", required = false) String numFactura,
+            HttpServletResponse response) throws IOException {
 
         UUID professionalId = getCurrentProfessionalId();
+        RipsGeneration generation = ripsService.generarRips(professionalId, fechaInicio, fechaFin, numFactura, false);
 
-        RipsDTO rips;
-        try {
-            rips = ripsService.generarRips(professionalId, fechaInicio, fechaFin);
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al generar el reporte RIPS: " + e.getMessage(), e);
-        }
-
-        // Convertir a JSON usando el ObjectMapper inyectado (que ya tiene el módulo JSR310)
-        String json;
-        try {
-            json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(rips);
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al serializar JSON", e);
-        }
-
-        // Preparar respuesta para descarga
-        String filename = String.format("rips_%s_%s.json", fechaInicio, fechaFin);
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(json.getBytes());
-    }
-
-    private UUID getCurrentProfessionalId() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        var user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new DomainException("Usuario no encontrado"));
-        Professional professional = professionalRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
-        return professional.getId();
+        Path filePath = Paths.get(generation.getArchivoPath());
+        response.setContentType("application/json");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + filePath.getFileName().toString() + "\"");
+        Files.copy(filePath, response.getOutputStream());
+        response.flushBuffer();
     }
 }

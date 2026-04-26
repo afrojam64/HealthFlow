@@ -53,6 +53,8 @@ public class Appointment extends BaseEntity {
         if (accessToken == null) accessToken = UUID.randomUUID();
     }
 
+    @Column(name = "factura_numero", length = 50)
+    private String facturaNumero;
     // Getters y Setters
     public Patient getPatient() { return patient; }
     public void setPatient(Patient patient) { this.patient = patient; }
@@ -78,4 +80,7 @@ public class Appointment extends BaseEntity {
     public LocalDateTime getLocalDateTime(String zoneId) {
         return getDateTime().atZoneSameInstant(ZoneId.of(zoneId)).toLocalDateTime();
     }
+
+    public String getFacturaNumero() { return facturaNumero; }
+    public void setFacturaNumero(String facturaNumero) { this.facturaNumero = facturaNumero; }
 }
