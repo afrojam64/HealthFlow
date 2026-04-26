@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,4 +16,7 @@ public interface RipsGenerationRepository extends JpaRepository<RipsGeneration, 
     @Query("SELECT MAX(CAST(SUBSTRING(r.numFactura, 5) AS int)) FROM RipsGeneration r " +
             "WHERE r.professionalId = :professionalId AND r.numFactura LIKE 'REC-%'")
     Integer findMaxConsecutivoReciboInterno(@Param("professionalId") UUID professionalId);
+
+    // En RipsGenerationRepository.java, agregar:
+    long countByProfessionalIdAndFechaDesdeAndFechaHasta(UUID professionalId, LocalDate fechaDesde, LocalDate fechaHasta);
 }

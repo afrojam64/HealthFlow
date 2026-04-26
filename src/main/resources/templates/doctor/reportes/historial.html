@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<div th:fragment="contenido">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary">
+            <i class="bi bi-clock-history me-2"></i>Historial de Reportes RIPS
+        </h2>
+        <a href="/doctor/reportes/rips" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left me-1"></i>Nuevo reporte
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div th:if="${generaciones.isEmpty()}" class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>No hay reportes generados aún.
+            </div>
+            <div th:unless="${generaciones.isEmpty()}" class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Período</th>
+                        <th>Fecha generación</th>
+                        <th>Número (Factura/Recibo)</th>
+                        <th>CUV</th>
+                        <th>Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="gen : ${generaciones}">
+                        <td th:text="${#temporals.format(gen.fechaDesde, 'dd/MM/yyyy')} + ' - ' + ${#temporals.format(gen.fechaHasta, 'dd/MM/yyyy')}"></td>
+                        <td th:text="${#temporals.format(gen.fechaGeneracion, 'dd/MM/yyyy HH:mm')}"></td>
+                        <td th:text="${gen.numFactura}"></td>
+                        <td>
+                            <form th:action="@{/doctor/reportes/rips/actualizar-cuv}" method="post" class="d-flex gap-2">
+                                <input type="hidden" name="id" th:value="${gen.id}" />
+                                <input type="text" name="cuv" class="form-control form-control-sm" style="width: 150px;" th:value="${gen.cuv}" placeholder="CUV" />
+                                <button type="submit" class="btn btn-sm btn-outline-success">Guardar</button>
+                            </form>
+                        </td>
+                        <td>
+                            <a th:href="@{/doctor/reportes/rips/descargar/{id}(id=${gen.id})}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-download"></i> JSON
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

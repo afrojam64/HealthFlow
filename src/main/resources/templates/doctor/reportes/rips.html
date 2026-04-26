@@ -15,12 +15,19 @@
         </div>
     </div>
 
+    <!-- Mostrar mensaje de error si existe -->
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+
     <div class="card">
         <div class="card-body">
             <h5 class="card-title">Generar Reporte RIPS</h5>
             <p class="card-text">Selecciona el rango de fechas para generar el archivo JSON con los datos de las atenciones.</p>
 
-            <form th:action="@{/doctor/reportes/rips/generar}" method="post" class="row g-3">
+            <form id="ripsForm" method="post" class="row g-3">
                 <div class="col-md-4">
                     <label for="fechaInicio" class="form-label">Fecha inicial</label>
                     <input type="date" class="form-control" id="fechaInicio" name="fechaInicio"
@@ -31,14 +38,16 @@
                     <input type="date" class="form-control" id="fechaFin" name="fechaFin"
                            th:value="${today}" required>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="numFactura" class="form-label">Número de factura <span class="text-muted">(opcional)</span></label>
-                    <input type="text" class="form-control" id="numFactura" name="numFactura"
-                           placeholder="Ej: FAC-12345">
+                    <input type="text" class="form-control" id="numFactura" name="numFactura" placeholder="Ej: FAC-12345">
                     <div class="form-text small">Obligatorio si tu perfil es LEGAL</div>
                 </div>
-                <div class="col-md-1 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">
+                <div class="col-md-2 d-flex align-items-end gap-3">
+                    <button type="button" id="btnValidar" class="btn btn-outline-secondary px-4 py-2.5">
+                        <i class="bi bi-check-circle me-1"></i> Validar
+                    </button>
+                    <button type="submit" id="btnGenerar" class="btn btn-primary px-5 py-3">
                         <i class="bi bi-download me-1"></i> Generar
                     </button>
                 </div>
@@ -51,6 +60,17 @@
         </div>
     </div>
 
+    <!-- Resultados de validación -->
+    <div id="resultadoValidacion" class="card mt-4" style="display:none;">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="bi bi-journal-code me-2"></i>Resultado de validación</h6>
+        </div>
+        <div class="card-body small" id="validacionContenido">
+            <!-- Aquí se cargarán los datos dinámicamente -->
+        </div>
+    </div>
+
+    <!-- Leyenda de campos RIPS -->
     <div class="card mt-4">
         <div class="card-header bg-light">
             <h6 class="mb-0"><i class="bi bi-journal-code me-2"></i>Campos incluidos en el reporte</h6>
@@ -69,5 +89,68 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.getElementById('ripsForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const numFactura = document.getElementById('numFactura').value;
+        const params = new URLSearchParams(new FormData(form));
+        // Enviar POST para descargar
+        fetch(form.action, {
+            method: 'POST',
+            body: params,
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        }).then(response => {
+            if (response.ok) {
+                return response.blob();
+            } else {
+                return response.text().then(text => { throw new Error(text) });
+            }
+        }).then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rips_${document.getElementById('fechaInicio').value}_${document.getElementById('fechaFin').value}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        }).catch(error => {
+            alert('Error: ' + error.message);
+        });
+    });
+
+    document.getElementById('btnValidar').addEventListener('click', function() {
+        const fechaInicio = document.getElementById('fechaInicio').value;
+        const fechaFin = document.getElementById('fechaFin').value;
+        if (!fechaInicio || !fechaFin) {
+            alert('Seleccione ambas fechas');
+            return;
+        }
+        fetch(`/doctor/reportes/rips/validar?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`)
+            .then(response => response.json())
+            .then(data => {
+                const div = document.getElementById('validacionContenido');
+                if (data.citasInvalidas === 0) {
+                    div.innerHTML = `<div class="alert alert-success mb-0">✅ Todas las ${data.totalCitas} citas son válidas. Puedes generar el RIPS.</div>`;
+                } else {
+                    let html = `<div class="alert alert-warning">⚠️ Se encontraron ${data.citasInvalidas} citas con problemas.</div>`;
+                    html += `<table class="table table-sm table-bordered mt-2"><thead><tr><th>Paciente</th><th>Fecha</th><th>Errores</th></tr></thead><tbody>`;
+                    data.detalles.forEach(item => {
+                        html += `<tr><td>${item.paciente}</td><td>${item.fecha}</td><td><ul class="mb-0">`;
+                        item.errores.forEach(err => html += `<li>${err}</li>`);
+                        html += `</ul></td></tr>`;
+                    });
+                    html += `</tbody></table>`;
+                    div.innerHTML = html;
+                }
+                document.getElementById('resultadoValidacion').style.display = 'block';
+            })
+            .catch(error => {
+                alert('Error al validar: ' + error);
+            });
+    });
+</script>
 </body>
 </html>

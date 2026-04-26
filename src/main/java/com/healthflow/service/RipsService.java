@@ -1,5 +1,6 @@
 package com.healthflow.service;
 
+import com.healthflow.api.dto.rips.RipsValidationResult;
 import com.healthflow.domain.*;
 import com.healthflow.repo.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -228,5 +229,55 @@ public class RipsService {
             log.warn("No se pudo obtener código del catálogo: {}", catalogo.getClass().getSimpleName());
             return "";
         }
+    }
+
+    public RipsValidationResult validarCitas(UUID professionalId, LocalDate fechaInicio, LocalDate fechaFin) {
+        OffsetDateTime start = fechaInicio.atStartOfDay(zoneId).toOffsetDateTime();
+        OffsetDateTime end = fechaFin.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
+        List<Appointment> citas = appointmentRepository.findByProfessionalIdAndDateTimeBetweenAndStatus(
+                professionalId, start, end, AppointmentStatus.ATENDIDA);
+
+        RipsValidationResult result = new RipsValidationResult();
+        result.setTotalCitas(citas.size());
+
+        List<Map<String, Object>> detalles = new ArrayList<>();
+        int validas = 0;
+
+        for (Appointment cita : citas) {
+            MedicalRecord mr = cita.getMedicalRecord();
+            List<String> errores = new ArrayList<>();
+
+            if (mr == null) {
+                errores.add("No tiene historia clínica");
+            } else {
+                if (mr.getMainDiagnosis() == null || mr.getMainDiagnosis().isBlank())
+                    errores.add("Diagnóstico principal faltante");
+                if (mr.getFinalidadConsulta() == null)
+                    errores.add("Finalidad de la consulta faltante");
+                if (mr.getCausaExterna() == null)
+                    errores.add("Causa externa faltante");
+                if (mr.getValorServicio() == null)
+                    errores.add("Valor del servicio faltante");
+                if (mr.getCodigoCups() == null || mr.getCodigoCups().isBlank())
+                    errores.add("Código CUPS faltante");
+            }
+
+            if (errores.isEmpty()) {
+                validas++;
+            } else {
+                Map<String, Object> detalle = new HashMap<>();
+                detalle.put("citaId", cita.getId());
+                detalle.put("paciente", cita.getPatient().getFirstName() + " " + cita.getPatient().getLastName());
+                detalle.put("fecha", cita.getDateTime().toLocalDate().toString());
+                detalle.put("errores", errores);
+                detalles.add(detalle);
+            }
+        }
+
+        result.setCitasValidas(validas);
+        result.setCitasInvalidas(citas.size() - validas);
+        result.setDetalles(detalles);
+
+        return result;
     }
 }

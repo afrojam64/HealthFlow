@@ -6,6 +6,7 @@ import com.healthflow.repo.AppointmentRepository;
 import com.healthflow.repo.PatientRepository;
 import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.repo.UserRepository;
+import com.healthflow.repo.RipsGenerationRepository;
 import com.healthflow.service.DomainException;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,6 +30,7 @@ public class DashboardController {
     private final PatientRepository patientRepository;
     private final ProfessionalRepository professionalRepository;
     private final UserRepository userRepository;
+    private final RipsGenerationRepository ripsGenerationRepository;  // ← nuevo
     private final ZoneId zoneId;
 
     public DashboardController(
@@ -36,11 +38,13 @@ public class DashboardController {
             PatientRepository patientRepository,
             ProfessionalRepository professionalRepository,
             UserRepository userRepository,
+            RipsGenerationRepository ripsGenerationRepository,  // ← nuevo
             @org.springframework.beans.factory.annotation.Value("${healthflow.timezone:America/Bogota}") String tz) {
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.professionalRepository = professionalRepository;
         this.userRepository = userRepository;
+        this.ripsGenerationRepository = ripsGenerationRepository;  // ← nuevo
         this.zoneId = ZoneId.of(tz);
     }
 
@@ -51,6 +55,21 @@ public class DashboardController {
         var professional = professionalRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
         return professional.getId();
+    }
+
+    /**
+     * Verifica si el profesional tiene al menos un período pendiente de reporte RIPS.
+     * Un período pendiente = mes anterior al actual en el que no hay ninguna generación.
+     */
+    private boolean hayPeriodoPendiente(UUID professionalId) {
+        LocalDate hoy = LocalDate.now(zoneId);
+        // Período: mes anterior (por ejemplo, si hoy es 26/04/2026, período es 01/03/2026 - 31/03/2026)
+        LocalDate fechaDesde = hoy.minusMonths(1).withDayOfMonth(1);
+        LocalDate fechaHasta = fechaDesde.withDayOfMonth(fechaDesde.lengthOfMonth());
+
+        long generacionesExistentes = ripsGenerationRepository.countByProfessionalIdAndFechaDesdeAndFechaHasta(
+                professionalId, fechaDesde, fechaHasta);
+        return generacionesExistentes == 0;
     }
 
     @GetMapping("/dashboard")
@@ -73,6 +92,9 @@ public class DashboardController {
         List<Appointment> proximasCitas = appointmentRepository
                 .findActiveByProfessionalIdAndDateTimeBetween(professionalId, startOfDay, endOfDay);
 
+        // Verificar RIPS pendiente
+        boolean ripsPendiente = hayPeriodoPendiente(professionalId);
+
         model.addAttribute("title", "Dashboard - HealthFlow");
         model.addAttribute("username", username);
         model.addAttribute("fechaActual", fechaFormateadaHoy);
@@ -81,11 +103,13 @@ public class DashboardController {
         model.addAttribute("prevDate", viewDate.minusDays(1));
         model.addAttribute("nextDate", viewDate.plusDays(1));
         model.addAttribute("today", today);
+        model.addAttribute("ripsPendiente", ripsPendiente);  // ← nuevo
         model.addAttribute("contenido", "dashboard/content");
 
         return "fragments/layout";
     }
 
+    // Resto de métodos (getStats, getCitasPorDia) no se modifican
     @GetMapping("/api/dashboard/stats")
     @ResponseBody
     public DashboardStats getStats(
@@ -98,14 +122,10 @@ public class DashboardController {
         OffsetDateTime startOfDay = startDate.atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime endOfDay = endDate.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
 
-        // Citas en el período (todas, sin filtrar por profesional – para simplificar)
         long citasEnPeriodo = appointmentRepository.countByDateTimeBetween(startOfDay, endOfDay);
-        // Pacientes nuevos en el período (registrados entre las fechas)
         long pacientesNuevos = patientRepository.countByCreatedAtBetween(startOfDay, endOfDay);
-        // Ocupación: ejemplo con citas atendidas vs total de citas
         long citasAtendidas = appointmentRepository.countByStatusAndDateTimeBetween(AppointmentStatus.ATENDIDA, startOfDay, endOfDay);
         int ocupacion = citasEnPeriodo > 0 ? (int) ((citasAtendidas * 100) / citasEnPeriodo) : 0;
-        // Tasa de asistencia (mismo cálculo)
         int tasaAsistencia = ocupacion;
 
         return new DashboardStats(citasEnPeriodo, pacientesNuevos, ocupacion, tasaAsistencia);
@@ -119,7 +139,6 @@ public class DashboardController {
         OffsetDateTime startOfDay = start.atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime endOfDay = end.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
 
-        // Obtener todas las citas en el rango (para simplificar, sin filtrar por profesional)
         List<Appointment> citas = appointmentRepository.findByDateTimeBetweenOrderByDateTimeAsc(startOfDay, endOfDay);
 
         Map<LocalDate, Long> citasPorDia = citas.stream()
@@ -141,7 +160,6 @@ public class DashboardController {
         return response;
     }
 
-    // Clase record para las estadísticas
     public record DashboardStats(
             long citasEnPeriodo,
             long pacientesNuevos,

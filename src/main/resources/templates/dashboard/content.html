@@ -16,6 +16,14 @@
         </div>
     </div>
 
+    <!-- 🔔 ALERTA RIPS PENDIENTE (nuevo) -->
+    <div th:if="${ripsPendiente}" class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <strong>¡Reporte RIPS pendiente!</strong> Aún no has generado el reporte del mes anterior.
+        <a href="/doctor/reportes/rips" class="alert-link ms-2">Generar ahora</a>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+
     <!-- Filtro de rango de fechas -->
     <div class="card mb-4">
         <div class="card-body">
@@ -50,7 +58,7 @@
         </div>
     </div>
 
-    <!-- Cards de estadísticas mejoradas (sin cambios en estructura, solo se actualizarán dinámicamente) -->
+    <!-- Cards de estadísticas mejoradas -->
     <div class="row g-4 mb-4">
         <div class="col-md-3">
             <div class="stat-card">
@@ -133,14 +141,14 @@
                 <td th:text="${#temporals.format(cita.dateTime, 'hh:mm a', 'America/Bogota')}">09:00 AM</td>
                 <td th:text="${cita.patient.firstName + ' ' + cita.patient.lastName}">Juan Pérez</td>
                 <td>
-                        <span class="badge" th:switch="${cita.status.name()}">
-                            <span th:case="'PENDIENTE'" class="badge-pendiente">Pendiente</span>
-                            <span th:case="'CONFIRMADA'" class="badge-confirmada">Confirmada</span>
-                            <span th:case="'ATENDIDA'" class="badge-atendida">Atendida</span>
-                            <span th:case="'CANCELADA'" class="badge-cancelada">Cancelada</span>
-                            <span th:case="'NO_ATENDIDA'" class="badge-no-atendida">No Atendida</span>
-                            <span th:case="*">Desconocido</span>
-                        </span>
+                    <span class="badge" th:switch="${cita.status.name()}">
+                        <span th:case="'PENDIENTE'" class="badge-pendiente">Pendiente</span>
+                        <span th:case="'CONFIRMADA'" class="badge-confirmada">Confirmada</span>
+                        <span th:case="'ATENDIDA'" class="badge-atendida">Atendida</span>
+                        <span th:case="'CANCELADA'" class="badge-cancelada">Cancelada</span>
+                        <span th:case="'NO_ATENDIDA'" class="badge-no-atendida">No Atendida</span>
+                        <span th:case="*">Desconocido</span>
+                    </span>
                 </td>
                 <td class="text-end">
                     <a th:if="${(cita.status.name() == 'PENDIENTE' or cita.status.name() == 'CONFIRMADA') and cita.dateTime.atZoneSameInstant(T(java.time.ZoneId).of('America/Bogota')).toLocalDate().isEqual(today)}"
@@ -158,6 +166,7 @@
     </div>
 </div>
 
+<!-- Scripts (sin cambios) -->
 <script th:inline="javascript">
     let citasChart = null;
 
@@ -174,7 +183,7 @@
 
     function getWeekRange() {
         const today = new Date();
-        const day = today.getDay(); // 0 domingo
+        const day = today.getDay();
         const diffToMonday = day === 0 ? 6 : day - 1;
         const monday = new Date(today);
         monday.setDate(today.getDate() - diffToMonday);
@@ -201,7 +210,6 @@
             document.getElementById('statOcupacion').innerText = stats.ocupacion + '%';
             document.getElementById('statOcupacionBar').style.width = stats.ocupacion + '%';
             document.getElementById('statAsistencia').innerText = stats.tasaAsistencia + '%';
-            // Opcional: actualizar variaciones (si las hubiera)
         } catch (err) {
             console.error(err);
         }
@@ -254,7 +262,6 @@
         await Promise.all([loadStats(start, end), loadChart(start, end)]);
     }
 
-    // Configurar eventos
     document.getElementById('rangeToday').addEventListener('click', () => {
         const today = getTodayStr();
         document.getElementById('fechaInicio').value = today;
@@ -280,7 +287,6 @@
         else alert('Selecciona ambas fechas');
     });
 
-    // Inicializar con la semana actual
     const { start: defaultStart, end: defaultEnd } = getWeekRange();
     document.getElementById('fechaInicio').value = defaultStart;
     document.getElementById('fechaFin').value = defaultEnd;
