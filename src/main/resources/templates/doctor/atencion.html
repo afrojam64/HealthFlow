@@ -122,12 +122,14 @@
                                             <option th:each="c : ${causas}" th:value="${c.id}" th:text="${c.codigo + ' - ' + c.descripcion}" th:selected="${medicalRecord?.causaExterna?.id == c.id}"></option>
                                         </select>
                                     </div>
-                                    <div class="mb-3">
+                                    <div class="col-md-6"> <!-- Antes era 12, ahora 6 para dar espacio -->
                                         <label for="codigoCups" class="form-label">Código CUPS</label>
                                         <select id="codigoCups" name="codigoCups" class="form-control">
                                             <option th:if="${medicalRecord.codigoCups != null}" th:value="${medicalRecord.codigoCups}" th:text="${medicalRecord.codigoCups} + ' - ' + ${medicalRecord.codigoCupsDesc}"></option>
                                         </select>
                                         <small class="form-text text-muted">Buscar por código o descripción del procedimiento.</small>
+                                    </div>
+                                    <div class="col-md-6"><!-- Espacio vacío para alinear -->
                                     </div>
                                     <div class="col-md-4">
                                         <label for="valorServicio" class="form-label">Valor del Servicio ($)</label>
@@ -340,28 +342,6 @@
             placeholder: 'Escriba código o descripción...'
         };
 
-        document.addEventListener('DOMContentLoaded', function() {
-        if (document.getElementById('codigoCups')) {
-            new TomSelect('#codigoCups', {
-                load: function(query, callback) {
-                    if (!query || query.length < 2) return callback();
-                    fetch(`/api/cups/search?q=${encodeURIComponent(query)}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            callback(data.map(item => ({
-                                value: item.codigo,
-                                text: `${item.codigo} - ${item.descripcion}`
-                            })));
-                        })
-                        .catch(() => callback());
-                },
-                create: true,   // permite escribir un código manual aunque no esté en la lista
-                maxOptions: 20,
-                placeholder: 'Escribir código o descripción del CUPS...'
-            });
-        }
-    });
-
         // Inicializar diagnóstico principal
         const mainDiagnosisInput = document.getElementById('mainDiagnosis');
         if (mainDiagnosisInput) new TomSelect(mainDiagnosisInput, cie10Config);
@@ -373,6 +353,39 @@
         if (related2) new TomSelect(related2, cie10Config);
         const complication = document.getElementById('complicationDiagnosis');
         if (complication) new TomSelect(complication, cie10Config);
+
+        // ========== NUEVO: TomSelect para Código CUPS ==========
+        const cupsSelect = document.getElementById('codigoCups');
+        if (cupsSelect) {
+            new TomSelect(cupsSelect, {
+                valueField: 'codigo',
+                labelField: 'descripcion',
+                searchField: ['codigo', 'descripcion'],
+                load: function(query, callback) {
+                    if (!query || query.length < 2) return callback();
+                    fetch(`/api/cups/search?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            callback(data.map(item => ({
+                                codigo: item.codigo,
+                                descripcion: item.descripcion
+                            })));
+                        })
+                        .catch(() => callback());
+                },
+                render: {
+                    option: function(item, escape) {
+                        return `<div><strong>${escape(item.codigo)}</strong> – ${escape(item.descripcion)}</div>`;
+                    },
+                    item: function(item, escape) {
+                        return `<div>${escape(item.codigo)} – ${escape(item.descripcion)}</div>`;
+                    }
+                },
+                create: true,          // permite escribir un código manual aunque no esté en la lista
+                maxOptions: 20,
+                placeholder: 'Escriba código o descripción del CUPS...'
+            });
+        }
 
         // ========== SECCIÓN DE MEDICAMENTOS ==========
         const medicamentoInput = document.getElementById('medicamentoSearch');
@@ -428,7 +441,6 @@
             });
             container.innerHTML = html;
             document.getElementById('prescripcionJson').value = JSON.stringify(medicamentos);
-            // NO actualizar el textarea de prescription automáticamente
         }
 
         function escapeHtml(str) {
@@ -489,21 +501,17 @@
 
         // ========== FUNCIÓN PARA OBTENER TOKEN CSRF ==========
         function getCsrfToken() {
-            // Prioridad 1: campo oculto _csrf dentro del formulario (Thymeleaf lo genera automáticamente)
             const csrfInput = document.querySelector('form input[name="_csrf"]');
             if (csrfInput && csrfInput.value) {
-                console.log('CSRF obtenido desde campo oculto');
                 return csrfInput.value;
             }
-            // Prioridad 2: cookie XSRF-TOKEN (para CSRF con protección basada en cookie)
             const name = 'XSRF-TOKEN';
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);
             if (parts.length === 2) {
-                console.log('CSRF obtenido desde cookie');
                 return parts.pop().split(';').shift();
             }
-            console.warn('No se encontró token CSRF en el formulario ni en la cookie');
+            console.warn('No se encontró token CSRF');
             return null;
         }
 
@@ -520,7 +528,6 @@
                     alert('No hay medicamentos en la fórmula. Agregue al menos uno.');
                     return;
                 }
-                // Preparar el payload
                 const payload = {
                     medicamentos: medicamentos,
                     indicaciones: document.getElementById('prescription').value
@@ -528,13 +535,10 @@
                 try {
                     const response = await fetch(`/doctor/citas/${appointmentId}/prescription-pdf`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
                     if (response.ok) {
-                        // Descargar el PDF
                         const blob = await response.blob();
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
@@ -568,7 +572,6 @@
                 alert('Complete todos los campos.');
                 return;
             }
-            // Recoger snapshot de los campos actuales del formulario
             const snapshotData = {
                 enfermedadActual: document.getElementById('enfermedadActual') ? document.getElementById('enfermedadActual').value : '',
                 examenFisico: document.getElementById('examenFisico') ? document.getElementById('examenFisico').value : '',
