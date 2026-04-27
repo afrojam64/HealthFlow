@@ -1,8 +1,10 @@
 package com.healthflow.web;
 
 import com.healthflow.api.dto.rips.RipsValidationResult;
+import com.healthflow.domain.CatalogoCUPS;
 import com.healthflow.domain.RipsGeneration;
 import com.healthflow.domain.Professional;
+import com.healthflow.repo.CatalogoCUPSRepository;
 import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.repo.RipsGenerationRepository;
 import com.healthflow.repo.UserRepository;
@@ -10,12 +12,15 @@ import com.healthflow.service.DomainException;
 import com.healthflow.service.RipsReminderService;
 import com.healthflow.service.RipsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -46,6 +51,9 @@ public class RipsController {
 
     @Autowired
     private RipsReminderService reminderService;
+
+    @Autowired
+    private CatalogoCUPSRepository cupsRepository;
 
     private String getUsername() {
         return SecurityContextHolder.getContext().getAuthentication().getName();
@@ -167,5 +175,13 @@ public class RipsController {
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }
+    }
+
+    @GetMapping("/api/cups/search")
+    @ResponseBody
+    public List<CatalogoCUPS> buscarCups(@RequestParam("q") String query) {
+        if (query == null || query.trim().isEmpty()) return List.of();
+        Pageable pageable = PageRequest.of(0, 20);
+        return cupsRepository.searchByCodeOrDescription(query.trim(), pageable);
     }
 }

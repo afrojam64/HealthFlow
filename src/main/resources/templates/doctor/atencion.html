@@ -122,9 +122,12 @@
                                             <option th:each="c : ${causas}" th:value="${c.id}" th:text="${c.codigo + ' - ' + c.descripcion}" th:selected="${medicalRecord?.causaExterna?.id == c.id}"></option>
                                         </select>
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="mb-3">
                                         <label for="codigoCups" class="form-label">Código CUPS</label>
-                                        <input type="text" id="codigoCups" name="codigoCups" class="form-control" placeholder="Ej: 890101" th:value="${medicalRecord?.codigoCups ?: '890101'}">
+                                        <select id="codigoCups" name="codigoCups" class="form-control">
+                                            <option th:if="${medicalRecord.codigoCups != null}" th:value="${medicalRecord.codigoCups}" th:text="${medicalRecord.codigoCups} + ' - ' + ${medicalRecord.codigoCupsDesc}"></option>
+                                        </select>
+                                        <small class="form-text text-muted">Buscar por código o descripción del procedimiento.</small>
                                     </div>
                                     <div class="col-md-4">
                                         <label for="valorServicio" class="form-label">Valor del Servicio ($)</label>
@@ -336,6 +339,28 @@
             maxOptions: 10,
             placeholder: 'Escriba código o descripción...'
         };
+
+        document.addEventListener('DOMContentLoaded', function() {
+        if (document.getElementById('codigoCups')) {
+            new TomSelect('#codigoCups', {
+                load: function(query, callback) {
+                    if (!query || query.length < 2) return callback();
+                    fetch(`/api/cups/search?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            callback(data.map(item => ({
+                                value: item.codigo,
+                                text: `${item.codigo} - ${item.descripcion}`
+                            })));
+                        })
+                        .catch(() => callback());
+                },
+                create: true,   // permite escribir un código manual aunque no esté en la lista
+                maxOptions: 20,
+                placeholder: 'Escribir código o descripción del CUPS...'
+            });
+        }
+    });
 
         // Inicializar diagnóstico principal
         const mainDiagnosisInput = document.getElementById('mainDiagnosis');
