@@ -27,7 +27,7 @@
             <h5 class="card-title">Generar Reporte RIPS</h5>
             <p class="card-text">Selecciona el rango de fechas para generar el archivo JSON con los datos de las atenciones.</p>
 
-            <form id="ripsForm" method="post" class="row g-3">
+            <form id="ripsForm" method="post" th:action="@{/doctor/reportes/rips/generar}" class="row g-3">
                 <div class="col-md-4">
                     <label for="fechaInicio" class="form-label">Fecha inicial</label>
                     <input type="date" class="form-control" id="fechaInicio" name="fechaInicio"

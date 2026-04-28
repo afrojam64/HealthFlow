@@ -1,0 +1,81 @@
+{
+  "numDocumentoIdObligado" : "900123456-1",
+  "numFactura" : "REC-20260428-0001",
+  "tipoNota" : null,
+  "numNota" : null,
+  "usuarios" : [ {
+    "tipoDocumentoIdentificacion" : "CC",
+    "numDocumentoIdentificacion" : "94515189",
+    "tipoUsuario" : "01",
+    "fechaNacimiento" : "1978-03-28",
+    "codSexo" : "M",
+    "codPaisResidencia" : "170",
+    "codMunicipioResidencia" : "11001",
+    "codZonaResidencia" : "01",
+    "servicios" : {
+      "consultas" : [ {
+        "codPrestador" : "000000000000",
+        "fechaInicioAtencion" : "2026-04-12",
+        "horaInicioAtencion" : "12:10",
+        "numAutorizacion" : null,
+        "codigoConsulta" : "890101",
+        "modalidadGrupoServicio" : "01",
+        "grupoServicios" : "01",
+        "codServicio" : "890101",
+        "finalidadConsulta" : "15",
+        "causaExterna" : "10",
+        "codDiagnosticoPrincipal" : "I10",
+        "codDiagnosticoRelacionado1" : "I10",
+        "codDiagnosticoRelacionado2" : "I10",
+        "codDiagnosticoRelacionado3" : "I10",
+        "tipoDiagnosticoPrincipal" : "01",
+        "tipoDocumentoIdentificacion" : "CC",
+        "numDocumentoIdentificacion" : "94515189",
+        "vrServicio" : 45000.00,
+        "tipoPagoModerador" : "01",
+        "vrCuotaModeradora" : 4500.00,
+        "fevNumero" : "REC-20260428-0001"
+      } ],
+      "procedimientos" : [ ],
+      "medicamentos" : [ ],
+      "otrosServicios" : [ ]
+    }
+  }, {
+    "tipoDocumentoIdentificacion" : "CC",
+    "numDocumentoIdentificacion" : "53105450",
+    "tipoUsuario" : "01",
+    "fechaNacimiento" : "1984-10-14",
+    "codSexo" : "F",
+    "codPaisResidencia" : "170",
+    "codMunicipioResidencia" : "11001",
+    "codZonaResidencia" : "01",
+    "servicios" : {
+      "consultas" : [ {
+        "codPrestador" : "000000000000",
+        "fechaInicioAtencion" : "2026-04-01",
+        "horaInicioAtencion" : "14:00",
+        "numAutorizacion" : null,
+        "codigoConsulta" : "890101",
+        "modalidadGrupoServicio" : "01",
+        "grupoServicios" : "01",
+        "codServicio" : "890101",
+        "finalidadConsulta" : "03",
+        "causaExterna" : "10",
+        "codDiagnosticoPrincipal" : "I10",
+        "codDiagnosticoRelacionado1" : "R51",
+        "codDiagnosticoRelacionado2" : "R11",
+        "codDiagnosticoRelacionado3" : "R51",
+        "tipoDiagnosticoPrincipal" : "01",
+        "tipoDocumentoIdentificacion" : "CC",
+        "numDocumentoIdentificacion" : "53105450",
+        "vrServicio" : 70000.00,
+        "tipoPagoModerador" : "01",
+        "vrCuotaModeradora" : 4500.00,
+        "fevNumero" : "REC-20260428-0001"
+      } ],
+      "procedimientos" : [ ],
+      "medicamentos" : [ ],
+      "otrosServicios" : [ ]
+    }
+  } ]
+}
