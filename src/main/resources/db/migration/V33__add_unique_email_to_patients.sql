@@ -1,0 +1,1 @@
+ALTER TABLE pacientes ADD CONSTRAINT uk_pacientes_email UNIQUE (email);

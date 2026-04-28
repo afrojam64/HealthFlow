@@ -49,7 +49,7 @@ public class Patient extends BaseEntity {
 
     @Email
     @NotBlank
-    @Column(name = "email", nullable = false, length = 100)
+    @Column(name = "email", nullable = false, length = 100, unique = true)
     private String email;
 
     @NotBlank
