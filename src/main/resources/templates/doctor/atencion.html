@@ -363,7 +363,7 @@
                 searchField: ['codigo', 'descripcion'],
                 load: function(query, callback) {
                     if (!query || query.length < 2) return callback();
-                    fetch(`/api/cups/search?q=${encodeURIComponent(query)}`)
+                    fetch(`/doctor/reportes/api/cups/search?q=${encodeURIComponent(query)}`)
                         .then(response => response.json())
                         .then(data => {
                             callback(data.map(item => ({
