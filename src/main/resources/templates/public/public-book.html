@@ -94,6 +94,9 @@
                     </div>
                     <div id="bookingForm" style="display:none;" class="mt-4">
                         <h6>Confirmar cita</h6>
+                        <div th:if="${error}" class="alert alert-danger" role="alert">
+                            <span th:text="${error}"></span>
+                        </div>
                         <form th:action="@{/public/{slug}/book(slug=${slug})}" method="post">
                             <input type="hidden" id="selectedDateTime" name="dateTime">
                             <div class="mb-3">

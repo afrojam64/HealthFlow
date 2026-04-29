@@ -82,12 +82,11 @@ public class RipsController {
     }
 
     @PostMapping("/rips/generar")
-    public String generarRips(
+    public void generarRips(
             @RequestParam("fechaInicio") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
             @RequestParam("fechaFin") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
             @RequestParam(value = "numFactura", required = false) String numFactura,
-            HttpServletResponse response,
-            RedirectAttributes redirectAttributes) {
+            HttpServletResponse response) {
 
         UUID professionalId = getCurrentProfessionalId();
 
@@ -98,14 +97,24 @@ public class RipsController {
             response.setHeader("Content-Disposition", "attachment; filename=\"" + filePath.getFileName().toString() + "\"");
             Files.copy(filePath, response.getOutputStream());
             response.flushBuffer();
-            return null; // Éxito, ya se envió el archivo
         } catch (RuntimeException e) {
-            // Capturamos la excepción de servicio (incluye "No hay citas atendidas")
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
-            return "redirect:/doctor/reportes/rips";
+            // Errores de negocio: sin citas, factura inválida, etc.
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType("application/json");
+            try {
+                response.getWriter().write("{\"error\": \"" + e.getMessage() + "\"}");
+            } catch (IOException ex) {
+                // Si falla al escribir, simplemente registramos
+            }
         } catch (IOException e) {
-            redirectAttributes.addFlashAttribute("error", "Error al generar el archivo: " + e.getMessage());
-            return "redirect:/doctor/reportes/rips";
+            // Error al leer/escribir el archivo
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.setContentType("application/json");
+            try {
+                response.getWriter().write("{\"error\": \"Error al generar el archivo: " + e.getMessage() + "\"}");
+            } catch (IOException ex) {
+                // Silencioso
+            }
         }
     }
 

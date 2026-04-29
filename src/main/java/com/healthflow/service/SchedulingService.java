@@ -169,6 +169,14 @@ public class SchedulingService {
             throw new DomainException("Ese horario ya no está disponible. Por favor elige otro.");
         }
 
+        // Validar que el correo no esté en uso por otro paciente
+        patientRepository.findByEmail(patientPayload.getEmail())
+                .ifPresent(existing -> {
+                    if (!existing.getDocNumber().equals(patientPayload.getDocNumber())) {
+                        throw new DomainException("El correo electrónico ya está registrado por otro paciente. Use otro correo o inicie sesión.");
+                    }
+                });
+
         Patient patient = this.patientRepository.findByDocNumber(patientPayload.getDocNumber())
                 .map(existing -> {
                     existing.setEmail(patientPayload.getEmail());

@@ -27,7 +27,7 @@
             <h5 class="card-title">Generar Reporte RIPS</h5>
             <p class="card-text">Selecciona el rango de fechas para generar el archivo JSON con los datos de las atenciones.</p>
 
-            <form id="ripsForm" method="post" class="row g-3">
+            <form id="ripsForm" method="post" th:action="@{/doctor/reportes/rips/generar}" class="row g-3">
                 <div class="col-md-4">
                     <label for="fechaInicio" class="form-label">Fecha inicial</label>
                     <input type="date" class="form-control" id="fechaInicio" name="fechaInicio"
@@ -93,32 +93,124 @@
 <script>
     document.getElementById('ripsForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        const form = e.target;
+        const fechaInicio = document.getElementById('fechaInicio').value;
+        const fechaFin = document.getElementById('fechaFin').value;
         const numFactura = document.getElementById('numFactura').value;
-        const params = new URLSearchParams(new FormData(form));
-        // Enviar POST para descargar
-        fetch(form.action, {
-            method: 'POST',
-            body: params,
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        }).then(response => {
-            if (response.ok) {
-                return response.blob();
-            } else {
-                return response.text().then(text => { throw new Error(text) });
-            }
-        }).then(blob => {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `rips_${document.getElementById('fechaInicio').value}_${document.getElementById('fechaFin').value}.json`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-        }).catch(error => {
-            alert('Error: ' + error.message);
-        });
+        const csrfToken = document.querySelector('input[name="_csrf"]').value;
+
+        // Limpiar mensajes anteriores
+        const existingError = document.querySelector('.alert-danger:not(.alert-dismissible)');
+        if (existingError) existingError.remove();
+        const existingInfo = document.querySelector('.alert-info-custom');
+        if (existingInfo) existingInfo.remove();
+
+        // 1. Validar primero
+        fetch(`/doctor/reportes/rips/validar?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`)
+            .then(response => response.json())
+            .then(validation => {
+                if (validation.citasInvalidas > 0) {
+                    // Mostrar mensaje de error (ya existe en la página, pero podemos refrescar)
+                    const errorDiv = document.getElementById('validacionContenido');
+                    if (errorDiv) {
+                        let html = `<div class="alert alert-danger">`;
+                        html += `<i class="bi bi-exclamation-triangle-fill me-2"></i>`;
+                        html += `No es posible generar el RIPS porque se encontraron ${validation.citasInvalidas} cita(s) con problemas. Revisa la tabla de resultados para más detalles.`;
+                        html += `</div>`;
+                        errorDiv.innerHTML = html;
+                        document.getElementById('resultadoValidacion').style.display = 'block';
+                    }
+                    return null; // No continuar con la generación
+                }
+                if (validation.totalCitas === 0) {
+                    // Mostrar mensaje en la página (rojo)
+                    const errorDiv = document.getElementById('validacionContenido');
+                    if (errorDiv) {
+                        let html = `<div class="alert alert-danger">`;
+                        html += `<i class="bi bi-exclamation-triangle-fill me-2"></i>`;
+                        html += `No hay citas atendidas en el período seleccionado. El RIPS no puede ser generado.`;
+                        html += `</div>`;
+                        errorDiv.innerHTML = html;
+                        document.getElementById('resultadoValidacion').style.display = 'block';
+                    }
+                    return null;
+                }
+                // Mostrar mensaje informativo: cuántas citas se incluirán
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'alert alert-info alert-dismissible fade show mb-4';
+                infoDiv.innerHTML = `<i class="bi bi-info-circle-fill me-2"></i>
+                                  Se incluirán <strong>${validation.totalCitas} cita(s)</strong> en el reporte RIPS.
+                                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>`;
+                const formCard = document.querySelector('.card-body');
+                if (formCard) {
+                    // Insertar después del formulario pero antes de la alerta de info existente
+                    const oldInfo = document.querySelector('.alert-info-custom');
+                    if (oldInfo) oldInfo.remove();
+                    infoDiv.classList.add('alert-info-custom');
+                    formCard.insertBefore(infoDiv, document.querySelector('.alert-info'));
+                }
+
+                // 2. Si hay citas válidas, proceder a generar y descargar
+                const params = new URLSearchParams(new FormData(document.getElementById('ripsForm')));
+                fetch(document.getElementById('ripsForm').action, {
+                    method: 'POST',
+                    body: params,
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRF-TOKEN': csrfToken
+                    }
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(data => { throw new Error(data.error || 'Error desconocido'); });
+                        }
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json') && !response.headers.get('Content-Disposition')) {
+                            return response.json().then(data => { throw new Error(data.error || 'Error inesperado'); });
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        if (!blob) return;
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `rips_${fechaInicio}_${fechaFin}.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                        // Mostrar mensaje de éxito opcional
+                        infoDiv.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>
+                                     Reporte generado exitosamente. Revisa tu carpeta de descargas.
+                                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+                        infoDiv.classList.remove('alert-info');
+                        infoDiv.classList.add('alert-success');
+                    })
+                    .catch(error => {
+                        // Mostrar error en la página en lugar de alert
+                        const errorDiv = document.getElementById('validacionContenido');
+                        if (errorDiv) {
+                            let html = `<div class="alert alert-danger">`;
+                            html += `<i class="bi bi-exclamation-triangle-fill me-2"></i>`;
+                            html += `${error.message}`;
+                            html += `</div>`;
+                            errorDiv.innerHTML = html;
+                            document.getElementById('resultadoValidacion').style.display = 'block';
+                        }
+                    });
+            })
+            .catch(error => {
+                // Error al validar
+                const errorDiv = document.getElementById('validacionContenido');
+                if (errorDiv) {
+                    let html = `<div class="alert alert-danger">`;
+                    html += `<i class="bi bi-exclamation-triangle-fill me-2"></i>`;
+                    html += `Error al validar las citas: ${error.message}`;
+                    html += `</div>`;
+                    errorDiv.innerHTML = html;
+                    document.getElementById('resultadoValidacion').style.display = 'block';
+                }
+            });
     });
 
     document.getElementById('btnValidar').addEventListener('click', function() {
