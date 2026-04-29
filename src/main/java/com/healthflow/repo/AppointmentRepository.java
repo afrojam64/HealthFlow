@@ -182,4 +182,16 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             "WHERE fecha_hora BETWEEN :start AND :end GROUP BY profesional_id", nativeQuery = true)
     List<Object[]> countAppointmentsPerProfessionalNative(@Param("start") OffsetDateTime start,
                                                           @Param("end") OffsetDateTime end);
+
+    boolean existsByPatientIdAndProfessionalIdAndStatus(UUID patientId, UUID professionalId, AppointmentStatus status);
+
+    @Query("SELECT COUNT(a) > 0 FROM Appointment a " +
+            "WHERE a.patient.id = :patientId " +
+            "AND a.professional.id = :professionalId " +
+            "AND a.status IN :estados " +
+            "AND a.dateTime >= :hoy")
+    boolean existsFutureActiveAppointment(@Param("patientId") UUID patientId,
+                                          @Param("professionalId") UUID professionalId,
+                                          @Param("estados") List<AppointmentStatus> estados,
+                                          @Param("hoy") OffsetDateTime hoy);
 }

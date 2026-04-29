@@ -74,34 +74,45 @@ public class PatientService {
             stream = stream.filter(p -> p.getDocNumber().toLowerCase().contains(docLower));
         }
 
-        // Filtro de fecha (opcional) - si se implementa, debe hacerse con cuidado, pero por ahora lo omitimos
-
         List<Patient> pacientesFiltrados = stream.collect(Collectors.toList());
 
         List<PacienteResumen> atendidos = new ArrayList<>();
         List<PacienteResumen> pendientes = new ArrayList<>();
+        OffsetDateTime hoyInicio = LocalDate.now(zoneId).atStartOfDay(zoneId).toOffsetDateTime();
+        List<AppointmentStatus> estadosActivos = List.of(AppointmentStatus.PENDIENTE, AppointmentStatus.CONFIRMADA);
 
         for (Patient patient : pacientesFiltrados) {
-            // Obtener última cita con este profesional
-            Appointment ultimaCita = appointmentRepository
-                    .findTopByPatientIdAndProfessionalIdOrderByDateTimeDesc(patient.getId(), professionalId)
-                    .orElse(null);
+            boolean tieneAtendida = appointmentRepository.existsByPatientIdAndProfessionalIdAndStatus(
+                    patient.getId(), professionalId, AppointmentStatus.ATENDIDA);
 
-            // Verificar si ha sido atendido por este profesional (tiene algún MedicalRecord)
-            boolean tieneRegistro = medicalRecordRepository.existsByAppointmentPatientIdAndAppointmentProfessionalId(patient.getId(), professionalId);
-
-            PacienteResumen resumen = new PacienteResumen(
-                    patient.getId(),
-                    patient.getFirstName() + " " + patient.getLastName(),
-                    patient.getDocNumber(),
-                    ultimaCita != null ? ultimaCita.getDateTime() : null,
-                    tieneRegistro
-            );
-
-            if (tieneRegistro) {
+            if (tieneAtendida) {
+                Appointment ultimaCita = appointmentRepository
+                        .findTopByPatientIdAndProfessionalIdOrderByDateTimeDesc(patient.getId(), professionalId)
+                        .orElse(null);
+                PacienteResumen resumen = new PacienteResumen(
+                        patient.getId(),
+                        patient.getFirstName() + " " + patient.getLastName(),
+                        patient.getDocNumber(),
+                        ultimaCita != null ? ultimaCita.getDateTime() : null,
+                        true
+                );
                 atendidos.add(resumen);
             } else {
-                pendientes.add(resumen);
+                boolean tienePendienteFutura = appointmentRepository.existsFutureActiveAppointment(
+                        patient.getId(), professionalId, estadosActivos, hoyInicio);
+                if (tienePendienteFutura) {
+                    Appointment ultimaCita = appointmentRepository
+                            .findTopByPatientIdAndProfessionalIdOrderByDateTimeDesc(patient.getId(), professionalId)
+                            .orElse(null);
+                    PacienteResumen resumen = new PacienteResumen(
+                            patient.getId(),
+                            patient.getFirstName() + " " + patient.getLastName(),
+                            patient.getDocNumber(),
+                            ultimaCita != null ? ultimaCita.getDateTime() : null,
+                            false
+                    );
+                    pendientes.add(resumen);
+                }
             }
         }
 
