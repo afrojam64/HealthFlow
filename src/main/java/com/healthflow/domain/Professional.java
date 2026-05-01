@@ -2,6 +2,9 @@ package com.healthflow.domain;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import java.util.Set;
+import java.util.HashSet;
+
 
 @Entity
 @Table(name = "profesionales")
@@ -47,6 +50,22 @@ public class Professional extends BaseEntity {
     @Column(name = "tipo_facturacion", nullable = false, length = 10)
     private TipoFacturacion tipoFacturacion = TipoFacturacion.INFORMAL; // valor por defecto
 
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "profesional_especialidad",
+            joinColumns = @JoinColumn(name = "professional_id"),
+            inverseJoinColumns = @JoinColumn(name = "especialidad_id")
+    )
+    private Set<Especialidad> especialidades = new HashSet<>();
+
+    // Opcional: método para obtener la especialidad principal (primera de la lista o el campo legacy)
+    public String getMainSpecialty() {
+        if (especialidades != null && !especialidades.isEmpty()) {
+            return especialidades.iterator().next().getNombre();
+        }
+        return specialty; // fallback al campo antiguo
+    }
+
     // Getters y setters (incluir el nuevo)
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
@@ -74,4 +93,11 @@ public class Professional extends BaseEntity {
 
     public String getProviderCode() { return providerCode; }
     public void setProviderCode(String providerCode) { this.providerCode = providerCode; }
+
+    public Set<Especialidad> getEspecialidades() {
+        return especialidades;
+    }
+    public void setEspecialidades(Set<Especialidad> especialidades) {
+        this.especialidades = especialidades;
+    }
 }

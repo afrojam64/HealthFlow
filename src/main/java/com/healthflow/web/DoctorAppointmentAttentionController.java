@@ -17,6 +17,7 @@ import com.itextpdf.layout.borders.SolidBorder;
 import com.itextpdf.layout.element.*;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -104,6 +105,23 @@ public class DoctorAppointmentAttentionController {
     public String showAttentionForm(@PathVariable("id") UUID appointmentId, Model model) {
         MedicalRecord currentRecord = medicalRecordService.getOrCreateForAppointment(appointmentId);
         Appointment appointment = currentRecord.getAppointment();
+        Professional professional = getCurrentProfessional();
+
+        // Forzar carga de especialidades (evita LazyInitializationException)
+        Hibernate.initialize(professional.getEspecialidades());
+
+        // Determinar si mostrar odontograma basado en especialidades odontológicas
+        boolean mostrarOdontograma = professional.getEspecialidades().stream()
+                .anyMatch(especialidad -> {
+                    String nombre = especialidad.getNombre().toLowerCase();
+                    return nombre.contains("odontología") ||
+                            nombre.contains("endodoncia") ||
+                            nombre.contains("periodoncia") ||
+                            nombre.contains("ortodoncia") ||
+                            nombre.contains("cirugía oral") ||
+                            nombre.contains("odontopediatría");
+                });
+        model.addAttribute("mostrarOdontograma", mostrarOdontograma);
 
         List<MedicalRecord> previousRecords = medicalRecordRepository
                 .findByAppointmentPatientIdOrderByAppointmentDateTimeDesc(appointment.getPatient().getId())

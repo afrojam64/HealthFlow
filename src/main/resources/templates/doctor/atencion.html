@@ -70,6 +70,96 @@
                                 </div>
                             </div>
 
+                            <!-- Odontograma (solo para especialidades odontológicas) -->
+                            <div th:if="${mostrarOdontograma}" class="odontograma-section mt-5">
+                                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+                                    <h4 class="mb-0"><i class="bi bi-graph-up me-2"></i>Odontograma</h4>
+                                    <div>
+                                        <button type="button" id="btnAlternarDenticion" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-arrow-repeat"></i> Mostrar primarios
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <!-- Contenedor del odontograma (reemplaza el canvas) -->
+                                        <div id="odontogramaContainer" class="odontograma-svg-container"></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="alert alert-secondary small">
+                                            <strong>Instrucciones:</strong><br>
+                                            Haz clic en un diente para registrar o editar un hallazgo.<br>
+                                            <span class="badge bg-danger">Rojo</span> = Patología activa<br>
+                                            <span class="badge bg-success">Verde</span> = Tratamiento realizado<br>
+                                            <span class="badge bg-warning text-dark">Naranja</span> = Otros<br>
+                                            <span class="badge bg-secondary">Gris</span> = Sin hallazgos
+                                        </div>
+                                        <div id="odontogramaInfo" class="small text-muted">
+                                            Cargando odontograma...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modal para registrar hallazgos (igual que antes, pero con más campos opcionales) -->
+                            <div class="modal fade" id="hallazgoModal" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Registrar hallazgo dental</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <input type="hidden" id="modalDiente">
+                                            <div class="mb-2">
+                                                <label>Diente: <span id="modalDienteNumero" class="fw-bold"></span></label>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">Cara afectada</label>
+                                                <select id="modalCara" class="form-select">
+                                                    <option value="TODAS">Toda la pieza</option>
+                                                    <option value="VESTIBULAR">Vestibular</option>
+                                                    <option value="LINGUAL">Lingual</option>
+                                                    <option value="MESIAL">Mesial</option>
+                                                    <option value="DISTAL">Distal</option>
+                                                    <option value="OCLUSAL">Oclusal</option>
+                                                    <option value="INCISAL">Incisal</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">Tipo de hallazgo</label>
+                                                <select id="modalTipoHallazgo" class="form-select">
+                                                    <option value="CARIES">Caries</option>
+                                                    <option value="OBTURACION">Obturación</option>
+                                                    <option value="EXTRACCION">Extracción</option>
+                                                    <option value="ENDODONCIA">Endodoncia</option>
+                                                    <option value="PERIODONCIA">Periodoncia</option>
+                                                    <option value="PROSTODONCIA">Prostodoncia</option>
+                                                    <option value="SELLANTE">Sellante</option>
+                                                    <option value="OTRO">Otro</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">Código CUPS (opcional)</label>
+                                                <input type="text" id="modalCupsId" class="form-control" placeholder="Buscar...">
+                                                <small class="text-muted">Si el hallazgo implica un procedimiento, asigna un CUPS</small>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">¿Es parte del odontograma inicial?</label>
+                                                <select id="modalEsInicial" class="form-select">
+                                                    <option value="false">No (evolución)</option>
+                                                    <option value="true">Sí (registro inicial)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="button" id="guardarHallazgoBtn" class="btn btn-primary">Guardar hallazgo</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Sección de medicamentos (Fórmula médica) -->
                             <div class="col-12 mt-4">
                                 <label class="form-label fw-semibold">Medicamentos (Fórmula médica)</label>
@@ -302,6 +392,64 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal para agregar/editar hallazgo dental -->
+    <div class="modal fade" id="hallazgoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Registrar hallazgo dental</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="modalDiente">
+                    <div class="mb-2">
+                        <label>Diente: <span id="modalDienteNumero" class="fw-bold"></span></label>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Cara afectada</label>
+                        <select id="modalCara" class="form-select">
+                            <option value="TODAS">Toda la pieza</option>
+                            <option value="VESTIBULAR">Vestibular</option>
+                            <option value="LINGUAL">Lingual</option>
+                            <option value="MESIAL">Mesial</option>
+                            <option value="DISTAL">Distal</option>
+                            <option value="OCLUSAL">Oclusal</option>
+                            <option value="INCISAL">Incisal</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Tipo de hallazgo</label>
+                        <select id="modalTipoHallazgo" class="form-select">
+                            <option value="CARIES">Caries</option>
+                            <option value="OBTURACION">Obturación</option>
+                            <option value="EXTRACCION">Extracción</option>
+                            <option value="ENDODONCIA">Endodoncia</option>
+                            <option value="PERIODONCIA">Periodoncia</option>
+                            <option value="PROSTODONCIA">Prostodoncia</option>
+                            <option value="SELLANTE">Sellante</option>
+                            <option value="OTRO">Otro</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Código CUPS (opcional)</label>
+                        <input type="text" id="modalCupsId" class="form-control" placeholder="Buscar...">
+                        <small class="text-muted">Si el hallazgo implica un procedimiento, asigna un CUPS</small>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">¿Es parte del odontograma inicial?</label>
+                        <select id="modalEsInicial" class="form-select">
+                            <option value="false">No (evolución)</option>
+                            <option value="true">Sí (registro inicial)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="guardarHallazgoBtn" class="btn btn-primary">Guardar hallazgo</button>
                 </div>
             </div>
         </div>
@@ -609,5 +757,200 @@
             }
         });
     });
+
+    // ========== ODONTOGRAMA PROFESIONAL SVG ==========
+    let dientesData = {};
+    let mostrarPrimarios = false;
+    let citaIdActual = /*[[${appointment.id}]]*/ null;
+    let pacienteIdActual = /*[[${patient.id}]]*/ null;
+
+    // Números FDI permanentes (según diseño)
+    const permanentesSupDer = [18,17,16,15,14,13,12,11];
+    const permanentesSupIzq = [21,22,23,24,25,26,27,28];
+    const permanentesInfIzq = [31,32,33,34,35,36,37,38];
+    const permanentesInfDer = [48,47,46,45,44,43,42,41];
+    // Temporales (deciduos)
+    const temporalesSupDer = [55,54,53,52,51];
+    const temporalesSupIzq = [61,62,63,64,65];
+    const temporalesInfIzq = [75,74,73,72,71];
+    const temporalesInfDer = [81,82,83,84,85];
+
+    function obtenerDientesActuales() {
+        if (mostrarPrimarios) {
+            return {
+                supDer: temporalesSupDer,
+                supIzq: temporalesSupIzq,
+                infIzq: temporalesInfIzq,
+                infDer: temporalesInfDer
+            };
+        } else {
+            return {
+                supDer: permanentesSupDer,
+                supIzq: permanentesSupIzq,
+                infIzq: permanentesInfIzq,
+                infDer: permanentesInfDer
+            };
+        }
+    }
+
+    // Genera el HTML de las filas de dientes
+    function generarOdontogramaHTML() {
+        const dientes = obtenerDientesActuales();
+        return `
+        <div class="odontograma-svg" style="background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); padding: 20px;">
+            <div class="text-center mb-3"><strong>MAXILAR SUPERIOR</strong></div>
+            <div class="d-flex justify-content-center gap-2 flex-wrap mb-3">
+                ${dientes.supDer.map(num => generarDienteSVG(num)).join('')}
+            </div>
+            <div class="d-flex justify-content-center gap-2 flex-wrap mb-4">
+                ${dientes.supIzq.map(num => generarDienteSVG(num)).join('')}
+            </div>
+            <div class="text-center mb-3"><strong>MAXILAR INFERIOR</strong></div>
+            <div class="d-flex justify-content-center gap-2 flex-wrap mb-3">
+                ${dientes.infDer.map(num => generarDienteSVG(num)).join('')}
+            </div>
+            <div class="d-flex justify-content-center gap-2 flex-wrap">
+                ${dientes.infIzq.map(num => generarDienteSVG(num)).join('')}
+            </div>
+        </div>
+    `;
+        //return html;
+    }
+
+    function generarDienteSVG(numero) {
+        // Determinar color según hallazgo actual (dientesData)
+        let colorFill = '#f0f0f0';
+        let colorDiag = '#555';
+        if (dientesData[numero]) {
+            const tipo = dientesData[numero].tipoHallazgo;
+            if (tipo === 'CARIES') colorFill = '#dc3545';
+            else if (tipo === 'OBTURACION') colorFill = '#28a745';
+            else if (tipo === 'EXTRACCION') colorFill = '#343a40';
+            else colorFill = '#ffc107';
+            colorDiag = '#fff';
+        }
+        return `
+        <div class="diente-container text-center" data-diente="${numero}">
+            <div class="diente-numero small fw-semibold">${numero}</div>
+            <svg width="50" height="50" viewBox="0 0 40 40" style="cursor: pointer;">
+                <rect x="4" y="4" width="32" height="32" rx="6" fill="#fff" stroke="#555" stroke-width="1.5"></rect>
+                <path d="M 4,4 L 14,14 M 36,4 L 26,14 M 4,36 L 14,26 M 36,36 L 26,26" stroke="${colorDiag}" stroke-width="1.5"></path>
+                <rect x="14" y="14" width="12" height="12" rx="2" fill="${colorFill}" stroke="#555" stroke-width="1.5"></rect>
+            </svg>
+        </div>
+    `;
+    }
+
+    function dibujarOdontograma() {
+        const container = document.getElementById('odontogramaContainer');
+        if (!container) return;
+        container.innerHTML = generarOdontogramaHTML();
+        // Reasignar eventos click a los nuevos SVGs
+        document.querySelectorAll('.diente-container').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const diente = parseInt(el.getAttribute('data-diente'));
+                if (diente) {
+                    document.getElementById('modalDiente').value = diente;
+                    document.getElementById('modalDienteNumero').innerText = diente;
+                    const modal = new bootstrap.Modal(document.getElementById('hallazgoModal'));
+                    modal.show();
+                }
+            });
+        });
+    }
+
+    // Carga los hallazgos desde el backend y actualiza colores
+    async function cargarOdontograma(citaId) {
+        try {
+            const response = await fetch(`/doctor/odontograma/cita/${citaId}`);
+            if (!response.ok) throw new Error('Error al cargar');
+            const hallazgos = await response.json();
+            dientesData = {};
+            hallazgos.forEach(h => { dientesData[h.diente] = h; });
+            dibujarOdontograma();
+            const infoDiv = document.getElementById('odontogramaInfo');
+            if (infoDiv) infoDiv.innerHTML = `Hallazgos cargados: ${hallazgos.length}`;
+        } catch (e) {
+            console.error(e);
+            if (document.getElementById('odontogramaInfo')) {
+                document.getElementById('odontogramaInfo').innerHTML = 'Error al cargar odontograma';
+            }
+        }
+    }
+
+    // Guarda los hallazgos actuales
+    async function guardarHallazgos(citaId) {
+        const hallazgosArray = Object.values(dientesData);
+        try {
+            const response = await fetch(`/doctor/odontograma/cita/${citaId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(hallazgosArray)
+            });
+            if (response.ok) {
+                alert('Odontograma guardado correctamente');
+            } else {
+                alert('Error al guardar odontograma');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error de red');
+        }
+    }
+
+    // Evento guardar desde el modal (debe existir)
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'guardarHallazgoBtn') {
+            const diente = parseInt(document.getElementById('modalDiente').value);
+            const cara = document.getElementById('modalCara').value;
+            const tipoHallazgo = document.getElementById('modalTipoHallazgo').value;
+            const cupsId = document.getElementById('modalCupsId').value;
+            const esInicial = document.getElementById('modalEsInicial').value === 'true';
+            dientesData[diente] = {
+                diente: diente,
+                cara: cara,
+                tipoHallazgo: tipoHallazgo,
+                cupsId: cupsId ? parseInt(cupsId) : null,
+                esInicial: esInicial,
+                citaId: citaIdActual
+            };
+            dibujarOdontograma();   // refrescar colores
+            bootstrap.Modal.getInstance(document.getElementById('hallazgoModal')).hide();
+        }
+    });
+
+    // Alternar dentición
+    const btnAlternar = document.getElementById('btnAlternarDenticion');
+    if (btnAlternar) {
+        btnAlternar.addEventListener('click', () => {
+            mostrarPrimarios = !mostrarPrimarios;
+            btnAlternar.innerHTML = mostrarPrimarios ? '<i class="bi bi-arrow-repeat"></i> Mostrar permanentes' : '<i class="bi bi-arrow-repeat"></i> Mostrar primarios';
+            dibujarOdontograma();
+        });
+    }
+
+    // Inicializar
+    if (citaIdActual && document.getElementById('odontogramaContainer')) {
+        cargarOdontograma(citaIdActual);
+        if (pacienteIdActual) {
+            fetch(`/doctor/odontograma/paciente/${pacienteIdActual}/etapa`).catch(err => console.log);
+        }
+    }
+
+    // Agregar botón de guardado manual junto a los botones de guardar/finalizar
+    const formActions = document.querySelector('.text-center.mt-5');
+    if (formActions && citaIdActual && document.getElementById('odontogramaContainer')) {
+        if (!document.getElementById('guardarOdontogramaBtn')) {
+            const btnGuardarOdonto = document.createElement('button');
+            btnGuardarOdonto.type = 'button';
+            btnGuardarOdonto.id = 'guardarOdontogramaBtn';
+            btnGuardarOdonto.className = 'btn btn-outline-info ms-2';
+            btnGuardarOdonto.innerHTML = '<i class="bi bi-save"></i> Guardar odontograma';
+            btnGuardarOdonto.onclick = () => guardarHallazgos(citaIdActual);
+            formActions.appendChild(btnGuardarOdonto);
+        }
+    }
+
     /*]]>*/
 </script>
