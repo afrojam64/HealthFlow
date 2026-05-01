@@ -26,7 +26,7 @@
 
             <!-- Formulario único -->
             <div class="form-section mb-4">
-                <form th:action="@{/doctor/citas/{id}/guardar(id=${appointment.id})}" method="post">
+                <form th:action="@{/doctor/citas/{id}/guardar(id=${appointment.id})}" method="post" id="clinicaForm">
 
                     <div th:if="${medicalRecord != null && medicalRecord.locked}" class="locked-alert">
                         <i class="bi bi-lock-fill me-2"></i>
@@ -82,7 +82,7 @@
                                 </div>
                                 <div class="row">
                                     <div class="col-md-8">
-                                        <!-- Contenedor del odontograma (reemplaza el canvas) -->
+                                        <!-- Contenedor del odontograma SVG -->
                                         <div id="odontogramaContainer" class="odontograma-svg-container"></div>
                                     </div>
                                     <div class="col-md-4">
@@ -97,65 +97,10 @@
                                         <div id="odontogramaInfo" class="small text-muted">
                                             Cargando odontograma...
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Modal para registrar hallazgos (igual que antes, pero con más campos opcionales) -->
-                            <div class="modal fade" id="hallazgoModal" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Registrar hallazgo dental</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <input type="hidden" id="modalDiente">
-                                            <div class="mb-2">
-                                                <label>Diente: <span id="modalDienteNumero" class="fw-bold"></span></label>
-                                            </div>
-                                            <div class="mb-2">
-                                                <label class="form-label">Cara afectada</label>
-                                                <select id="modalCara" class="form-select">
-                                                    <option value="TODAS">Toda la pieza</option>
-                                                    <option value="VESTIBULAR">Vestibular</option>
-                                                    <option value="LINGUAL">Lingual</option>
-                                                    <option value="MESIAL">Mesial</option>
-                                                    <option value="DISTAL">Distal</option>
-                                                    <option value="OCLUSAL">Oclusal</option>
-                                                    <option value="INCISAL">Incisal</option>
-                                                </select>
-                                            </div>
-                                            <div class="mb-2">
-                                                <label class="form-label">Tipo de hallazgo</label>
-                                                <select id="modalTipoHallazgo" class="form-select">
-                                                    <option value="CARIES">Caries</option>
-                                                    <option value="OBTURACION">Obturación</option>
-                                                    <option value="EXTRACCION">Extracción</option>
-                                                    <option value="ENDODONCIA">Endodoncia</option>
-                                                    <option value="PERIODONCIA">Periodoncia</option>
-                                                    <option value="PROSTODONCIA">Prostodoncia</option>
-                                                    <option value="SELLANTE">Sellante</option>
-                                                    <option value="OTRO">Otro</option>
-                                                </select>
-                                            </div>
-                                            <div class="mb-2">
-                                                <label class="form-label">Código CUPS (opcional)</label>
-                                                <input type="text" id="modalCupsId" class="form-control" placeholder="Buscar...">
-                                                <small class="text-muted">Si el hallazgo implica un procedimiento, asigna un CUPS</small>
-                                            </div>
-                                            <div class="mb-2">
-                                                <label class="form-label">¿Es parte del odontograma inicial?</label>
-                                                <select id="modalEsInicial" class="form-select">
-                                                    <option value="false">No (evolución)</option>
-                                                    <option value="true">Sí (registro inicial)</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                            <button type="button" id="guardarHallazgoBtn" class="btn btn-primary">Guardar hallazgo</button>
-                                        </div>
+                                        <!-- Botón Guardar odontograma movido aquí -->
+                                        <button type="button" id="guardarOdontogramaBtn" class="btn btn-outline-success mt-3 w-100">
+                                            <i class="bi bi-save"></i> Guardar odontograma
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -212,15 +157,14 @@
                                             <option th:each="c : ${causas}" th:value="${c.id}" th:text="${c.codigo + ' - ' + c.descripcion}" th:selected="${medicalRecord?.causaExterna?.id == c.id}"></option>
                                         </select>
                                     </div>
-                                    <div class="col-md-6"> <!-- Antes era 12, ahora 6 para dar espacio -->
+                                    <div class="col-md-6">
                                         <label for="codigoCups" class="form-label">Código CUPS</label>
                                         <select id="codigoCups" name="codigoCups" class="form-control">
                                             <option th:if="${medicalRecord.codigoCups != null}" th:value="${medicalRecord.codigoCups}" th:text="${medicalRecord.codigoCups}"></option>
                                         </select>
                                         <small class="form-text text-muted">Buscar por código o descripción del procedimiento.</small>
                                     </div>
-                                    <div class="col-md-6"><!-- Espacio vacío para alinear -->
-                                    </div>
+                                    <div class="col-md-6"><!-- Espacio vacío para alinear --></div>
                                     <div class="col-md-4">
                                         <label for="valorServicio" class="form-label">Valor del Servicio ($)</label>
                                         <input type="number" step="0.01" id="valorServicio" name="valorServicio" class="form-control" placeholder="0.00" th:value="${medicalRecord?.valorServicio}">
@@ -396,17 +340,18 @@
             </div>
         </div>
     </div>
-    <!-- Modal para agregar/editar hallazgo dental -->
+
+    <!-- Modal para registrar hallazgo dental (único) -->
     <div class="modal fade" id="hallazgoModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-md">
-            <div class="modal-content">
+            <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title"><i class="bi bi-teeth me-2"></i>Registrar hallazgo dental</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" id="modalDiente">
-                    <div class="mb-3 text-center">
+                    <div class="text-center mb-3">
                         <span class="badge bg-secondary fs-6 p-2">Diente: <span id="modalDienteNumero" class="fw-bold"></span></span>
                     </div>
                     <div class="row">
@@ -506,7 +451,7 @@
         const complication = document.getElementById('complicationDiagnosis');
         if (complication) new TomSelect(complication, cie10Config);
 
-        // ========== NUEVO: TomSelect para Código CUPS ==========
+        // ========== TomSelect para Código CUPS (principal) ==========
         const cupsSelect = document.getElementById('codigoCups');
         if (cupsSelect) {
             new TomSelect(cupsSelect, {
@@ -533,7 +478,7 @@
                         return `<div>${escape(item.codigo)} – ${escape(item.descripcion)}</div>`;
                     }
                 },
-                create: true,          // permite escribir un código manual aunque no esté en la lista
+                create: true,
                 maxOptions: 20,
                 placeholder: 'Escriba código o descripción del CUPS...'
             });
@@ -571,18 +516,18 @@
             placeholder: 'Escriba nombre del medicamento...'
         });
 
-        let medicamentos = [];
+        window.medicamentosList = [];
 
         function updateMedicamentosList() {
             const container = document.getElementById('medicamentosList');
             if (!container) return;
-            if (medicamentos.length === 0) {
+            if (window.medicamentosList.length === 0) {
                 container.innerHTML = '<div class="text-muted">No hay medicamentos agregados.</div>';
                 document.getElementById('prescripcionJson').value = '';
                 return;
             }
             let html = '';
-            medicamentos.forEach((med, idx) => {
+            window.medicamentosList.forEach((med, idx) => {
                 html += `<div class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
                             <strong>${escapeHtml(med.nombre)}</strong><br>
@@ -592,7 +537,19 @@
                      </div>`;
             });
             container.innerHTML = html;
-            document.getElementById('prescripcionJson').value = JSON.stringify(medicamentos);
+            document.getElementById('prescripcionJson').value = JSON.stringify(window.medicamentosList);
+        }
+
+        // Forzar actualización del campo prescriptionJson antes de enviar el formulario
+        const formularioHC = document.getElementById('clinicaForm');
+        if (formularioHC) {
+            formularioHC.addEventListener('submit', function() {
+                const jsonField = document.getElementById('prescripcionJson');
+                if (jsonField) {
+                    jsonField.value = JSON.stringify(window.medicamentosList || []);
+                    console.log('Actualizando prescriptionJson antes de enviar:', jsonField.value);
+                }
+            });
         }
 
         function escapeHtml(str) {
@@ -606,7 +563,7 @@
         }
 
         window.eliminarMedicamento = function(idx) {
-            medicamentos.splice(idx, 1);
+            window.medicamentosList.splice(idx, 1);
             updateMedicamentosList();
         };
 
@@ -636,7 +593,7 @@
                     alert('Complete dosis y frecuencia.');
                     return;
                 }
-                medicamentos.push({
+                window.medicamentosList.push({
                     id: selectedId,
                     nombre: selectedText,
                     dosis: dosis,
@@ -651,23 +608,16 @@
             });
         }
 
-        // ========== FUNCIÓN PARA OBTENER TOKEN CSRF ==========
-        function getCsrfToken() {
-            const csrfInput = document.querySelector('form input[name="_csrf"]');
-            if (csrfInput && csrfInput.value) {
-                return csrfInput.value;
-            }
-            const name = 'XSRF-TOKEN';
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) {
-                return parts.pop().split(';').shift();
-            }
-            console.warn('No se encontró token CSRF');
-            return null;
+        // Cargar medicamentos existentes desde el medicalRecord (si los hay)
+        const prescripcionJsonExistente = /*[[${medicalRecord?.prescripcionJson}]]*/ null;
+        if (prescripcionJsonExistente) {
+            try {
+                window.medicamentosList = JSON.parse(prescripcionJsonExistente);
+                updateMedicamentosList();
+            } catch(e) { console.error('Error al parsear prescriptionJson existente', e); }
         }
 
-        // Generar PDF de fórmula
+        // ========== GENERAR PDF DE FÓRMULA ==========
         const pdfBtn = document.getElementById('generarPdfBtn');
         if (pdfBtn) {
             pdfBtn.addEventListener('click', async () => {
@@ -676,12 +626,12 @@
                     alert('No se puede generar el PDF: falta ID de la cita.');
                     return;
                 }
-                if (medicamentos.length === 0) {
+                if (window.medicamentosList.length === 0) {
                     alert('No hay medicamentos en la fórmula. Agregue al menos uno.');
                     return;
                 }
                 const payload = {
-                    medicamentos: medicamentos,
+                    medicamentos: window.medicamentosList,
                     indicaciones: document.getElementById('prescription').value
                 };
                 try {
@@ -711,7 +661,7 @@
             });
         }
 
-        // Remisión
+        // ========== REMISIÓN ==========
         document.getElementById('remisionBtn').addEventListener('click', () => {
             new bootstrap.Modal(document.getElementById('remisionModal')).show();
         });
@@ -768,12 +718,10 @@
     let citaIdActual = /*[[${appointment.id}]]*/ null;
     let pacienteIdActual = /*[[${patient.id}]]*/ null;
 
-    // Números FDI permanentes (según diseño)
     const permanentesSupDer = [18,17,16,15,14,13,12,11];
     const permanentesSupIzq = [21,22,23,24,25,26,27,28];
     const permanentesInfIzq = [31,32,33,34,35,36,37,38];
     const permanentesInfDer = [48,47,46,45,44,43,42,41];
-    // Temporales (deciduos)
     const temporalesSupDer = [55,54,53,52,51];
     const temporalesSupIzq = [61,62,63,64,65];
     const temporalesInfIzq = [75,74,73,72,71];
@@ -797,7 +745,6 @@
         }
     }
 
-    // Genera el HTML de las filas de dientes
     function generarOdontogramaHTML() {
         const dientes = obtenerDientesActuales();
         return `
@@ -818,11 +765,9 @@
             </div>
         </div>
     `;
-        //return html;
     }
 
     function generarDienteSVG(numero) {
-        // Determinar color según hallazgo actual (dientesData)
         let colorFill = '#f0f0f0';
         let colorDiag = '#555';
         if (dientesData[numero]) {
@@ -849,7 +794,6 @@
         const container = document.getElementById('odontogramaContainer');
         if (!container) return;
         container.innerHTML = generarOdontogramaHTML();
-        // Reasignar eventos click a los nuevos SVGs
         document.querySelectorAll('.diente-container').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -864,7 +808,6 @@
         });
     }
 
-    // Carga los hallazgos desde el backend y actualiza colores
     async function cargarOdontograma(citaId) {
         try {
             const response = await fetch(`/doctor/odontograma/cita/${citaId}`);
@@ -883,48 +826,69 @@
         }
     }
 
-    // Guarda los hallazgos actuales
     async function guardarHallazgos(citaId) {
         const hallazgosArray = Object.values(dientesData);
-        // Obtener token CSRF del formulario principal
+        if (hallazgosArray.length === 0) {
+            alert('No hay hallazgos para guardar');
+            return;
+        }
         const csrfToken = document.querySelector('form input[name="_csrf"]')?.value;
+        if (!csrfToken) {
+            alert('Error de seguridad: no se encontró token CSRF');
+            return;
+        }
         try {
             const response = await fetch(`/doctor/odontograma/cita/${citaId}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
                 body: JSON.stringify(hallazgosArray)
             });
             if (response.ok) {
                 alert('Odontograma guardado correctamente');
             } else {
-                alert('Error al guardar odontograma');
+                const errorText = await response.text();
+                console.error('Error respuesta:', errorText);
+                alert('Error al guardar odontograma: ' + errorText);
             }
         } catch (e) {
             console.error(e);
-            alert('Error de red');
+            alert('Error de red: ' + e.message);
         }
     }
 
-    // Evento guardar desde el modal (debe existir)
+    // Evento guardar desde el modal
     document.addEventListener('click', function(e) {
         if (e.target.id === 'guardarHallazgoBtn') {
             const diente = parseInt(document.getElementById('modalDiente').value);
             const cara = document.getElementById('modalCara').value;
             const tipoHallazgo = document.getElementById('modalTipoHallazgo').value;
-            const cupsId = document.getElementById('modalCupsId').value;
+            let cupsId = document.getElementById('modalCupsId').value;
+            if (cupsId && !isNaN(cupsId)) cupsId = parseInt(cupsId);
+            else cupsId = null;
             const esInicial = document.getElementById('modalEsInicial').value === 'true';
             dientesData[diente] = {
                 diente: diente,
                 cara: cara,
                 tipoHallazgo: tipoHallazgo,
-                cupsId: cupsId ? parseInt(cupsId) : null,
+                cupsId: cupsId,
                 esInicial: esInicial,
                 citaId: citaIdActual
             };
-            dibujarOdontograma();   // refrescar colores
+            dibujarOdontograma();
             bootstrap.Modal.getInstance(document.getElementById('hallazgoModal')).hide();
         }
     });
+
+    // Botón guardar odontograma (ubicado dentro de la sección)
+    const btnGuardarOdonto = document.getElementById('guardarOdontogramaBtn');
+    if (btnGuardarOdonto) {
+        btnGuardarOdonto.addEventListener('click', () => {
+            guardarHallazgos(citaIdActual);
+        });
+    }
 
     // Alternar dentición
     const btnAlternar = document.getElementById('btnAlternarDenticion');
@@ -936,26 +900,8 @@
         });
     }
 
-    // Inicializar
     if (citaIdActual && document.getElementById('odontogramaContainer')) {
         cargarOdontograma(citaIdActual);
-        if (pacienteIdActual) {
-            fetch(`/doctor/odontograma/paciente/${pacienteIdActual}/etapa`).catch(err => console.log);
-        }
-    }
-
-    // Agregar botón de guardado manual junto a los botones de guardar/finalizar
-    const formActions = document.querySelector('.text-center.mt-5');
-    if (formActions && citaIdActual && document.getElementById('odontogramaContainer')) {
-        if (!document.getElementById('guardarOdontogramaBtn')) {
-            const btnGuardarOdonto = document.createElement('button');
-            btnGuardarOdonto.type = 'button';
-            btnGuardarOdonto.id = 'guardarOdontogramaBtn';
-            btnGuardarOdonto.className = 'btn btn-outline-info ms-2';
-            btnGuardarOdonto.innerHTML = '<i class="bi bi-save"></i> Guardar odontograma';
-            btnGuardarOdonto.onclick = () => guardarHallazgos(citaIdActual);
-            formActions.appendChild(btnGuardarOdonto);
-        }
     }
 
     // TomSelect para CUPS en el modal odontológico
@@ -986,6 +932,5 @@
             placeholder: 'Buscar código CUPS...'
         });
     }
-
     /*]]>*/
 </script>
