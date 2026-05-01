@@ -1,0 +1,44 @@
+{
+  "numDocumentoIdObligado" : "",
+  "numFactura" : "REC-20260501-0001",
+  "tipoNota" : null,
+  "numNota" : null,
+  "usuarios" : [ {
+    "tipoDocumentoIdentificacion" : "CC",
+    "numDocumentoIdentificacion" : "94515189",
+    "tipoUsuario" : "01",
+    "fechaNacimiento" : "1978-03-28",
+    "codSexo" : "M",
+    "codPaisResidencia" : "170",
+    "codMunicipioResidencia" : "11001",
+    "codZonaResidencia" : "01",
+    "servicios" : {
+      "consultas" : [ {
+        "codPrestador" : "000000000000",
+        "fechaInicioAtencion" : "2026-05-01",
+        "horaInicioAtencion" : "19:00",
+        "numAutorizacion" : null,
+        "codigoConsulta" : "890101",
+        "modalidadGrupoServicio" : "01",
+        "grupoServicios" : "01",
+        "codServicio" : "890101",
+        "finalidadConsulta" : "99",
+        "causaExterna" : "99",
+        "codDiagnosticoPrincipal" : "R10",
+        "codDiagnosticoRelacionado1" : "R10",
+        "codDiagnosticoRelacionado2" : "R10",
+        "codDiagnosticoRelacionado3" : "R10",
+        "tipoDiagnosticoPrincipal" : "01",
+        "tipoDocumentoIdentificacion" : "CC",
+        "numDocumentoIdentificacion" : "94515189",
+        "vrServicio" : 150000.00,
+        "tipoPagoModerador" : "01",
+        "vrCuotaModeradora" : 0.00,
+        "fevNumero" : "REC-20260501-0001"
+      } ],
+      "procedimientos" : [ ],
+      "medicamentos" : [ ],
+      "otrosServicios" : [ ]
+    }
+  } ]
+}

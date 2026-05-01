@@ -20,6 +20,10 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.healthflow.domain.OdontogramaHallazgo;
+import com.healthflow.repo.OdontogramaHallazgoRepository;
+import com.healthflow.domain.CatalogoCUPS;
+import com.healthflow.repo.CatalogoCUPSRepository;
 
 @Service
 public class RipsService {
@@ -34,6 +38,12 @@ public class RipsService {
 
     @Autowired
     private RipsGenerationRepository ripsGenerationRepository;
+
+    @Autowired
+    private OdontogramaHallazgoRepository odontogramaHallazgoRepository;
+
+    @Autowired
+    private CatalogoCUPSRepository cupsRepository;
 
     @Value("${healthflow.timezone:America/Bogota}")
     private String zoneIdStr;
@@ -164,10 +174,13 @@ public class RipsService {
             usuario.put("codZonaResidencia", Optional.ofNullable(paciente.getZoneResidenceCode()).orElse("01"));
 
             List<Map<String, Object>> consultas = new ArrayList<>();
+            List<Map<String, Object>> procedimientos = new ArrayList<>();
+
             for (Appointment cita : citasPaciente) {
                 MedicalRecord mr = cita.getMedicalRecord();
                 if (mr == null) continue;
 
+                // --- Consulta principal (siempre se incluye) ---
                 Map<String, Object> consulta = new LinkedHashMap<>();
                 consulta.put("codPrestador", Optional.ofNullable(professional.getProviderCode()).orElse("000000000000"));
                 consulta.put("fechaInicioAtencion", cita.getDateTime().toLocalDate().toString());
@@ -190,14 +203,47 @@ public class RipsService {
                 consulta.put("tipoPagoModerador", "01");
                 consulta.put("vrCuotaModeradora", mr.getCuotaModeradora() != null ? mr.getCuotaModeradora() : BigDecimal.ZERO);
                 consulta.put("fevNumero", numFactura);
-
                 consultas.add(consulta);
+
+                // --- Procedimientos odontológicos (desde odontograma) ---
+                List<OdontogramaHallazgo> hallazgos = odontogramaHallazgoRepository.findByCitaId(cita.getId());
+                for (OdontogramaHallazgo hallazgo : hallazgos) {
+                    if (hallazgo.getCupsId() == null) continue;
+                    Map<String, Object> procedimiento = new LinkedHashMap<>();
+                    // Usar la misma información de fecha/hora/paciente que la cita
+                    procedimiento.put("codPrestador", Optional.ofNullable(professional.getProviderCode()).orElse("000000000000"));
+                    procedimiento.put("fechaInicioAtencion", cita.getDateTime().toLocalDate().toString());
+                    procedimiento.put("horaInicioAtencion", cita.getDateTime().toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                    procedimiento.put("numAutorizacion", null);
+                    // El código CUPS del procedimiento es el del hallazgo
+                    CatalogoCUPS cups = cupsRepository.findById(hallazgo.getCupsId()).orElse(null);
+                    procedimiento.put("codigoProcedimiento", cups != null ? cups.getCodigo() : String.valueOf(hallazgo.getCupsId()));
+                    procedimiento.put("modalidadGrupoServicio", "01"); // según corresponda
+                    procedimiento.put("grupoServicios", "01");
+                    procedimiento.put("codServicio", cups != null ? cups.getCodigo() : "394");
+                    // Reutilizar finalidad y causa externa de la consulta (o definir por defecto)
+                    procedimiento.put("finalidadConsulta", obtenerCodigoCatalogo(mr.getFinalidadConsulta()));
+                    procedimiento.put("causaExterna", obtenerCodigoCatalogo(mr.getCausaExterna()));
+                    procedimiento.put("codDiagnosticoPrincipal", mr.getMainDiagnosis());
+                    procedimiento.put("tipoDiagnosticoPrincipal", "01");
+                    procedimiento.put("tipoDocumentoIdentificacion", paciente.getDocType());
+                    procedimiento.put("numDocumentoIdentificacion", paciente.getDocNumber());
+                    procedimiento.put("vrServicio", mr.getValorServicio() != null ? mr.getValorServicio() : BigDecimal.ZERO);
+                    procedimiento.put("tipoPagoModerador", "01");
+                    procedimiento.put("vrCuotaModeradora", mr.getCuotaModeradora() != null ? mr.getCuotaModeradora() : BigDecimal.ZERO);
+                    procedimiento.put("fevNumero", numFactura);
+                    // Puedes agregar campos adicionales como cara, tipo de hallazgo si es necesario
+                    procedimiento.put("diente", hallazgo.getDiente());
+                    procedimiento.put("cara", hallazgo.getCara());
+                    procedimiento.put("tipoHallazgo", hallazgo.getTipoHallazgo());
+                    procedimientos.add(procedimiento);
+                }
             }
 
-            if (!consultas.isEmpty()) {
+            if (!consultas.isEmpty() || !procedimientos.isEmpty()) {
                 Map<String, Object> servicios = new LinkedHashMap<>();
                 servicios.put("consultas", consultas);
-                servicios.put("procedimientos", Collections.emptyList());
+                servicios.put("procedimientos", procedimientos);
                 servicios.put("medicamentos", Collections.emptyList());
                 servicios.put("otrosServicios", Collections.emptyList());
                 usuario.put("servicios", servicios);

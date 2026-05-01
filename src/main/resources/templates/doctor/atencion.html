@@ -215,7 +215,7 @@
                                     <div class="col-md-6"> <!-- Antes era 12, ahora 6 para dar espacio -->
                                         <label for="codigoCups" class="form-label">Código CUPS</label>
                                         <select id="codigoCups" name="codigoCups" class="form-control">
-                                            <option th:if="${medicalRecord.codigoCups != null}" th:value="${medicalRecord.codigoCups}" th:text="${medicalRecord.codigoCups} + ' - ' + ${medicalRecord.codigoCupsDesc}"></option>
+                                            <option th:if="${medicalRecord.codigoCups != null}" th:value="${medicalRecord.codigoCups}" th:text="${medicalRecord.codigoCups}"></option>
                                         </select>
                                         <small class="form-text text-muted">Buscar por código o descripción del procedimiento.</small>
                                     </div>
@@ -398,49 +398,53 @@
     </div>
     <!-- Modal para agregar/editar hallazgo dental -->
     <div class="modal fade" id="hallazgoModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-md">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Registrar hallazgo dental</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-teeth me-2"></i>Registrar hallazgo dental</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" id="modalDiente">
-                    <div class="mb-2">
-                        <label>Diente: <span id="modalDienteNumero" class="fw-bold"></span></label>
+                    <div class="mb-3 text-center">
+                        <span class="badge bg-secondary fs-6 p-2">Diente: <span id="modalDienteNumero" class="fw-bold"></span></span>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Cara afectada</label>
-                        <select id="modalCara" class="form-select">
-                            <option value="TODAS">Toda la pieza</option>
-                            <option value="VESTIBULAR">Vestibular</option>
-                            <option value="LINGUAL">Lingual</option>
-                            <option value="MESIAL">Mesial</option>
-                            <option value="DISTAL">Distal</option>
-                            <option value="OCLUSAL">Oclusal</option>
-                            <option value="INCISAL">Incisal</option>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Cara afectada</label>
+                            <select id="modalCara" class="form-select">
+                                <option value="TODAS">Toda la pieza</option>
+                                <option value="VESTIBULAR">Vestibular</option>
+                                <option value="LINGUAL">Lingual</option>
+                                <option value="MESIAL">Mesial</option>
+                                <option value="DISTAL">Distal</option>
+                                <option value="OCLUSAL">Oclusal</option>
+                                <option value="INCISAL">Incisal</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Tipo de hallazgo</label>
+                            <select id="modalTipoHallazgo" class="form-select">
+                                <option value="CARIES">Caries</option>
+                                <option value="OBTURACION">Obturación</option>
+                                <option value="EXTRACCION">Extracción</option>
+                                <option value="ENDODONCIA">Endodoncia</option>
+                                <option value="PERIODONCIA">Periodoncia</option>
+                                <option value="PROSTODONCIA">Prostodoncia</option>
+                                <option value="SELLANTE">Sellante</option>
+                                <option value="OTRO">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Código CUPS (opcional)</label>
+                        <select id="modalCupsId" class="form-select">
+                            <option value="">-- Seleccione un CUPS --</option>
                         </select>
+                        <small class="text-muted">Si el hallazgo implica un procedimiento, asígnale un CUPS.</small>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Tipo de hallazgo</label>
-                        <select id="modalTipoHallazgo" class="form-select">
-                            <option value="CARIES">Caries</option>
-                            <option value="OBTURACION">Obturación</option>
-                            <option value="EXTRACCION">Extracción</option>
-                            <option value="ENDODONCIA">Endodoncia</option>
-                            <option value="PERIODONCIA">Periodoncia</option>
-                            <option value="PROSTODONCIA">Prostodoncia</option>
-                            <option value="SELLANTE">Sellante</option>
-                            <option value="OTRO">Otro</option>
-                        </select>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">Código CUPS (opcional)</label>
-                        <input type="text" id="modalCupsId" class="form-control" placeholder="Buscar...">
-                        <small class="text-muted">Si el hallazgo implica un procedimiento, asigna un CUPS</small>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">¿Es parte del odontograma inicial?</label>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Odontograma inicial</label>
                         <select id="modalEsInicial" class="form-select">
                             <option value="false">No (evolución)</option>
                             <option value="true">Sí (registro inicial)</option>
@@ -448,8 +452,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" id="guardarHallazgoBtn" class="btn btn-primary">Guardar hallazgo</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="guardarHallazgoBtn" class="btn btn-primary"><i class="bi bi-save"></i> Guardar hallazgo</button>
                 </div>
             </div>
         </div>
@@ -882,6 +886,8 @@
     // Guarda los hallazgos actuales
     async function guardarHallazgos(citaId) {
         const hallazgosArray = Object.values(dientesData);
+        // Obtener token CSRF del formulario principal
+        const csrfToken = document.querySelector('form input[name="_csrf"]')?.value;
         try {
             const response = await fetch(`/doctor/odontograma/cita/${citaId}`, {
                 method: 'POST',
@@ -950,6 +956,35 @@
             btnGuardarOdonto.onclick = () => guardarHallazgos(citaIdActual);
             formActions.appendChild(btnGuardarOdonto);
         }
+    }
+
+    // TomSelect para CUPS en el modal odontológico
+    const modalCups = document.getElementById('modalCupsId');
+    if (modalCups) {
+        new TomSelect(modalCups, {
+            valueField: 'id',
+            labelField: 'descripcion',
+            searchField: ['codigo', 'descripcion'],
+            load: function(query, callback) {
+                if (!query || query.length < 2) return callback();
+                fetch(`/doctor/reportes/api/cups/search?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        callback(data.map(item => ({
+                            id: item.id,
+                            codigo: item.codigo,
+                            descripcion: item.descripcion
+                        })));
+                    })
+                    .catch(() => callback());
+            },
+            render: {
+                option: (item, escape) => `<div><strong>${escape(item.codigo)}</strong> – ${escape(item.descripcion)}</div>`,
+                item: (item, escape) => `<div>${escape(item.codigo)} – ${escape(item.descripcion)}</div>`
+            },
+            create: true,
+            placeholder: 'Buscar código CUPS...'
+        });
     }
 
     /*]]>*/

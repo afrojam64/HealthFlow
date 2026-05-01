@@ -14,4 +14,6 @@ public interface OdontogramaHallazgoRepository extends JpaRepository<Odontograma
 
     @Query("SELECT o FROM OdontogramaHallazgo o WHERE o.citaId IN (SELECT a.id FROM Appointment a WHERE a.patient.id = :patientId) AND o.esInicial = true")
     List<OdontogramaHallazgo> findInicialesByPatientId(@Param("patientId") UUID patientId);
+
+    void deleteByCitaId(UUID citaId);
 }

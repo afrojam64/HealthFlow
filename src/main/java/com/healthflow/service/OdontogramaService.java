@@ -27,6 +27,7 @@ public class OdontogramaService {
     @Transactional
     public void guardarHallazgos(UUID citaId, List<OdontogramaHallazgoDTO> hallazgos) {
         // Eliminar hallazgos existentes para esta cita (opcional según requerimiento)
+        repository.deleteByCitaId(citaId);
         // repository.deleteAll(repository.findByCitaId(citaId));
 
         for (OdontogramaHallazgoDTO dto : hallazgos) {
