@@ -35,6 +35,12 @@ public class RipsService {
     @Autowired
     private RipsGenerationRepository ripsGenerationRepository;
 
+    @Autowired
+    private OdontogramaHallazgoRepository odontogramaHallazgoRepository;
+
+    @Autowired
+    private CatalogoCUPSRepository cupsRepository;
+
     @Value("${healthflow.timezone:America/Bogota}")
     private String zoneIdStr;
 
@@ -164,6 +170,8 @@ public class RipsService {
             usuario.put("codZonaResidencia", Optional.ofNullable(paciente.getZoneResidenceCode()).orElse("01"));
 
             List<Map<String, Object>> consultas = new ArrayList<>();
+            List<Map<String, Object>> procedimientos = new ArrayList<>();
+
             for (Appointment cita : citasPaciente) {
                 MedicalRecord mr = cita.getMedicalRecord();
                 if (mr == null) continue;
@@ -190,14 +198,46 @@ public class RipsService {
                 consulta.put("tipoPagoModerador", "01");
                 consulta.put("vrCuotaModeradora", mr.getCuotaModeradora() != null ? mr.getCuotaModeradora() : BigDecimal.ZERO);
                 consulta.put("fevNumero", numFactura);
-
                 consultas.add(consulta);
+
+                // --- Procedimientos odontológicos desde odontograma ---
+                List<OdontogramaHallazgo> hallazgos = odontogramaHallazgoRepository.findByCitaId(cita.getId());
+                for (OdontogramaHallazgo hallazgo : hallazgos) {
+                    if (hallazgo.getCupsId() == null) continue;
+                    CatalogoCUPS cups = cupsRepository.findById(hallazgo.getCupsId()).orElse(null);
+                    if (cups == null) continue;
+
+                    Map<String, Object> procedimiento = new LinkedHashMap<>();
+                    procedimiento.put("codPrestador", Optional.ofNullable(professional.getProviderCode()).orElse("000000000000"));
+                    procedimiento.put("fechaInicioAtencion", cita.getDateTime().toLocalDate().toString());
+                    procedimiento.put("horaInicioAtencion", cita.getDateTime().toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                    procedimiento.put("numAutorizacion", null);
+                    procedimiento.put("codigoProcedimiento", cups.getCodigo());
+                    procedimiento.put("modalidadGrupoServicio", "01");
+                    procedimiento.put("grupoServicios", "01");
+                    procedimiento.put("codServicio", cups.getCodigo());
+                    procedimiento.put("finalidadConsulta", obtenerCodigoCatalogo(mr.getFinalidadConsulta()));
+                    procedimiento.put("causaExterna", obtenerCodigoCatalogo(mr.getCausaExterna()));
+                    procedimiento.put("codDiagnosticoPrincipal", mr.getMainDiagnosis());
+                    procedimiento.put("tipoDiagnosticoPrincipal", "01");
+                    procedimiento.put("tipoDocumentoIdentificacion", paciente.getDocType());
+                    procedimiento.put("numDocumentoIdentificacion", paciente.getDocNumber());
+                    procedimiento.put("vrServicio", mr.getValorServicio() != null ? mr.getValorServicio() : BigDecimal.ZERO);
+                    procedimiento.put("tipoPagoModerador", "01");
+                    procedimiento.put("vrCuotaModeradora", mr.getCuotaModeradora() != null ? mr.getCuotaModeradora() : BigDecimal.ZERO);
+                    procedimiento.put("fevNumero", numFactura);
+                    // Campos adicionales
+                    procedimiento.put("diente", hallazgo.getDiente());
+                    procedimiento.put("cara", hallazgo.getCara());
+                    procedimiento.put("tipoHallazgo", hallazgo.getTipoHallazgo());
+                    procedimientos.add(procedimiento);
+                }
             }
 
             if (!consultas.isEmpty()) {
                 Map<String, Object> servicios = new LinkedHashMap<>();
                 servicios.put("consultas", consultas);
-                servicios.put("procedimientos", Collections.emptyList());
+                servicios.put("procedimientos", procedimientos.isEmpty() ? Collections.emptyList() : procedimientos);
                 servicios.put("medicamentos", Collections.emptyList());
                 servicios.put("otrosServicios", Collections.emptyList());
                 usuario.put("servicios", servicios);

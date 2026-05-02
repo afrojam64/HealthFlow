@@ -1,6 +1,9 @@
 package com.healthflow.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -27,6 +30,7 @@ public class OdontogramaHallazgo {
     @Column(name = "cups_id")
     private Long cupsId;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "valor_json", columnDefinition = "jsonb")
     private String valorJson;  // Almacena datos específicos (periodontograma, etc.)
 
