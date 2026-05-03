@@ -2,17 +2,19 @@ package com.healthflow.web;
 
 import com.healthflow.domain.*;
 import com.healthflow.repo.*;
+import com.healthflow.service.DomainException;
 import com.healthflow.service.ProfessionalStatisticsService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -26,19 +28,23 @@ public class AdminController {
     private final PatientRepository patientRepository;
     private final AppointmentRepository appointmentRepository;
     private final ProfessionalStatisticsService statisticsService;
+    private final EspecialidadRepository especialidadRepository;
+    private final PasswordEncoder passwordEncoder;
     private final ZoneId zoneId;
 
     public AdminController(UserRepository userRepository,
                            ProfessionalRepository professionalRepository,
                            PatientRepository patientRepository,
                            AppointmentRepository appointmentRepository,
-                           ProfessionalStatisticsService statisticsService,
+                           ProfessionalStatisticsService statisticsService, EspecialidadRepository especialidadRepository, PasswordEncoder passwordEncoder,
                            @org.springframework.beans.factory.annotation.Value("${healthflow.timezone:America/Bogota}") String tz) {
         this.userRepository = userRepository;
         this.professionalRepository = professionalRepository;
         this.patientRepository = patientRepository;
         this.appointmentRepository = appointmentRepository;
         this.statisticsService = statisticsService;
+        this.especialidadRepository = especialidadRepository;
+        this.passwordEncoder = passwordEncoder;
         this.zoneId = ZoneId.of(tz);
     }
 
@@ -221,5 +227,85 @@ public class AdminController {
         model.addAttribute("active", "profesionales");
         model.addAttribute("contenido", "admin/profesional-estadisticas");
         return "fragments/layout-admin";
+    }
+
+    // Mostrar formulario de creación de usuario
+    @GetMapping("/usuarios/crear")
+    public String mostrarFormularioCrearUsuario(Model model) {
+        List<Especialidad> especialidades = especialidadRepository.findAll();
+        model.addAttribute("especialidades", especialidades);
+        model.addAttribute("title", "Crear nuevo usuario - HealthFlow");
+        model.addAttribute("contenido", "admin/crear-usuario");
+        model.addAttribute("active", "usuarios");
+        return "fragments/layout";
+    }
+
+    @PostMapping("/usuarios/crear")
+    public String crearUsuario(@RequestParam("rol") String rol,
+                               @RequestParam("username") String username,
+                               @RequestParam("email") String email,
+                               @RequestParam("password") String password,
+                               @RequestParam(value = "fullName", required = false) String fullName,
+                               @RequestParam(value = "specialty", required = false) String specialty,
+                               @RequestParam(value = "medicalRegistry", required = false) String medicalRegistry,
+                               @RequestParam(value = "nit", required = false) String nit,
+                               @RequestParam(value = "providerCode", required = false) String providerCode,
+                               @RequestParam(value = "tipoFacturacion", required = false) String tipoFacturacion,
+                               @RequestParam(value = "especialidadId", required = false) Long especialidadId,
+                               RedirectAttributes redirectAttributes) {
+        try {
+            if (userRepository.findByUsername(username).isPresent()) {
+                throw new DomainException("El nombre de usuario ya está en uso.");
+            }
+            if (userRepository.findByEmail(email).isPresent()) {
+                throw new DomainException("El correo electrónico ya está registrado.");
+            }
+
+            User user = new User();
+            user.setUsername(username);
+            user.setEmail(email);
+            user.setPasswordHash(passwordEncoder.encode(password));   // ✅ setPasswordHash
+            user.setActive(true);                                   // ✅ setActive
+            user.setRole(rol);                                      // ✅ setRole
+            user.setCreatedAt(OffsetDateTime.now());
+            user.setUpdatedAt(OffsetDateTime.now());
+            user = userRepository.save(user);
+
+            if ("MEDICO".equals(rol)) {
+                Professional professional = new Professional();
+                professional.setUser(user);
+                professional.setFullName(fullName);
+                professional.setSpecialty(specialty);
+                professional.setMedicalRegistry(medicalRegistry);
+                professional.setNit(nit);
+                professional.setProviderCode(providerCode);
+                professional.setSlug(generateSlug(fullName));
+                if (tipoFacturacion != null) {
+                    professional.setTipoFacturacion(Professional.TipoFacturacion.valueOf(tipoFacturacion));
+                }
+                professionalRepository.save(professional);
+
+                if (especialidadId != null) {
+                    Especialidad esp = especialidadRepository.findById(especialidadId).orElse(null);
+                    if (esp != null) {
+                        professional.getEspecialidades().add(esp);
+                        professionalRepository.save(professional);
+                    }
+                }
+                redirectAttributes.addFlashAttribute("successMessage", "Profesional creado exitosamente.");
+            } else if ("ASISTENTE".equals(rol)) {
+                redirectAttributes.addFlashAttribute("successMessage", "Asistente creado exitosamente.");
+            } else {
+                throw new DomainException("Rol no válido.");
+            }
+            return "redirect:/admin/usuarios";
+        } catch (DomainException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/admin/usuarios/crear";
+        }
+    }
+
+    private String generateSlug(String fullName) {
+        return fullName.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
     }
 }

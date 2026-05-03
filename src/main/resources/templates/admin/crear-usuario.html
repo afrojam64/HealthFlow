@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<div th:fragment="contenido">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary">
+            <i class="bi bi-person-plus-fill me-2"></i>Crear nuevo usuario
+        </h2>
+        <a th:href="@{/admin/usuarios}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form th:action="@{/admin/usuarios/crear}" method="post" class="row g-3">
+                <!-- Rol -->
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">Tipo de usuario</label>
+                    <select name="rol" id="rolSelect" class="form-select" required>
+                        <option value="">-- Seleccione --</option>
+                        <option value="MEDICO">Médico (Profesional)</option>
+                        <option value="ASISTENTE">Asistente</option>
+                    </select>
+                </div>
+
+                <!-- Campos comunes -->
+                <div class="col-md-6">
+                    <label class="form-label">Nombre de usuario</label>
+                    <input type="text" name="username" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Correo electrónico</label>
+                    <input type="email" name="email" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Contraseña</label>
+                    <input type="password" name="password" class="form-control" required>
+                    <small class="text-muted">Mínimo 6 caracteres</small>
+                </div>
+
+                <!-- Campos específicos para MÉDICO (se muestran solo si se selecciona MEDICO) -->
+                <div id="medicoFields" style="display: none;">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre completo</label>
+                        <input type="text" name="fullName" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Especialidad</label>
+                        <input type="text" name="specialty" class="form-control" placeholder="Ej: Odontología general">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Registro médico</label>
+                        <input type="text" name="medicalRegistry" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">NIT</label>
+                        <input type="text" name="nit" class="form-control" placeholder="Opcional">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Código prestador</label>
+                        <input type="text" name="providerCode" class="form-control" placeholder="Opcional">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Tipo facturación</label>
+                        <select name="tipoFacturacion" class="form-select">
+                            <option value="INFORMAL">Informal</option>
+                            <option value="LEGAL">Legal</option>
+                            <option value="SOLO_HC">Solo historia clínica</option>
+                        </select>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Especialidad (catálogo)</label>
+                        <select name="especialidadId" class="form-select">
+                            <option value="">-- Seleccione --</option>
+                            <option th:each="e : ${especialidades}" th:value="${e.id}" th:text="${e.nombre}"></option>
+                        </select>
+                        <small class="text-muted">Opcional, si usas catálogo de especialidades</small>
+                    </div>
+                </div>
+
+                <div class="col-12 text-end">
+                    <button type="reset" class="btn btn-secondary">Limpiar</button>
+                    <button type="submit" class="btn btn-primary ms-2">Crear usuario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('rolSelect').addEventListener('change', function() {
+        var medicoFields = document.getElementById('medicoFields');
+        if (this.value === 'MEDICO') {
+            medicoFields.style.display = 'flex';
+            medicoFields.style.flexWrap = 'wrap';
+            medicoFields.style.gap = '1rem';
+            // Marcar los campos como requeridos si lo deseas
+            document.querySelectorAll('#medicoFields input, #medicoFields select').forEach(field => {
+                if (field.name !== 'nit' && field.name !== 'providerCode') {
+                    field.required = true;
+                }
+            });
+        } else {
+            medicoFields.style.display = 'none';
+            document.querySelectorAll('#medicoFields input, #medicoFields select').forEach(field => {
+                field.required = false;
+            });
+        }
+    });
+</script>
+</body>
+</html>
