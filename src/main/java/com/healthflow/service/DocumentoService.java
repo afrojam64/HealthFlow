@@ -94,7 +94,7 @@ public class DocumentoService {
     public List<Documento> uploadMultipleDocuments(UUID patientId, List<MultipartFile> files,
                                                    String description, UUID appointmentId,
                                                    int expirationDays) throws IOException {
-        return uploadMultipleDocuments(patientId, files, description, appointmentId, expirationDays, "MEDICO", null);
+        return uploadMultipleDocuments(patientId, files, description, appointmentId, expirationDays, "MEDICO", null, null);
     }
 
     /**
@@ -113,11 +113,11 @@ public class DocumentoService {
     @Transactional
     public List<Documento> uploadMultipleDocuments(UUID patientId, List<MultipartFile> files,
                                                    String description, UUID appointmentId,
-                                                   int expirationDays, String origen, String tipoDocumento) throws IOException {
+                                                   int expirationDays, String origen,
+                                                   String tipoDocumento, UUID professionalId) throws IOException {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new DomainException("Paciente no encontrado"));
 
-        // Valor por defecto para origen (por si acaso)
         if (origen == null || origen.isEmpty()) {
             origen = "MEDICO";
         }
@@ -141,8 +141,9 @@ public class DocumentoService {
             doc.setDescription(description != null ? description : originalFilename);
             doc.setToken(UUID.randomUUID());
             doc.setExpirationDate(OffsetDateTime.now().plus(expirationDays, ChronoUnit.DAYS));
-            doc.setOrigen(origen);               // ← NUEVO
-            doc.setTipoDocumento(tipoDocumento); // ← NUEVO
+            doc.setOrigen(origen);
+            doc.setTipoDocumento(tipoDocumento);
+            doc.setProfessionalId(professionalId);
             savedDocs.add(documentoRepository.save(doc));
         }
 
@@ -162,7 +163,6 @@ public class DocumentoService {
                 savedDocs.get(0).getExpirationDate().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
         );
 
-        // Enviar correo (mock)
         System.out.println("=== EMAIL (MOCK) ===");
         System.out.println("Para: " + patient.getEmail());
         System.out.println("Asunto: " + subject);

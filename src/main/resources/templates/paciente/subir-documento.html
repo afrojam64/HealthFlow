@@ -72,6 +72,12 @@
                                 </select>
                             </div>
                             <div class="mb-3">
+                                <label for="medicoId" class="form-label">Médico destinatario</label>
+                                <select id="medicoId" name="medicoId" class="form-select" required>
+                                    <option value="">-- Seleccione --</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
                                 <label class="form-label fw-semibold">Descripción (opcional)</label>
                                 <textarea class="form-control" name="description" rows="2" placeholder="Ej: Resultados de laboratorio..."></textarea>
                             </div>
@@ -196,6 +202,20 @@
         html += '</ul>';
         fileListDiv.innerHTML = html;
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/paciente/documentos/medicos')
+            .then(response => response.json())
+            .then(medicos => {
+                const select = document.getElementById('medicoId');
+                medicos.forEach(med => {
+                    const option = document.createElement('option');
+                    option.value = med.id;
+                    option.textContent = med.nombre;
+                    select.appendChild(option);
+                });
+            });
+    });
 </script>
 </body>
 </html>

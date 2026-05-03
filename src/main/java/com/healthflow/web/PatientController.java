@@ -132,6 +132,11 @@ public class PatientController {
             if (start != null && doc.getCreatedAt().isBefore(start)) continue;
             if (end != null && doc.getCreatedAt().isAfter(end)) continue;
 
+            // Filtrar por professionalId (solo documentos del médico actual)
+            if (doc.getProfessionalId() == null || !doc.getProfessionalId().equals(professionalId)) {
+                continue;
+            }
+
             if ("MEDICO".equals(doc.getOrigen())) {
                 documentosMedico.add(doc);
             } else if ("PACIENTE".equals(doc.getOrigen())) {

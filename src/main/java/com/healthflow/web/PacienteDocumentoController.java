@@ -1,6 +1,8 @@
 package com.healthflow.web;
 
 import com.healthflow.domain.Documento;
+import com.healthflow.domain.Professional;
+import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.service.DocumentoService;
 import com.healthflow.service.DomainException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,9 +15,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Controller
@@ -23,10 +23,12 @@ import java.util.stream.Collectors;
 public class PacienteDocumentoController {
 
     private final DocumentoService documentoService;
+    private final ProfessionalRepository professionalRepository;
     private final ZoneId zoneId = ZoneId.of("America/Bogota");
 
-    public PacienteDocumentoController(DocumentoService documentoService) {
+    public PacienteDocumentoController(DocumentoService documentoService, ProfessionalRepository professionalRepository) {
         this.documentoService = documentoService;
+        this.professionalRepository = professionalRepository;
     }
 
     private UUID getAuthenticatedPatientId() {
@@ -35,6 +37,20 @@ public class PacienteDocumentoController {
             return (UUID) principal;
         }
         throw new DomainException("No autenticado");
+    }
+
+    // Endpoint para obtener los médicos que han atendido al paciente (para el select)
+    @GetMapping("/documentos/medicos")
+    @ResponseBody
+    public List<Map<String, Object>> getMedicos() {
+        UUID patientId = getAuthenticatedPatientId();
+        List<Professional> profesionales = professionalRepository.findByPatientId(patientId);
+        return profesionales.stream().map(p -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", p.getId());
+            map.put("nombre", p.getFullName());
+            return map;
+        }).collect(Collectors.toList());
     }
 
     @GetMapping("/subir-documento")
@@ -87,11 +103,12 @@ public class PacienteDocumentoController {
                                  @RequestParam(value = "description", required = false) String description,
                                  @RequestParam(value = "expirationDays", required = false) Integer expirationDays,
                                  @RequestParam(value = "tipoDocumento", required = false) String tipoDocumento,
+                                 @RequestParam("medicoId") UUID medicoId,
                                  RedirectAttributes redirectAttributes) {
         UUID pacienteId = getAuthenticatedPatientId();
         try {
             int days = (expirationDays != null && expirationDays > 0) ? expirationDays : 30;
-            documentoService.uploadMultipleDocuments(pacienteId, files, description, null, days, "PACIENTE", tipoDocumento);
+            documentoService.uploadMultipleDocuments(pacienteId, files, description, null, days, "PACIENTE", tipoDocumento, medicoId);
             redirectAttributes.addFlashAttribute("successMessage", "Documentos subidos correctamente.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Error: " + e.getMessage());

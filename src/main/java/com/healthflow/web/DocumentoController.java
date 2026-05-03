@@ -6,7 +6,13 @@ import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.repo.UserRepository;
 import com.healthflow.service.DocumentoService;
 import com.healthflow.service.DomainException;
+
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,6 +21,10 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 
@@ -66,7 +76,9 @@ public class DocumentoController {
                                  RedirectAttributes redirectAttributes) {
         try {
             int days = (expirationDays != null && expirationDays > 0) ? expirationDays : defaultExpirationDays;
-            List<Documento> docs = documentoService.uploadMultipleDocuments(patientId, files, description, appointmentId, days, "MEDICO", tipoDocumento);
+            UUID professionalId = getCurrentProfessionalId();   // ← AGREGAR ESTA LÍNEA
+            List<Documento> docs = documentoService.uploadMultipleDocuments(patientId, files, description,
+                    appointmentId, days, "MEDICO", tipoDocumento, professionalId);   // ← INCLUIR professionalId
             redirectAttributes.addFlashAttribute("successMessage", "Documentos subidos correctamente (" + docs.size() + ").");
         } catch (IOException | DomainException e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Error al subir: " + e.getMessage());
@@ -86,6 +98,45 @@ public class DocumentoController {
         } catch (DomainException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/doctor/pacientes";
+        }
+    }
+
+    @GetMapping("/{token}/preview")
+    public ResponseEntity<Resource> previewDocument(@PathVariable("token") UUID token) {
+        Documento doc = documentoService.getByToken(token);
+        Path filePath = Paths.get(doc.getFilePath());
+        try {
+            Resource resource = new UrlResource(filePath.toUri());
+            if (!resource.exists() && !resource.isReadable()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Determinar Content-Type según la extensión del archivo
+            String contentType = null;
+            String filename = doc.getFileName().toLowerCase();
+            if (filename.endsWith(".pdf")) {
+                contentType = "application/pdf";
+            } else if (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) {
+                contentType = "image/jpeg";
+            } else if (filename.endsWith(".png")) {
+                contentType = "image/png";
+            } else if (filename.endsWith(".gif")) {
+                contentType = "image/gif";
+            } else if (filename.endsWith(".svg")) {
+                contentType = "image/svg+xml";
+            } else {
+                // Intentar detectar por el sistema
+                contentType = Files.probeContentType(filePath);
+                if (contentType == null) contentType = "application/octet-stream";
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + doc.getFileName() + "\"")
+                    .header("X-Frame-Options", "SAMEORIGIN")
+                    .body(resource);
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

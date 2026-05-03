@@ -64,6 +64,8 @@ public class SecurityConfig {
                 .ignoringRequestMatchers("/doctor/agenda/save", "/doctor/citas/*/prescription-pdf",
                         "/doctor/citas/*/remision", "/api/doctor/firma")
         );
+        // Permitir frames del mismo origen para previsualizar PDFs en iframes
+        http.headers().frameOptions().sameOrigin();
         http.authorizeHttpRequests(auth -> auth
                         .requestMatchers("/public/**", "/api/public/**").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()

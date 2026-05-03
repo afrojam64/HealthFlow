@@ -150,6 +150,9 @@
                     <td th:text="${#temporals.format(doc.createdAt, 'dd/MM/yyyy')}"></td>
                     <td th:text="${#temporals.format(doc.expirationDate, 'dd/MM/yyyy')}"></td>
                     <td>
+                        <a href="#" class="btn btn-sm btn-outline-secondary preview-btn" th:data-token="${doc.token}" th:data-filename="${doc.fileName}">
+                            <i class="bi bi-eye"></i> Ver
+                        </a>
                         <a th:href="@{/api/public/documentos/{token}(token=${doc.token})}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Descargar</a>
                         <form th:action="@{/doctor/documentos/{id}/delete(id=${doc.id})}" method="post" style="display:inline;">
                             <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar este documento?')"><i class="bi bi-trash"></i></button>
@@ -182,6 +185,9 @@
                     <td th:text="${#temporals.format(doc.createdAt, 'dd/MM/yyyy')}"></td>
                     <td th:text="${#temporals.format(doc.expirationDate, 'dd/MM/yyyy')}"></td>
                     <td>
+                        <a href="#" class="btn btn-sm btn-outline-secondary preview-btn" th:data-token="${doc.token}" th:data-filename="${doc.fileName}">
+                            <i class="bi bi-eye"></i> Ver
+                        </a>
                         <a th:href="@{/api/public/documentos/{token}(token=${doc.token})}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Descargar</a>
                     </td>
                 </tr>
@@ -192,6 +198,78 @@
             <i class="bi bi-file-earmark-x fs-4 d-block mb-1"></i> No hay documentos subidos por el paciente.
         </div>
     </div>
+
+    <!-- Modal para previsualización de documentos -->
+    <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-eye me-2"></i>Vista previa del documento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center" id="previewContent">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <a href="#" id="downloadFromPreview" class="btn btn-primary" target="_blank">Descargar</a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+<script th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+        const previewContent = document.getElementById('previewContent');
+        const downloadLink = document.getElementById('downloadFromPreview');
+
+        document.querySelectorAll('.preview-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const token = this.getAttribute('data-token');
+                const filename = this.getAttribute('data-filename');
+                if (!token) {
+                    console.error('Token no encontrado');
+                    return;
+                }
+                const previewUrl = `/doctor/documentos/${token}/preview`;
+                const downloadUrl = `/api/public/documentos/${token}`;
+                downloadLink.href = downloadUrl;
+                downloadLink.setAttribute('download', filename);
+
+                previewContent.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>';
+                previewModal.show();
+
+                fetch(previewUrl)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Error al cargar el documento');
+                        }
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/pdf')) {
+                            previewContent.innerHTML = `<iframe src="${previewUrl}" width="100%" height="500px" style="border: none;"></iframe>`;
+                        } else if (contentType && contentType.includes('image/')) {
+                            return response.blob().then(blob => {
+                                const imageUrl = URL.createObjectURL(blob);
+                                previewContent.innerHTML = `<img src="${imageUrl}" class="img-fluid" alt="Vista previa" style="max-height: 70vh;">`;
+                                previewModal._element.addEventListener('hidden.bs.modal', function () {
+                                    URL.revokeObjectURL(imageUrl);
+                                }, { once: true });
+                            });
+                        } else {
+                            previewContent.innerHTML = `<div class="alert alert-warning">No se puede previsualizar este tipo de archivo. <a href="${downloadUrl}" target="_blank">Descargar</a></div>`;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        previewContent.innerHTML = '<div class="alert alert-danger">Error al cargar la vista previa. Intente descargar el archivo.</div>';
+                    });
+            });
+        });
+    });
+</script>
 </body>
 </html>

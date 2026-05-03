@@ -14,6 +14,9 @@ public class Documento extends BaseEntity {
     @JoinColumn(name = "paciente_id", nullable = false)
     private Patient patient;
 
+    @Column(name = "professional_id")
+    private UUID professionalId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cita_id")
     private Appointment appointment;
@@ -58,6 +61,9 @@ public class Documento extends BaseEntity {
 
     public Patient getPatient() { return patient; }
     public void setPatient(Patient patient) { this.patient = patient; }
+
+    public UUID getProfessionalId() { return professionalId; }
+    public void setProfessionalId(UUID professionalId) { this.professionalId = professionalId; }
 
     public Appointment getAppointment() { return appointment; }
     public void setAppointment(Appointment appointment) { this.appointment = appointment; }
