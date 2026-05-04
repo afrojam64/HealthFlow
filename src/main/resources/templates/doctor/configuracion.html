@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<div th:fragment="contenido">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary">
+            <i class="bi bi-gear me-2"></i>Configuración
+        </h2>
+    </div>
+
+    <!-- Pestañas o bloques -->
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" id="configTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="cambiar-password-tab" data-bs-toggle="tab" data-bs-target="#cambiar-password" type="button" role="tab">Cambiar contraseña</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="asistentes-tab" data-bs-toggle="tab" data-bs-target="#asistentes" type="button" role="tab">Crear asistente</button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content">
+                <!-- Cambiar contraseña -->
+                <div class="tab-pane fade show active" id="cambiar-password" role="tabpanel">
+                    <form method="post" th:action="@{/doctor/configuracion/cambiar-password}" class="mt-3">
+                        <div class="mb-3">
+                            <label for="currentPassword" class="form-label">Contraseña actual</label>
+                            <input type="password" class="form-control" id="currentPassword" name="currentPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">Nueva contraseña</label>
+                            <input type="password" class="form-control" id="newPassword" name="newPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">Confirmar nueva contraseña</label>
+                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Actualizar contraseña</button>
+                    </form>
+                </div>
+
+                <!-- Crear asistente (placeholder) -->
+                <div class="tab-pane fade" id="asistentes" role="tabpanel">
+                    <form method="post" th:action="@{/doctor/configuracion/crear-asistente}" class="mt-3">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Nombre de usuario</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Correo electrónico</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Contraseña temporal</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Crear asistente</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
