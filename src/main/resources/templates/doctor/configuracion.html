@@ -162,6 +162,10 @@
             permisosSeleccionados.push(cb.value);
         });
 
+        // Obtener token CSRF
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+
         fetch(`/doctor/configuracion/asistentes/${asistenteId}/permisos`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
