@@ -3,10 +3,12 @@ package com.healthflow.web;
 import com.healthflow.domain.*;
 import com.healthflow.repo.*;
 import com.healthflow.service.DomainException;
+import com.healthflow.service.PermisoService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -28,6 +30,7 @@ public class DoctorAgendaController {
     private final AvailabilityBaseRepository availabilityBaseRepository;
     private final AppointmentRepository appointmentRepository;
     private final AgendaExceptionRepository agendaExceptionRepository;
+    private final PermisoService permisoService;
     private final ZoneId zoneId;
     private final int slotMinutes;
 
@@ -36,7 +39,9 @@ public class DoctorAgendaController {
             UserRepository userRepository,
             WeeklyAvailabilityRepository weeklyAvailabilityRepository,
             AvailabilityBaseRepository availabilityBaseRepository,
-            AppointmentRepository appointmentRepository, AgendaExceptionRepository agendaExceptionRepository,
+            AppointmentRepository appointmentRepository,
+            AgendaExceptionRepository agendaExceptionRepository,
+            PermisoService permisoService,
             @Value("${healthflow.timezone:America/Bogota}") String tz,
             @Value("${healthflow.appointment.slotMinutes:30}") int slotMinutes) {
         this.professionalRepository = professionalRepository;
@@ -45,17 +50,49 @@ public class DoctorAgendaController {
         this.availabilityBaseRepository = availabilityBaseRepository;
         this.appointmentRepository = appointmentRepository;
         this.agendaExceptionRepository = agendaExceptionRepository;
+        this.permisoService = permisoService;
         this.zoneId = ZoneId.of(tz);
         this.slotMinutes = slotMinutes;
     }
 
+    private User getCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new DomainException("Usuario no encontrado"));
+    }
+
+    private UUID getCurrentProfessionalId() {
+        User user = getCurrentUser();
+        if ("ASISTENTE".equals(user.getRole())) {
+            UUID medicoId = permisoService.getMedicoIdByAsistente(user.getId());
+            if (medicoId == null) {
+                throw new AccessDeniedException("No tienes un médico asociado");
+            }
+            return medicoId;
+        } else {
+            Professional professional = professionalRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new DomainException("Profesional no encontrado"));
+            return professional.getId();
+        }
+    }
+
+    private Professional getCurrentProfessional() {
+        UUID professionalId = getCurrentProfessionalId();
+        return professionalRepository.findById(professionalId)
+                .orElseThrow(() -> new DomainException("Profesional no encontrado"));
+    }
+
     @GetMapping("/agenda")
     public String agenda(Model model) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new DomainException("Usuario no encontrado"));
-        Professional professional = professionalRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
+        User user = getCurrentUser();
+        // Validar permiso para asistentes
+        if ("ASISTENTE".equals(user.getRole())) {
+            if (!permisoService.tienePermiso(user.getId(), "CONFIGURAR_AGENDA")) {
+                throw new AccessDeniedException("No tienes permiso para configurar la agenda");
+            }
+        }
+
+        Professional professional = getCurrentProfessional();
 
         String[] monthNames = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
                 "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
@@ -69,7 +106,6 @@ public class DoctorAgendaController {
 
         LocalDate startOfCurrentWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
 
-        // Variables necesarias para el layout (copiadas de PatientController)
         String fechaActual = today.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + ", " +
                 today.getDayOfMonth() + " de " +
                 today.getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + " de " +
@@ -82,7 +118,7 @@ public class DoctorAgendaController {
         DashboardStats stats = new DashboardStats(0, 0, 0, 0);
         List<Object> proximasCitas = new ArrayList<>();
 
-        model.addAttribute("username", username);
+        model.addAttribute("username", getCurrentUser().getUsername());
         model.addAttribute("stats", stats);
         model.addAttribute("fechaActual", fechaActual);
         model.addAttribute("fechaTablaCitas", fechaTablaCitas);
@@ -91,7 +127,6 @@ public class DoctorAgendaController {
         model.addAttribute("nextDate", today.plusDays(1));
         model.addAttribute("today", today);
 
-        // Datos específicos de la agenda
         model.addAttribute("professionalId", professional.getId());
         model.addAttribute("professionalName", professional.getFullName());
         model.addAttribute("title", "Agenda - HealthFlow");
@@ -102,7 +137,7 @@ public class DoctorAgendaController {
         model.addAttribute("nextMonthName", monthNames[nextMonth]);
         model.addAttribute("startOfCurrentWeek", startOfCurrentWeek);
         model.addAttribute("professionalSlug", professional.getSlug());
-        model.addAttribute("slotMinutes", slotMinutes); // ← nuevo
+        model.addAttribute("slotMinutes", slotMinutes);
         model.addAttribute("contenido", "doctor/agenda");
 
         return "fragments/layout";
@@ -112,11 +147,15 @@ public class DoctorAgendaController {
     @Transactional
     @ResponseBody
     public String saveAvailability(@RequestBody DisponibilidadRequest request) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new DomainException("Usuario no encontrado"));
-        Professional professional = professionalRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
+        User user = getCurrentUser();
+        // Validar permiso para asistentes
+        if ("ASISTENTE".equals(user.getRole())) {
+            if (!permisoService.tienePermiso(user.getId(), "CONFIGURAR_AGENDA")) {
+                throw new AccessDeniedException("No tienes permiso para configurar la agenda");
+            }
+        }
+
+        Professional professional = getCurrentProfessional();
 
         LocalDate today = LocalDate.now(zoneId);
         LocalTime now = LocalTime.now(zoneId);
@@ -193,11 +232,8 @@ public class DoctorAgendaController {
 
                 // Si el día está marcado como inactivo (bloqueo)
                 if (dia.getActivo() != null && !dia.getActivo()) {
-                    // Eliminar cualquier excepción EXTRA que pudiera haber para esta fecha
                     agendaExceptionRepository.findByProfessionalIdAndDateAndType(professional.getId(), fecha, ExceptionType.EXTRA)
                             .ifPresent(agendaExceptionRepository::delete);
-
-                    // Crear o actualizar excepción de bloqueo
                     Optional<AgendaException> existingBlock = agendaExceptionRepository
                             .findByProfessionalIdAndDateAndType(professional.getId(), fecha, ExceptionType.BLOQUEO);
                     if (existingBlock.isEmpty()) {
@@ -209,14 +245,13 @@ public class DoctorAgendaController {
                         block.setEndTime(null);
                         agendaExceptionRepository.save(block);
                     }
-                    continue; // No guardar disponibilidad normal
+                    continue;
                 }
 
                 // Si el día está activo, eliminar cualquier bloqueo existente
                 agendaExceptionRepository.findByProfessionalIdAndDateAndType(professional.getId(), fecha, ExceptionType.BLOQUEO)
                         .ifPresent(agendaExceptionRepository::delete);
 
-                // Validar horarios (solo si está activo)
                 LocalTime startTime = LocalTime.parse(dia.getHoraInicio());
                 LocalTime endTime = LocalTime.parse(dia.getHoraFin());
                 if (fecha.isEqual(today) && startTime.isBefore(now)) {
@@ -230,7 +265,7 @@ public class DoctorAgendaController {
 
             // Agrupar por semana y guardar (solo días activos)
             Map<LocalDate, List<DiaConfig>> porSemana = dias.stream()
-                    .filter(d -> d.getActivo() == null || d.getActivo()) // solo días activos
+                    .filter(d -> d.getActivo() == null || d.getActivo())
                     .collect(Collectors.groupingBy(d -> {
                         LocalDate fecha = LocalDate.parse(d.getFecha());
                         return fecha.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
@@ -259,14 +294,12 @@ public class DoctorAgendaController {
         }
     }
 
-    // Método auxiliar para verificar si hay citas en un rango horario de un día
     private boolean hasAppointmentsInRange(UUID professionalId, LocalDate date, LocalTime start, LocalTime end) {
         OffsetDateTime startOfDay = date.atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime endOfDay = date.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
         List<Appointment> appointments = appointmentRepository.findActiveByProfessionalIdAndDateTimeBetween(professionalId, startOfDay, endOfDay);
         for (Appointment a : appointments) {
             LocalTime apptTime = a.getDateTime().atZoneSameInstant(zoneId).toLocalTime();
-            // Si la cita está dentro del rango (incluyendo extremos)
             if (!apptTime.isBefore(start) && !apptTime.isAfter(end)) {
                 return true;
             }
@@ -277,6 +310,11 @@ public class DoctorAgendaController {
     @ExceptionHandler(DomainException.class)
     public ResponseEntity<Map<String, String>> handleDomainException(DomainException ex) {
         return new ResponseEntity<>(Map.of("message", ex.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
+        return new ResponseEntity<>(Map.of("message", ex.getMessage()), HttpStatus.FORBIDDEN);
     }
 
     public static class DisponibilidadRequest {
@@ -314,7 +352,6 @@ public class DoctorAgendaController {
         public void setActivo(Boolean activo) { this.activo = activo; }
     }
 
-    // Clase interna para stats (igual que en PatientController)
     public static class DashboardStats {
         public final long citasHoy;
         public final long citasSemana;
@@ -339,36 +376,30 @@ public class DoctorAgendaController {
     public Map<String, Object> getMonthAvailability(@RequestParam("year") int year,
                                                     @RequestParam("month") int month,
                                                     @RequestParam("professionalId") UUID professionalId) {
-        // 1. Obtener todos los días del mes
         YearMonth yearMonth = YearMonth.of(year, month);
         LocalDate firstDay = yearMonth.atDay(1);
         LocalDate lastDay = yearMonth.atEndOfMonth();
 
-        // 2. Obtener disponibilidad base (recurrente) para todos los días de la semana
         List<AvailabilityBase> baseList = availabilityBaseRepository
                 .findByProfessionalIdOrderByDayOfWeekAscStartTimeAsc(professionalId);
         Map<Integer, List<AvailabilityBase>> baseByDay = baseList.stream()
                 .collect(Collectors.groupingBy(AvailabilityBase::getDayOfWeek));
 
-        // 3. Obtener excepciones semanales (weekly_availability) para el rango del mes
         List<WeeklyAvailability> weeklyExceptions = weeklyAvailabilityRepository
                 .findByProfessionalIdAndWeekStartDateBetween(professionalId, firstDay, lastDay);
         Map<LocalDate, List<WeeklyAvailability>> weeklyExceptionsByDate = weeklyExceptions.stream()
                 .collect(Collectors.groupingBy(wa -> wa.getWeekStartDate().plusDays(wa.getDayOfWeek() - 1)));
 
-        // 4. Obtener excepciones puntuales (excepciones_agenda) para el rango del mes
         List<AgendaException> puntualExceptions = agendaExceptionRepository.findByProfessional_IdAndDateBetween(professionalId, firstDay, lastDay);
         Map<LocalDate, List<AgendaException>> puntualExceptionsByDate = puntualExceptions.stream()
                 .collect(Collectors.groupingBy(AgendaException::getDate));
 
-        // 5. Construir la respuesta para cada día del mes
         List<Map<String, Object>> daysData = new ArrayList<>();
         for (LocalDate date = firstDay; !date.isAfter(lastDay); date = date.plusDays(1)) {
             Map<String, Object> dayInfo = new HashMap<>();
             dayInfo.put("date", date.toString());
             dayInfo.put("dayOfWeek", date.getDayOfWeek().getValue());
 
-            // Prioridad: excepción puntual > excepción semanal > base
             List<AgendaException> puntual = puntualExceptionsByDate.get(date);
             if (puntual != null && !puntual.isEmpty()) {
                 AgendaException ae = puntual.get(0);
@@ -376,8 +407,7 @@ public class DoctorAgendaController {
                 dayInfo.put("exceptionId", ae.getId());
                 dayInfo.put("startTime", ae.getStartTime() != null ? ae.getStartTime().toString() : null);
                 dayInfo.put("endTime", ae.getEndTime() != null ? ae.getEndTime().toString() : null);
-                dayInfo.put("active", ae.getType() != ExceptionType.BLOQUEO); // si es bloqueo, no activo
-                // Para bloqueo, no hay horario; para extra, se muestra el rango
+                dayInfo.put("active", ae.getType() != ExceptionType.BLOQUEO);
             } else {
                 List<WeeklyAvailability> weekly = weeklyExceptionsByDate.get(date);
                 if (weekly != null && !weekly.isEmpty()) {

@@ -2,10 +2,12 @@ package com.healthflow.web;
 
 import com.healthflow.domain.Documento;
 import com.healthflow.domain.Professional;
+import com.healthflow.domain.User;
 import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.repo.UserRepository;
 import com.healthflow.service.DocumentoService;
 import com.healthflow.service.DomainException;
+import com.healthflow.service.PermisoService;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -13,6 +15,7 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -35,29 +38,72 @@ public class DocumentoController {
     private final DocumentoService documentoService;
     private final ProfessionalRepository professionalRepository;
     private final UserRepository userRepository;
+    private final PermisoService permisoService;
     private final int defaultExpirationDays;
 
     public DocumentoController(DocumentoService documentoService,
                                ProfessionalRepository professionalRepository,
                                UserRepository userRepository,
+                               PermisoService permisoService,
                                @Value("${healthflow.document.expiration-days:7}") int defaultExpirationDays) {
         this.documentoService = documentoService;
         this.professionalRepository = professionalRepository;
         this.userRepository = userRepository;
+        this.permisoService = permisoService;
         this.defaultExpirationDays = defaultExpirationDays;
     }
 
-    private UUID getCurrentProfessionalId() {
+    private User getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        var user = userRepository.findByUsername(username)
+        return userRepository.findByUsername(username)
                 .orElseThrow(() -> new DomainException("Usuario no encontrado"));
-        Professional professional = professionalRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
-        return professional.getId();
+    }
+
+    private UUID getCurrentProfessionalId() {
+        User user = getCurrentUser();
+        if ("ASISTENTE".equals(user.getRole())) {
+            UUID medicoId = permisoService.getMedicoIdByAsistente(user.getId());
+            if (medicoId == null) {
+                throw new AccessDeniedException("No tienes un médico asociado");
+            }
+            return medicoId;
+        } else {
+            Professional professional = professionalRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
+            return professional.getId();
+        }
+    }
+
+    private void checkVerPacientesPermission() {
+        User user = getCurrentUser();
+        if ("ASISTENTE".equals(user.getRole())) {
+            if (!permisoService.tienePermiso(user.getId(), "VER_PACIENTES")) {
+                throw new AccessDeniedException("No tienes permiso para ver documentos de pacientes");
+            }
+        }
+    }
+
+    private void checkSubirDocumentosPermission() {
+        User user = getCurrentUser();
+        if ("ASISTENTE".equals(user.getRole())) {
+            if (!permisoService.tienePermiso(user.getId(), "SUBIR_DOCUMENTOS")) {
+                throw new AccessDeniedException("No tienes permiso para subir documentos");
+            }
+        }
+    }
+
+    private void checkEliminarDocumentosPermission() {
+        User user = getCurrentUser();
+        if ("ASISTENTE".equals(user.getRole())) {
+            if (!permisoService.tienePermiso(user.getId(), "ELIMINAR_DOCUMENTOS")) {
+                throw new AccessDeniedException("No tienes permiso para eliminar documentos");
+            }
+        }
     }
 
     @GetMapping("/paciente/{patientId}")
     public String listDocuments(@PathVariable("patientId") UUID patientId, Model model) {
+        checkVerPacientesPermission();
         var documentos = documentoService.getDocumentsByPatient(patientId);
         model.addAttribute("documentos", documentos);
         model.addAttribute("patientId", patientId);
@@ -74,11 +120,12 @@ public class DocumentoController {
                                  @RequestParam(value = "expirationDays", required = false) Integer expirationDays,
                                  @RequestParam(value = "tipoDocumento", required = false) String tipoDocumento,
                                  RedirectAttributes redirectAttributes) {
+        checkSubirDocumentosPermission();
         try {
             int days = (expirationDays != null && expirationDays > 0) ? expirationDays : defaultExpirationDays;
-            UUID professionalId = getCurrentProfessionalId();   // ← AGREGAR ESTA LÍNEA
+            UUID professionalId = getCurrentProfessionalId();
             List<Documento> docs = documentoService.uploadMultipleDocuments(patientId, files, description,
-                    appointmentId, days, "MEDICO", tipoDocumento, professionalId);   // ← INCLUIR professionalId
+                    appointmentId, days, "MEDICO", tipoDocumento, professionalId);
             redirectAttributes.addFlashAttribute("successMessage", "Documentos subidos correctamente (" + docs.size() + ").");
         } catch (IOException | DomainException e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Error al subir: " + e.getMessage());
@@ -89,6 +136,7 @@ public class DocumentoController {
     @PostMapping("/{documentId}/delete")
     public String deleteDocument(@PathVariable("documentId") UUID documentId,
                                  RedirectAttributes redirectAttributes) {
+        checkEliminarDocumentosPermission(); // Opcional: si no quieres este permiso, elimina esta línea
         try {
             Documento doc = documentoService.getDocumentById(documentId);
             UUID patientId = doc.getPatient().getId();
@@ -103,6 +151,8 @@ public class DocumentoController {
 
     @GetMapping("/{token}/preview")
     public ResponseEntity<Resource> previewDocument(@PathVariable("token") UUID token) {
+        // Este endpoint es público o requiere autenticación, pero normalmente se usa token único
+        // No se añade verificación de rol aquí porque el token ya encapsula el acceso.
         Documento doc = documentoService.getByToken(token);
         Path filePath = Paths.get(doc.getFilePath());
         try {
@@ -111,7 +161,6 @@ public class DocumentoController {
                 return ResponseEntity.notFound().build();
             }
 
-            // Determinar Content-Type según la extensión del archivo
             String contentType = null;
             String filename = doc.getFileName().toLowerCase();
             if (filename.endsWith(".pdf")) {
@@ -125,7 +174,6 @@ public class DocumentoController {
             } else if (filename.endsWith(".svg")) {
                 contentType = "image/svg+xml";
             } else {
-                // Intentar detectar por el sistema
                 contentType = Files.probeContentType(filePath);
                 if (contentType == null) contentType = "application/octet-stream";
             }

@@ -194,4 +194,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
                                           @Param("professionalId") UUID professionalId,
                                           @Param("estados") List<AppointmentStatus> estados,
                                           @Param("hoy") OffsetDateTime hoy);
+
+    long countByProfessionalIdAndStatusAndDateTimeBetween(UUID professionalId, AppointmentStatus status, OffsetDateTime start, OffsetDateTime end);
+    List<Appointment> findByProfessionalIdAndDateTimeBetweenOrderByDateTimeAsc(UUID professionalId, OffsetDateTime start, OffsetDateTime end);
 }

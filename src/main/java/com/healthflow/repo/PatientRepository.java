@@ -65,4 +65,12 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     Optional<Patient> findByEmail(String email);
 
     List<Patient> findByDocNumberContainingIgnoreCaseOrFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(String docNumber, String firstName, String lastName);
+
+    @Query("SELECT COUNT(DISTINCT a.patient.id) FROM Appointment a " +
+            "WHERE a.professional.id = :professionalId " +
+            "AND a.dateTime BETWEEN :start AND :end " +
+            "AND a.dateTime = (SELECT MIN(a2.dateTime) FROM Appointment a2 WHERE a2.patient.id = a.patient.id AND a2.professional.id = :professionalId)")
+    long countNewPatientsByProfessionalIdAndCreatedAtBetween(@Param("professionalId") UUID professionalId,
+                                                             @Param("start") OffsetDateTime start,
+                                                             @Param("end") OffsetDateTime end);
 }

@@ -3,6 +3,7 @@ package com.healthflow.web;
 import com.healthflow.domain.Documento;
 import com.healthflow.domain.Patient;
 import com.healthflow.domain.Professional;
+import com.healthflow.domain.User;
 import com.healthflow.repo.DocumentoRepository;
 import com.healthflow.repo.PatientRepository;
 import com.healthflow.repo.ProfessionalRepository;
@@ -10,7 +11,9 @@ import com.healthflow.repo.UserRepository;
 import com.healthflow.service.DocumentoService;
 import com.healthflow.service.DomainException;
 import com.healthflow.service.PatientService;
+import com.healthflow.service.PermisoService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -39,6 +42,7 @@ public class PatientController {
     private final DocumentoRepository documentoRepository;
     private final ZoneId zoneId;
     private final DocumentoService documentoService;
+    private final PermisoService permisoService;
 
     public PatientController(PatientService patientService,
                              ProfessionalRepository professionalRepository,
@@ -46,7 +50,8 @@ public class PatientController {
                              PatientRepository patientRepository,
                              DocumentoRepository documentoRepository,
                              @org.springframework.beans.factory.annotation.Value("${healthflow.timezone:America/Bogota}") String tz,
-                             DocumentoService documentoService) {
+                             DocumentoService documentoService,
+                             PermisoService permisoService) {
         this.patientService = patientService;
         this.professionalRepository = professionalRepository;
         this.userRepository = userRepository;
@@ -54,6 +59,28 @@ public class PatientController {
         this.documentoRepository = documentoRepository;
         this.zoneId = ZoneId.of(tz);
         this.documentoService = documentoService;
+        this.permisoService = permisoService;
+    }
+
+    private User getCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new DomainException("Usuario no encontrado"));
+    }
+
+    private UUID getCurrentProfessionalId() {
+        User user = getCurrentUser();
+        if ("ASISTENTE".equals(user.getRole())) {
+            UUID medicoId = permisoService.getMedicoIdByAsistente(user.getId());
+            if (medicoId == null) {
+                throw new AccessDeniedException("No tienes un médico asociado");
+            }
+            return medicoId;
+        } else {
+            Professional professional = professionalRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new DomainException("Profesional no encontrado"));
+            return professional.getId();
+        }
     }
 
     @GetMapping("/pacientes")
@@ -63,6 +90,13 @@ public class PatientController {
             @RequestParam(name = "fechaDesde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaDesde,
             @RequestParam(name = "fechaHasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta,
             Model model) {
+
+        User user = getCurrentUser();
+        if ("ASISTENTE".equals(user.getRole())) {
+            if (!permisoService.tienePermiso(user.getId(), "VER_PACIENTES")) {
+                throw new AccessDeniedException("No tienes permiso para ver la lista de pacientes");
+            }
+        }
 
         UUID professionalId = getCurrentProfessionalId();
 
@@ -113,6 +147,13 @@ public class PatientController {
             @RequestParam(name = "fechaHasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta,
             Model model) {
 
+        User user = getCurrentUser();
+        if ("ASISTENTE".equals(user.getRole())) {
+            if (!permisoService.tienePermiso(user.getId(), "VER_PACIENTES")) {
+                throw new AccessDeniedException("No tienes permiso para ver el historial de pacientes");
+            }
+        }
+
         UUID professionalId = getCurrentProfessionalId();
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new DomainException("Paciente no encontrado"));
@@ -132,7 +173,6 @@ public class PatientController {
             if (start != null && doc.getCreatedAt().isBefore(start)) continue;
             if (end != null && doc.getCreatedAt().isAfter(end)) continue;
 
-            // Filtrar por professionalId (solo documentos del médico actual)
             if (doc.getProfessionalId() == null || !doc.getProfessionalId().equals(professionalId)) {
                 continue;
             }
@@ -184,15 +224,6 @@ public class PatientController {
         model.addAttribute("contenido", "doctor/historial-paciente");
 
         return "fragments/layout";
-    }
-
-    private UUID getCurrentProfessionalId() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        var user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new DomainException("Usuario no encontrado"));
-        Professional professional = professionalRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
-        return professional.getId();
     }
 
     public static class DashboardStats {

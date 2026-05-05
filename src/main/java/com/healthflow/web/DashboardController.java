@@ -2,13 +2,17 @@ package com.healthflow.web;
 
 import com.healthflow.domain.Appointment;
 import com.healthflow.domain.AppointmentStatus;
+import com.healthflow.domain.Professional;
+import com.healthflow.domain.User;
 import com.healthflow.repo.AppointmentRepository;
 import com.healthflow.repo.PatientRepository;
 import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.repo.UserRepository;
 import com.healthflow.repo.RipsGenerationRepository;
 import com.healthflow.service.DomainException;
+import com.healthflow.service.PermisoService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -30,7 +34,8 @@ public class DashboardController {
     private final PatientRepository patientRepository;
     private final ProfessionalRepository professionalRepository;
     private final UserRepository userRepository;
-    private final RipsGenerationRepository ripsGenerationRepository;  // ← nuevo
+    private final RipsGenerationRepository ripsGenerationRepository;
+    private final PermisoService permisoService;
     private final ZoneId zoneId;
 
     public DashboardController(
@@ -38,35 +43,43 @@ public class DashboardController {
             PatientRepository patientRepository,
             ProfessionalRepository professionalRepository,
             UserRepository userRepository,
-            RipsGenerationRepository ripsGenerationRepository,  // ← nuevo
+            RipsGenerationRepository ripsGenerationRepository,
+            PermisoService permisoService,
             @org.springframework.beans.factory.annotation.Value("${healthflow.timezone:America/Bogota}") String tz) {
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.professionalRepository = professionalRepository;
         this.userRepository = userRepository;
-        this.ripsGenerationRepository = ripsGenerationRepository;  // ← nuevo
+        this.ripsGenerationRepository = ripsGenerationRepository;
+        this.permisoService = permisoService;
         this.zoneId = ZoneId.of(tz);
     }
 
-    private UUID getCurrentProfessionalId() {
+    private User getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        var user = userRepository.findByUsername(username)
+        return userRepository.findByUsername(username)
                 .orElseThrow(() -> new DomainException("Usuario no encontrado"));
-        var professional = professionalRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
-        return professional.getId();
     }
 
-    /**
-     * Verifica si el profesional tiene al menos un período pendiente de reporte RIPS.
-     * Un período pendiente = mes anterior al actual en el que no hay ninguna generación.
-     */
+    private UUID getCurrentProfessionalId() {
+        User user = getCurrentUser();
+        if ("ASISTENTE".equals(user.getRole())) {
+            UUID medicoId = permisoService.getMedicoIdByAsistente(user.getId());
+            if (medicoId == null) {
+                throw new AccessDeniedException("No tienes un médico asociado");
+            }
+            return medicoId;
+        } else {
+            Professional professional = professionalRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
+            return professional.getId();
+        }
+    }
+
     private boolean hayPeriodoPendiente(UUID professionalId) {
         LocalDate hoy = LocalDate.now(zoneId);
-        // Período: mes anterior (por ejemplo, si hoy es 26/04/2026, período es 01/03/2026 - 31/03/2026)
         LocalDate fechaDesde = hoy.minusMonths(1).withDayOfMonth(1);
         LocalDate fechaHasta = fechaDesde.withDayOfMonth(fechaDesde.lengthOfMonth());
-
         long generacionesExistentes = ripsGenerationRepository.countByProfessionalIdAndFechaDesdeAndFechaHasta(
                 professionalId, fechaDesde, fechaHasta);
         return generacionesExistentes == 0;
@@ -92,7 +105,6 @@ public class DashboardController {
         List<Appointment> proximasCitas = appointmentRepository
                 .findActiveByProfessionalIdAndDateTimeBetween(professionalId, startOfDay, endOfDay);
 
-        // Verificar RIPS pendiente
         boolean ripsPendiente = hayPeriodoPendiente(professionalId);
 
         model.addAttribute("title", "Dashboard - HealthFlow");
@@ -103,13 +115,12 @@ public class DashboardController {
         model.addAttribute("prevDate", viewDate.minusDays(1));
         model.addAttribute("nextDate", viewDate.plusDays(1));
         model.addAttribute("today", today);
-        model.addAttribute("ripsPendiente", ripsPendiente);  // ← nuevo
+        model.addAttribute("ripsPendiente", ripsPendiente);
         model.addAttribute("contenido", "dashboard/content");
 
         return "fragments/layout";
     }
 
-    // Resto de métodos (getStats, getCitasPorDia) no se modifican
     @GetMapping("/api/dashboard/stats")
     @ResponseBody
     public DashboardStats getStats(
@@ -122,13 +133,36 @@ public class DashboardController {
         OffsetDateTime startOfDay = startDate.atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime endOfDay = endDate.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
 
-        long citasEnPeriodo = appointmentRepository.countByDateTimeBetween(startOfDay, endOfDay);
-        long pacientesNuevos = patientRepository.countByCreatedAtBetween(startOfDay, endOfDay);
-        long citasAtendidas = appointmentRepository.countByStatusAndDateTimeBetween(AppointmentStatus.ATENDIDA, startOfDay, endOfDay);
+        UUID professionalId = getCurrentProfessionalId();
+
+        // Cantidad de citas en el período (sin importar estado)
+        long citasEnPeriodo = appointmentRepository.countByProfessionalIdAndDateTimeBetween(professionalId, startOfDay, endOfDay);
+
+        // Pacientes nuevos (primera cita con este profesional en el período)
+        long pacientesNuevos = countNewPatients(professionalId, startOfDay, endOfDay);
+
+        // Citas atendidas en el período (status ATENDIDA)
+        long citasAtendidas = countAttendedAppointments(professionalId, startOfDay, endOfDay);
+
         int ocupacion = citasEnPeriodo > 0 ? (int) ((citasAtendidas * 100) / citasEnPeriodo) : 0;
         int tasaAsistencia = ocupacion;
 
         return new DashboardStats(citasEnPeriodo, pacientesNuevos, ocupacion, tasaAsistencia);
+    }
+
+    private long countNewPatients(UUID professionalId, OffsetDateTime start, OffsetDateTime end) {
+        // Obtener todos los pacientes que tuvieron su primera cita con el profesional en el rango
+        List<Object[]> firstAppointments = appointmentRepository.findFirstAppointmentDatePerPatient(professionalId, start, end);
+        // firstAppointments contiene [patientId, firstAppointmentDate]
+        // Solo contamos aquellos donde la primera cita está dentro del rango (ya está filtrado por la consulta)
+        return firstAppointments.size();
+    }
+
+    private long countAttendedAppointments(UUID professionalId, OffsetDateTime start, OffsetDateTime end) {
+        // Usar el método existente que devuelve lista y luego contar
+        List<Appointment> attended = appointmentRepository.findByProfessionalIdAndDateTimeBetweenAndStatus(
+                professionalId, start, end, AppointmentStatus.ATENDIDA);
+        return attended.size();
     }
 
     @GetMapping("/api/dashboard/citas-por-dia")
@@ -139,7 +173,12 @@ public class DashboardController {
         OffsetDateTime startOfDay = start.atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime endOfDay = end.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
 
-        List<Appointment> citas = appointmentRepository.findByDateTimeBetweenOrderByDateTimeAsc(startOfDay, endOfDay);
+        UUID professionalId = getCurrentProfessionalId();
+
+        // Obtener citas del profesional en el rango usando método existente
+        List<Appointment> citas = appointmentRepository.findByProfessional_IdAndDateTimeBetween(professionalId, startOfDay, endOfDay);
+        // Ordenar por fecha (aunque la consulta podría no ordenar, lo hacemos en Java)
+        citas.sort(Comparator.comparing(Appointment::getDateTime));
 
         Map<LocalDate, Long> citasPorDia = citas.stream()
                 .collect(Collectors.groupingBy(

@@ -517,32 +517,55 @@
         <!-- Sidebar mejorado -->
         <div class="col-md-2">
             <div class="sidebar">
+                <!-- Sidebar -->
                 <div class="list-group">
-                    <a href="/dashboard" class="list-group-item list-group-item-action active">
+                    <!-- Dashboard: visible para todos -->
+                    <a href="/dashboard" class="list-group-item list-group-item-action" th:classappend="${active == 'dashboard'} ? 'active' : ''">
                         <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
-                    <a href="/doctor/agenda" class="list-group-item list-group-item-action">
+
+                    <!-- Configuración Agenda: solo si tiene permiso (o es médico) -->
+                    <a th:if="${permisos == null or permisos.contains('CONFIGURAR_AGENDA')}"
+                       href="/doctor/agenda" class="list-group-item list-group-item-action">
                         <i class="bi bi-calendar-week"></i> Configuración Agenda
                     </a>
-                    <a href="/doctor/calendario" class="list-group-item list-group-item-action">
+
+                    <!-- Calendario de Citas: solo si tiene permiso -->
+                    <a th:if="${permisos == null or permisos.contains('VER_CALENDARIO')}"
+                       href="/doctor/calendario" class="list-group-item list-group-item-action">
                         <i class="bi bi-calendar-range"></i> Calendario de Citas
                     </a>
-                    <a href="/doctor/pacientes" class="list-group-item list-group-item-action">
+
+                    <!-- Pacientes: solo si tiene permiso -->
+                    <a th:if="${permisos == null or permisos.contains('VER_PACIENTES')}"
+                       href="/doctor/pacientes" class="list-group-item list-group-item-action">
                         <i class="bi bi-people"></i> Pacientes
                     </a>
-                    <a href="#" class="list-group-item list-group-item-action">
+
+                    <!-- Consultas (si no hay permiso específico, se puede mostrar solo a médicos) -->
+                    <a th:if="${permisos == null}" href="#" class="list-group-item list-group-item-action">
                         <i class="bi bi-file-text"></i> Consultas
                     </a>
-                    <a href="/doctor/reportes/rips" class="list-group-item list-group-item-action">
+
+                    <!-- Reportes RIPS: solo si tiene permiso -->
+                    <a th:if="${permisos == null or permisos.contains('GENERAR_RIPS')}"
+                       href="/doctor/reportes/rips" class="list-group-item list-group-item-action">
                         <i class="bi bi-graph-up"></i> Reportes RIPS
                     </a>
-                    <a href="/doctor/reportes/rips/historial" class="list-group-item list-group-item-action">
+
+                    <!-- Historial RIPS: mismo permiso que generar -->
+                    <a th:if="${permisos == null or permisos.contains('GENERAR_RIPS')}"
+                       href="/doctor/reportes/rips/historial" class="list-group-item list-group-item-action">
                         <i class="bi bi-clock-history"></i> Historial RIPS
                     </a>
+
+                    <!-- Mi Perfil: visible para todos (médicos y asistentes) -->
                     <a href="/doctor/perfil" class="list-group-item list-group-item-action">
                         <i class="bi bi-person"></i> Mi Perfil
                     </a>
-                    <a href="/doctor/configuracion" class="list-group-item list-group-item-action">
+
+                    <!-- Configuración (solo médicos, no asistentes) -->
+                    <a th:if="${permisos == null}" href="/doctor/configuracion" class="list-group-item list-group-item-action">
                         <i class="bi bi-gear"></i> Configuración
                     </a>
                 </div>

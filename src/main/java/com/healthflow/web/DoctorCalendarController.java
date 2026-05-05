@@ -2,11 +2,14 @@ package com.healthflow.web;
 
 import com.healthflow.domain.Appointment;
 import com.healthflow.domain.Professional;
+import com.healthflow.domain.User;
 import com.healthflow.repo.AppointmentRepository;
 import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.repo.UserRepository;
 import com.healthflow.service.DomainException;
+import com.healthflow.service.PermisoService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -29,17 +32,41 @@ public class DoctorCalendarController {
     private final AppointmentRepository appointmentRepository;
     private final ProfessionalRepository professionalRepository;
     private final UserRepository userRepository;
+    private final PermisoService permisoService;
     private final ZoneId zoneId;
 
     public DoctorCalendarController(
             AppointmentRepository appointmentRepository,
             ProfessionalRepository professionalRepository,
             UserRepository userRepository,
+            PermisoService permisoService,
             @Value("${healthflow.timezone:America/Bogota}") String tz) {
         this.appointmentRepository = appointmentRepository;
         this.professionalRepository = professionalRepository;
         this.userRepository = userRepository;
+        this.permisoService = permisoService;
         this.zoneId = ZoneId.of(tz);
+    }
+
+    private User getCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new DomainException("Usuario no encontrado"));
+    }
+
+    private UUID getCurrentProfessionalId() {
+        User user = getCurrentUser();
+        if ("ASISTENTE".equals(user.getRole())) {
+            UUID medicoId = permisoService.getMedicoIdByAsistente(user.getId());
+            if (medicoId == null) {
+                throw new AccessDeniedException("No tienes un médico asociado");
+            }
+            return medicoId;
+        } else {
+            Professional professional = professionalRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new DomainException("Profesional no encontrado"));
+            return professional.getId();
+        }
     }
 
     @GetMapping("/calendario")
@@ -48,7 +75,14 @@ public class DoctorCalendarController {
             @RequestParam(name = "month", required = false) Integer month,
             Model model) {
 
-        // Obtener profesional autenticado
+        User user = getCurrentUser();
+        // Validar permiso para asistentes
+        if ("ASISTENTE".equals(user.getRole())) {
+            if (!permisoService.tienePermiso(user.getId(), "VER_CALENDARIO")) {
+                throw new AccessDeniedException("No tienes permiso para ver el calendario");
+            }
+        }
+
         UUID professionalId = getCurrentProfessionalId();
 
         // Determinar año y mes (si no se proporcionan, usar el actual)
@@ -78,8 +112,7 @@ public class DoctorCalendarController {
         // Construir estructura para el calendario (semanas)
         List<List<LocalDate>> semanas = new ArrayList<>();
         LocalDate dia = primerDia;
-        // Ajustar al lunes anterior si el primer día no es lunes
-        int firstDayOfWeekValue = primerDia.getDayOfWeek().getValue(); // 1=lunes, 7=domingo
+        int firstDayOfWeekValue = primerDia.getDayOfWeek().getValue();
         if (firstDayOfWeekValue != 1) {
             dia = primerDia.minusDays(firstDayOfWeekValue - 1);
         }
@@ -93,7 +126,6 @@ public class DoctorCalendarController {
             semanas.add(semana);
         }
 
-        // Nombres de meses para navegación
         String[] monthNames = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
                 "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
 
@@ -102,7 +134,6 @@ public class DoctorCalendarController {
         int nextMonth = currentMonth == 12 ? 1 : currentMonth + 1;
         int nextYear = currentMonth == 12 ? currentYear + 1 : currentYear;
 
-        // Variables para el layout (necesarias para que el layout funcione)
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         String fechaActual = today.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("es", "ES")) + ", " +
                 today.getDayOfMonth() + " de " +
@@ -118,7 +149,6 @@ public class DoctorCalendarController {
         model.addAttribute("proximasCitas", proximasCitas);
         model.addAttribute("today", today);
 
-        // Datos específicos del calendario
         model.addAttribute("citasPorDia", citasPorDia);
         model.addAttribute("semanas", semanas);
         model.addAttribute("currentYear", currentYear);
@@ -132,15 +162,6 @@ public class DoctorCalendarController {
         model.addAttribute("contenido", "doctor/calendario");
 
         return "fragments/layout";
-    }
-
-    private UUID getCurrentProfessionalId() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        var user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new DomainException("Usuario no encontrado"));
-        Professional professional = professionalRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new DomainException("No tienes un profesional asociado"));
-        return professional.getId();
     }
 
     // Clase interna para stats (requerida por el layout)
