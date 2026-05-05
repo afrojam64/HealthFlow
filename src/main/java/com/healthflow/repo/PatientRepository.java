@@ -84,4 +84,9 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
             "     p.docNumber LIKE CONCAT('%', :search, '%'))")
     List<Patient> findByProfessionalIdAndSearchText(@Param("professionalId") UUID professionalId,
                                                     @Param("search") String search);
+
+    // En PatientRepository.java
+
+    @Query("SELECT COUNT(a) > 0 FROM Appointment a WHERE a.professional.id = :professionalId AND a.patient.id = :patientId")
+    boolean existsByProfessionalIdAndPatientId(@Param("professionalId") UUID professionalId, @Param("patientId") UUID patientId);
 }
