@@ -62,8 +62,11 @@ public class DocumentoController {
 
     private User getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByUsername(username)
+        System.out.println("DEBUG getCurrentUser - username: " + username);
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new DomainException("Usuario no encontrado"));
+        System.out.println("DEBUG getCurrentUser - user.id: " + user.getId() + ", role: " + user.getRole());
+        return user;
     }
 
     private UUID getCurrentProfessionalId() {
@@ -92,11 +95,15 @@ public class DocumentoController {
 
     private void checkSubirDocumentosPermission() {
         User user = getCurrentUser();
+        System.out.println("DEBUG checkSubirDocumentosPermission - user role: " + user.getRole() + ", userId: " + user.getId());
         if ("ASISTENTE".equals(user.getRole())) {
             List<String> permisos = permisoService.getPermisosDeAsistente(user.getId());
+            System.out.println("DEBUG checkSubirDocumentosPermission - permisos obtenidos: " + permisos);
             if (permisos == null || !permisos.contains("SUBIR_DOCUMENTOS")) {
+                System.out.println("DEBUG checkSubirDocumentosPermission - PERMISO DENEGADO, lanzando excepción");
                 throw new AccessDeniedException("No tienes permiso para subir documentos");
             }
+            System.out.println("DEBUG checkSubirDocumentosPermission - PERMISO CONCEDIDO");
         }
     }
 
@@ -229,6 +236,9 @@ public class DocumentoController {
         } catch (AccessDeniedException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
+        System.out.println("DEBUG POST subir - pacienteId: " + patientId);
+        System.out.println("DEBUG POST subir - tipoDocumento: " + tipoDocumento);
+        System.out.println("DEBUG POST subir - files size: " + files.size());
         return "redirect:/doctor/documentos/subir";
     }
 
