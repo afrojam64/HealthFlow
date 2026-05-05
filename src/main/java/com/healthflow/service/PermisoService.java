@@ -40,4 +40,41 @@ public class PermisoService {
         // Todos los permisos del mismo asistente tienen el mismo medicoId
         return permisos.get(0).getMedicoId();
     }
+
+    // Agregar estos métodos en PermisoService
+
+    @Transactional
+    public void agregarPermiso(UUID medicoId, UUID asistenteId, String permiso) {
+        if (!permisoRepository.existsByAsistenteIdAndPermiso(asistenteId, permiso)) {
+            AsistentePermiso ap = new AsistentePermiso();
+            ap.setMedicoId(medicoId);
+            ap.setAsistenteId(asistenteId);
+            ap.setPermiso(permiso);
+            ap.setConcedido(true);
+            permisoRepository.save(ap);
+        }
+    }
+
+    @Transactional
+    public void revocarPermiso(UUID asistenteId, String permiso) {
+        permisoRepository.deleteByAsistenteIdAndPermiso(asistenteId, permiso);
+    }
+
+    @Transactional
+    public void actualizarPermisos(UUID medicoId, UUID asistenteId, List<String> nuevosPermisos) {
+        // Obtener permisos actuales
+        List<String> actuales = getPermisosDeAsistente(asistenteId);
+        // Permisos a eliminar
+        for (String p : actuales) {
+            if (!nuevosPermisos.contains(p)) {
+                revocarPermiso(asistenteId, p);
+            }
+        }
+        // Permisos a agregar
+        for (String p : nuevosPermisos) {
+            if (!actuales.contains(p)) {
+                agregarPermiso(medicoId, asistenteId, p);
+            }
+        }
+    }
 }
