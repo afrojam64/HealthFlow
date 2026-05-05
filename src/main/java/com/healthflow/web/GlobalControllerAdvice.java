@@ -1,6 +1,7 @@
 package com.healthflow.web;
 
 import com.healthflow.domain.User;
+import com.healthflow.repo.UserRepository;
 import com.healthflow.service.PermisoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,6 +17,9 @@ public class GlobalControllerAdvice {
     @Autowired
     private PermisoService permisoService;
 
+    @Autowired
+    private UserRepository userRepository;
+
     @ModelAttribute("permisos")
     public List<String> getPermisos() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -24,12 +28,13 @@ public class GlobalControllerAdvice {
         }
         Object principal = authentication.getPrincipal();
         if (principal instanceof User) {
-            User user = (User) principal;
-            if ("ASISTENTE".equals(user.getRole())) {
-                return permisoService.getPermisosDeAsistente(user.getId());
+            User userFromPrincipal = (User) principal;
+            // Obtener el usuario completo desde la base de datos para tener el ID
+            User fullUser = userRepository.findByUsername(userFromPrincipal.getUsername()).orElse(null);
+            if (fullUser != null && "ASISTENTE".equals(fullUser.getRole())) {
+                return permisoService.getPermisosDeAsistente(fullUser.getId());
             }
         }
-        // Para médicos o admin, devolvemos null (significa que no hay restricción, mostrar todo)
         return null;
     }
 }

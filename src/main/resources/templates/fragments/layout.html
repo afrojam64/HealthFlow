@@ -419,15 +419,15 @@
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
             border: none;
-            padding: 10px 30px; /* más pequeño que el original */
+            padding: 10px 30px;
             border-radius: 40px;
             font-weight: 600;
-            font-size: 1rem; /* un poco más pequeño */
+            font-size: 1rem;
             cursor: pointer;
             transition: background 0.2s;
             margin-top: 16px;
-            display: inline-block; /* para que no ocupe todo el ancho */
-            width: auto; /* elimina el ancho completo */
+            display: inline-block;
+            width: auto;
         }
         .btn-save:hover {
             background: var(--primary-dark);
@@ -467,14 +467,14 @@
             border-radius: 16px;
             padding: 1.5rem;
         }
-         .badge-no-atendida {
-             background-color: #f8d7da;  /* rojo suave */
-             color: #721c24;              /* texto rojo oscuro (contrasta bien) */
-             padding: 0.3rem 0.8rem;
-             border-radius: 20px;
-             font-size: 0.8rem;
-             font-weight: 500;
-         }
+        .badge-no-atendida {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -534,6 +534,18 @@
                     <a th:if="${permisos == null or permisos.contains('VER_CALENDARIO')}"
                        href="/doctor/calendario" class="list-group-item list-group-item-action">
                         <i class="bi bi-calendar-range"></i> Calendario de Citas
+                    </a>
+
+                    <!-- Subir Documento: solo para asistentes con permiso -->
+                    <a th:if="${permisos != null and permisos.contains('SUBIR_DOCUMENTOS')}"
+                       href="/doctor/documentos/subir" class="list-group-item list-group-item-action">
+                        <i class="bi bi-upload"></i> Subir Documento
+                    </a>
+
+                    <!-- Nueva Cita: solo para asistentes con permiso -->
+                    <a th:if="${permisos != null and permisos.contains('CREAR_CITAS')}"
+                       href="/doctor/citas/nueva" class="list-group-item list-group-item-action">
+                        <i class="bi bi-plus-circle"></i> Nueva Cita
                     </a>
 
                     <!-- Pacientes: solo si tiene permiso -->

@@ -20,7 +20,10 @@ public class PermisoService {
 
     @Transactional(readOnly = true)
     public List<String> getPermisosDeAsistente(UUID asistenteId) {
-        return permisoRepository.findPermisosByAsistenteId(asistenteId);
+        System.out.println("DEBUG PermisoService - asistenteId recibido: " + asistenteId);
+        List<String> perms = permisoRepository.findPermisosByAsistenteId(asistenteId);
+        System.out.println("DEBUG PermisoService - resultado: " + perms);
+        return perms;
     }
 
     @Transactional(readOnly = true)

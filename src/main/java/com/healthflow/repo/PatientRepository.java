@@ -73,4 +73,15 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     long countNewPatientsByProfessionalIdAndCreatedAtBetween(@Param("professionalId") UUID professionalId,
                                                              @Param("start") OffsetDateTime start,
                                                              @Param("end") OffsetDateTime end);
+
+    // Agregar este método en PatientRepository
+
+    @Query("SELECT DISTINCT p FROM Patient p " +
+            "JOIN Appointment a ON a.patient.id = p.id " +
+            "WHERE a.professional.id = :professionalId " +
+            "AND (LOWER(p.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "     LOWER(p.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "     p.docNumber LIKE CONCAT('%', :search, '%'))")
+    List<Patient> findByProfessionalIdAndSearchText(@Param("professionalId") UUID professionalId,
+                                                    @Param("search") String search);
 }

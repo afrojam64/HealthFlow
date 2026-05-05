@@ -1,8 +1,10 @@
 package com.healthflow.web;
 
 import com.healthflow.domain.Documento;
+import com.healthflow.domain.Patient;
 import com.healthflow.domain.Professional;
 import com.healthflow.domain.User;
+import com.healthflow.repo.PatientRepository;
 import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.repo.UserRepository;
 import com.healthflow.service.DocumentoService;
@@ -28,8 +30,11 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/doctor/documentos")
@@ -40,17 +45,19 @@ public class DocumentoController {
     private final UserRepository userRepository;
     private final PermisoService permisoService;
     private final int defaultExpirationDays;
+    private final PatientRepository patientRepository;
 
     public DocumentoController(DocumentoService documentoService,
                                ProfessionalRepository professionalRepository,
                                UserRepository userRepository,
                                PermisoService permisoService,
-                               @Value("${healthflow.document.expiration-days:7}") int defaultExpirationDays) {
+                               @Value("${healthflow.document.expiration-days:7}") int defaultExpirationDays, PatientRepository patientRepository) {
         this.documentoService = documentoService;
         this.professionalRepository = professionalRepository;
         this.userRepository = userRepository;
         this.permisoService = permisoService;
         this.defaultExpirationDays = defaultExpirationDays;
+        this.patientRepository = patientRepository;
     }
 
     private User getCurrentUser() {
@@ -86,7 +93,8 @@ public class DocumentoController {
     private void checkSubirDocumentosPermission() {
         User user = getCurrentUser();
         if ("ASISTENTE".equals(user.getRole())) {
-            if (!permisoService.tienePermiso(user.getId(), "SUBIR_DOCUMENTOS")) {
+            List<String> permisos = permisoService.getPermisosDeAsistente(user.getId());
+            if (permisos == null || !permisos.contains("SUBIR_DOCUMENTOS")) {
                 throw new AccessDeniedException("No tienes permiso para subir documentos");
             }
         }
@@ -186,5 +194,56 @@ public class DocumentoController {
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @GetMapping("/subir")
+    public String mostrarFormularioSubida(Model model) {
+        checkSubirDocumentosPermission();
+        model.addAttribute("tiposDocumento", List.of("FORMULA", "REMISION", "LABORATORIO", "RADIOGRAFIA", "OTRO"));
+        model.addAttribute("title", "Subir Documento - HealthFlow");
+        model.addAttribute("contenido", "doctor/subir-documento");
+        return "fragments/layout";
+    }
+
+    @PostMapping("/subir")
+    public String subirDocumento(@RequestParam("pacienteId") UUID patientId,
+                                 @RequestParam("tipoDocumento") String tipoDocumento,
+                                 @RequestParam("descripcion") String descripcion,
+                                 @RequestParam("files") List<MultipartFile> files,
+                                 RedirectAttributes redirectAttributes) {
+        checkSubirDocumentosPermission();
+        try {
+            UUID professionalId = getCurrentProfessionalId();
+            // Validar que el paciente pertenezca al médico asociado
+            List<Patient> pacientesValidos = patientRepository.findPatientsByProfessionalId(professionalId);
+            boolean pacientePertenece = pacientesValidos.stream().anyMatch(p -> p.getId().equals(patientId));
+            if (!pacientePertenece) {
+                throw new AccessDeniedException("El paciente no pertenece a tu médico asociado");
+            }
+            int expirationDays = defaultExpirationDays; // usar valor por defecto
+            List<Documento> docs = documentoService.uploadMultipleDocuments(patientId, files, descripcion,
+                    null, expirationDays, "ASISTENTE", tipoDocumento, professionalId);
+            redirectAttributes.addFlashAttribute("successMessage", "Documento(s) subido(s) correctamente (" + docs.size() + ").");
+        } catch (IOException | DomainException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Error al subir: " + e.getMessage());
+        } catch (AccessDeniedException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/doctor/documentos/subir";
+    }
+
+    @GetMapping("/api/buscar-pacientes")
+    @ResponseBody
+    public List<Map<String, String>> buscarPacientes(@RequestParam("q") String query) {
+        checkSubirDocumentosPermission(); // solo asistentes con permiso pueden buscar
+        UUID professionalId = getCurrentProfessionalId();
+        List<Patient> pacientes = patientRepository.findByProfessionalIdAndSearchText(professionalId, query);
+        return pacientes.stream().limit(10).map(p -> {
+            Map<String, String> map = new HashMap<>();
+            map.put("id", p.getId().toString());
+            map.put("nombre", p.getFirstName() + " " + p.getLastName());
+            map.put("documento", p.getDocNumber());
+            return map;
+        }).collect(Collectors.toList());
     }
 }

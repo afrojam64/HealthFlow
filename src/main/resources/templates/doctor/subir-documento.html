@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Subir Documento</title>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+</head>
+<body>
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h3 class="mb-0"><i class="bi bi-upload"></i> Subir Documento</h3>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/doctor/documentos/subir}" method="post" enctype="multipart/form-data">
+                <!-- Buscador de paciente -->
+                <div class="mb-3">
+                    <label for="paciente" class="form-label">Paciente *</label>
+                    <select id="paciente" name="pacienteId" required class="form-control"></select>
+                    <div class="form-text">Busque por nombre o número de documento</div>
+                </div>
+
+                <!-- Tipo de documento -->
+                <div class="mb-3">
+                    <label for="tipoDocumento" class="form-label">Tipo de documento *</label>
+                    <select id="tipoDocumento" name="tipoDocumento" class="form-select" required>
+                        <option value="">Seleccione...</option>
+                        <option th:each="tipo : ${tiposDocumento}" th:value="${tipo}" th:text="${tipo}"></option>
+                    </select>
+                </div>
+
+                <!-- Descripción -->
+                <div class="mb-3">
+                    <label for="descripcion" class="form-label">Descripción</label>
+                    <textarea id="descripcion" name="descripcion" rows="2" class="form-control"></textarea>
+                </div>
+
+                <!-- Archivos -->
+                <div class="mb-3">
+                    <label for="files" class="form-label">Archivos *</label>
+                    <input type="file" id="files" name="files" multiple class="form-control" accept=".pdf,.jpg,.jpeg,.png,.gif" required>
+                    <div class="form-text">Formatos permitidos: PDF, JPG, PNG, GIF</div>
+                </div>
+
+                <button type="submit" class="btn btn-health">
+                    <i class="bi bi-cloud-upload"></i> Subir documentos
+                </button>
+                <a href="/dashboard" class="btn btn-secondary">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        new TomSelect('#paciente', {
+            valueField: 'id',
+            labelField: 'nombre',
+            searchField: ['nombre', 'documento'],
+            load: function(query, callback) {
+                if (!query.length) return callback();
+                fetch(`/doctor/documentos/api/buscar-pacientes?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        callback(data.map(item => ({
+                            id: item.id,
+                            nombre: `${item.nombre} (${item.documento})`
+                        })));
+                    })
+                    .catch(() => callback());
+            },
+            render: {
+                option: function(item, escape) {
+                    return `<div>${escape(item.nombre)}</div>`;
+                },
+                item: function(item, escape) {
+                    return `<div>${escape(item.nombre)}</div>`;
+                }
+            },
+            placeholder: 'Escriba nombre o documento...',
+            create: false,
+            maxOptions: 20
+        });
+    });
+</script>
+</body>
+</html>
