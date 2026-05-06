@@ -193,7 +193,7 @@ public class DoctorProfileController {
 
     @PostMapping("/configuracion/asistentes/{asistenteId}/permisos")
     @ResponseBody
-    public ResponseEntity<?> actualizarPermisos(@PathVariable UUID asistenteId,
+    public ResponseEntity<?> actualizarPermisos(@PathVariable("asistenteId") UUID asistenteId,
                                                 @RequestBody List<String> permisos) {
         User medicoUser = getCurrentUser();
         Professional medico = professionalRepository.findByUserId(medicoUser.getId())

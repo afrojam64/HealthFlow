@@ -62,15 +62,21 @@ public class PermisoService {
 
     @Transactional
     public void actualizarPermisos(UUID medicoId, UUID asistenteId, List<String> nuevosPermisos) {
-        // Obtener permisos actuales
+        // ✅ Forzar al menos un permiso básico
+        if (nuevosPermisos == null || nuevosPermisos.isEmpty()) {
+            nuevosPermisos = List.of("VER_CALENDARIO");
+        }
+
         List<String> actuales = getPermisosDeAsistente(asistenteId);
-        // Permisos a eliminar
+
+        // Revocar los que ya no están
         for (String p : actuales) {
             if (!nuevosPermisos.contains(p)) {
                 revocarPermiso(asistenteId, p);
             }
         }
-        // Permisos a agregar
+
+        // Agregar los nuevos
         for (String p : nuevosPermisos) {
             if (!actuales.contains(p)) {
                 agregarPermiso(medicoId, asistenteId, p);
