@@ -17,7 +17,7 @@
         .sidebar .nav-link.active { background: var(--primary); color: white; }
         .sidebar .nav-link i { margin-right: 10px; }
         .content-card { background: white; border-radius: 24px; padding: 2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-        .medico-avatar { width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 2px solid var(--primary); }
+        .medico-avatar { width: 160px; height: 160px; object-fit: cover; border-radius: 50%; border: 2px solid var(--primary); }
     </style>
 </head>
 <body>
@@ -77,7 +77,16 @@
                         <strong>Tu médico:</strong> <span th:text="${medicoNombre}"></span>
                     </div>
                 </div>
-
+                <!-- Dentro del div class="text-center mb-4", después de mostrar el nombre -->
+                <div class="mt-2">
+                    <strong>Especialidad:</strong> <span th:text="${medicoEspecialidad}"></span>
+                </div>
+                <div th:if="${medicoBiografia != null and medicoBiografia != ''}" class="mt-2">
+                    <strong>Relato:</strong> <span th:text="${medicoBiografia}"></span>
+                </div>
+                <div th:unless="${medicoBiografia != null and medicoBiografia != ''}" class="mt-2 text-muted">
+                    <em>Sin relato proporcionado</em>
+                </div>
                 <hr>
                 <div class="row mt-4">
                     <div class="col-md-4 mb-3">

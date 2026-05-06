@@ -97,13 +97,19 @@ public class PacientePortalController {
                 if (medico != null) {
                     model.addAttribute("medicoNombre", medico.getFullName());
                     model.addAttribute("medicoAvatar", medico.getAvatarUrl());
+                    model.addAttribute("medicoEspecialidad", medico.getSpecialty());
+                    model.addAttribute("medicoBiografia", medico.getBiografia() != null ? medico.getBiografia() : "");
                 } else {
                     model.addAttribute("medicoNombre", "No asignado");
                     model.addAttribute("medicoAvatar", null);
+                    model.addAttribute("medicoEspecialidad", "No asignada");
+                    model.addAttribute("medicoBiografia", "");
                 }
             } else {
                 model.addAttribute("medicoNombre", "Aún sin médico asignado");
                 model.addAttribute("medicoAvatar", null);
+                model.addAttribute("medicoEspecialidad", "No asignada");
+                model.addAttribute("medicoBiografia", "");
             }
 
             // Opcional: pasar el token a la vista si se necesita en los enlaces

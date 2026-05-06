@@ -208,4 +208,22 @@ public class DoctorProfileController {
         }
         return "redirect:/doctor/perfil";
     }
+
+    @PostMapping("/perfil/actualizar-biografia")
+    public String actualizarBiografia(@RequestParam("biografia") String biografia,
+                                      RedirectAttributes redirectAttributes) {
+        try {
+            if (biografia == null) biografia = "";
+            if (biografia.length() > 500) {
+                throw new DomainException("El relato no puede exceder los 500 caracteres.");
+            }
+            Professional professional = getCurrentProfessional();
+            professional.setBiografia(biografia);
+            professionalRepository.save(professional);
+            redirectAttributes.addFlashAttribute("successMessage", "Relato profesional actualizado.");
+        } catch (DomainException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/doctor/perfil";
+    }
 }

@@ -62,11 +62,37 @@
                     <p><strong>Nombre:</strong> <span th:text="${nombre}"></span></p>
                     <p><strong>Especialidad:</strong> <span th:text="${especialidad}"></span></p>
                 </div>
+                <hr>
+                <div class="mt-3">
+                    <h5>Relato profesional</h5>
+                    <form method="post" th:action="@{/doctor/perfil/actualizar-biografia}" class="mt-2">
+                        <div class="mb-2">
+                            <label for="biografia" class="form-label">Cuéntales a tus pacientes sobre tu experiencia (máx. 500 caracteres)</label>
+                            <textarea class="form-control" id="biografia" name="biografia" rows="4" maxlength="500"
+                                      th:text="${professional.biografia}"></textarea>
+                            <div class="form-text text-end">
+                                <span id="caracteres">0</span> / 500 caracteres
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-save"></i> Guardar relato
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
-
+<script>
+    const textarea = document.getElementById('biografia');
+    const contador = document.getElementById('caracteres');
+    function actualizarContador() {
+        const longitud = textarea.value.length;
+        contador.textContent = longitud;
+    }
+    textarea.addEventListener('input', actualizarContador);
+    actualizarContador();
+</script>
 <script>
     document.getElementById('firmaFile').addEventListener('change', function(e) {
         const file = e.target.files[0];

@@ -69,6 +69,9 @@ public class Professional extends BaseEntity {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    @Column(name = "biografia", length = 500)
+    private String biografia;
+
     // Getters y setters (incluir el nuevo)
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
@@ -110,5 +113,13 @@ public class Professional extends BaseEntity {
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
+    }
+
+    public String getBiografia() {
+        return biografia;
+    }
+
+    public void setBiografia(String biografia) {
+        this.biografia = biografia;
     }
 }

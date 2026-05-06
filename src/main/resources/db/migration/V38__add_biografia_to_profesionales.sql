@@ -1,0 +1,1 @@
+ALTER TABLE profesionales ADD COLUMN biografia VARCHAR(500);
