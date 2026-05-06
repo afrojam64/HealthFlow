@@ -20,6 +20,31 @@
             <div class="card p-4">
                 <h2 class="text-primary mb-4"><i class="bi bi-person-circle me-2"></i>Mi Perfil</h2>
                 <div class="mb-4">
+                    <!-- Sección de foto de perfil -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="bi bi-image"></i> Foto de perfil
+                        </div>
+                        <div class="card-body text-center">
+                            <img th:if="${professional.avatarUrl != null}"
+                                 th:src="@{${professional.avatarUrl}}"
+                                 class="rounded-circle mb-3" width="150" height="150"
+                                 alt="Avatar">
+                            <img th:unless="${professional.avatarUrl != null}"
+                                 src="/images/default-avatar.png"
+                                 class="rounded-circle mb-3" width="150" height="150"
+                                 alt="Avatar por defecto">
+                            <form method="post" th:action="@{/doctor/perfil/avatar}" enctype="multipart/form-data">
+                                <div class="mb-2">
+                                    <input type="file" name="avatar" accept="image/jpeg,image/png,image/jpg" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-upload"></i> Subir foto
+                                </button>
+                            </form>
+                            <div class="form-text mt-2">Formatos: JPG, PNG. Máximo 2 MB.</div>
+                        </div>
+                    </div>
                     <h5>Firma digital</h5>
                     <p class="text-muted">Sube una imagen de tu firma (PNG, JPG, SVG). Aparecerá en los documentos generados (fórmulas médicas, remisiones).</p>
                     <div class="mb-3">

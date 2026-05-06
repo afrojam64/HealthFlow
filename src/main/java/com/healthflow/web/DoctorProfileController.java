@@ -6,10 +6,10 @@ import com.healthflow.domain.User;
 import com.healthflow.repo.AsistentePermisoRepository;
 import com.healthflow.repo.ProfessionalRepository;
 import com.healthflow.repo.UserRepository;
+import com.healthflow.service.AvatarService;
 import com.healthflow.service.DomainException;
 import com.healthflow.service.PermisoService;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,8 +17,10 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.*;
 
@@ -31,16 +33,20 @@ public class DoctorProfileController {
     private final PasswordEncoder passwordEncoder;
     private final AsistentePermisoRepository permisoRepository;
     private final PermisoService permisoService;
+    private final AvatarService avatarService;
 
-    // Constructor con inyección de PasswordEncoder
     public DoctorProfileController(UserRepository userRepository,
                                    ProfessionalRepository professionalRepository,
-                                   PasswordEncoder passwordEncoder, AsistentePermisoRepository permisoRepository, PermisoService permisoService) {
+                                   PasswordEncoder passwordEncoder,
+                                   AsistentePermisoRepository permisoRepository,
+                                   PermisoService permisoService,
+                                   AvatarService avatarService) {
         this.userRepository = userRepository;
         this.professionalRepository = professionalRepository;
         this.passwordEncoder = passwordEncoder;
         this.permisoRepository = permisoRepository;
         this.permisoService = permisoService;
+        this.avatarService = avatarService;
     }
 
     private String getUsername() {
@@ -62,9 +68,11 @@ public class DoctorProfileController {
     @GetMapping("/perfil")
     public String perfil(Model model, HttpServletRequest request) {
         Professional professional = getCurrentProfessional();
+        // Agregar el objeto professional completo al modelo (necesario para avatar)
+        model.addAttribute("professional", professional);
         model.addAttribute("nombre", professional.getFullName());
         model.addAttribute("especialidad", professional.getSpecialty());
-        // Agregar token CSRF al modelo
+        // Token CSRF
         CsrfToken token = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
         if (token != null) {
             model.addAttribute("csrfToken", token.getToken());
@@ -87,30 +95,21 @@ public class DoctorProfileController {
                                   @RequestParam("newPassword") String newPassword,
                                   @RequestParam("confirmPassword") String confirmPassword,
                                   RedirectAttributes redirectAttributes) {
-        // 1. Validar que newPassword y confirmPassword coincidan
         if (!newPassword.equals(confirmPassword)) {
             redirectAttributes.addFlashAttribute("errorMessage", "Las nuevas contraseñas no coinciden.");
             return "redirect:/doctor/configuracion";
         }
-
-        // 2. Obtener el usuario autenticado (médico)
         User user = getCurrentUser();
         if (user == null) {
             redirectAttributes.addFlashAttribute("errorMessage", "Usuario no encontrado.");
             return "redirect:/doctor/configuracion";
         }
-
-        // 3. Verificar la contraseña actual
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             redirectAttributes.addFlashAttribute("errorMessage", "La contraseña actual es incorrecta.");
             return "redirect:/doctor/configuracion";
         }
-
-        // 4. Encriptar y guardar nueva contraseña
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
-
-        // 5. Redirigir al login con mensaje de éxito
         redirectAttributes.addFlashAttribute("successMessage", "Contraseña actualizada. Por favor, inicia sesión nuevamente.");
         return "redirect:/login?cambio=exitoso";
     }
@@ -128,7 +127,6 @@ public class DoctorProfileController {
             if (userRepository.findByEmail(email).isPresent()) {
                 throw new DomainException("El correo ya está registrado");
             }
-
             User asistente = new User();
             asistente.setUsername(username);
             asistente.setEmail(email);
@@ -138,9 +136,7 @@ public class DoctorProfileController {
             asistente.setCreatedAt(OffsetDateTime.now());
             asistente.setUpdatedAt(OffsetDateTime.now());
             asistente = userRepository.save(asistente);
-
             UUID medicoId = getCurrentProfessional().getId();
-
             if (permisos != null && !permisos.isEmpty()) {
                 for (String permiso : permisos) {
                     AsistentePermiso ap = new AsistentePermiso();
@@ -151,7 +147,6 @@ public class DoctorProfileController {
                     permisoRepository.save(ap);
                 }
             }
-
             redirectAttributes.addFlashAttribute("successMessage",
                     "Asistente creado exitosamente. Se le han asignado " + (permisos != null ? permisos.size() : 0) + " permisos.");
         } catch (DomainException e) {
@@ -167,19 +162,14 @@ public class DoctorProfileController {
         Professional medico = professionalRepository.findByUserId(medicoUser.getId())
                 .orElseThrow(() -> new DomainException("Profesional no encontrado"));
         UUID medicoId = medico.getId();
-
         List<AsistentePermiso> registros = permisoRepository.findByMedicoId(medicoId);
-        // Agrupar por asistenteId
         Map<UUID, List<String>> permisosPorAsistente = new HashMap<>();
         Map<UUID, String> nombresAsistentes = new HashMap<>();
-
         for (AsistentePermiso ap : registros) {
             UUID asId = ap.getAsistenteId();
             permisosPorAsistente.computeIfAbsent(asId, k -> new ArrayList<>()).add(ap.getPermiso());
-            // Obtener nombre del usuario (podrías hacer una consulta aparte)
             userRepository.findById(asId).ifPresent(u -> nombresAsistentes.put(asId, u.getUsername()));
         }
-
         List<Map<String, Object>> result = new ArrayList<>();
         for (UUID asId : permisosPorAsistente.keySet()) {
             Map<String, Object> map = new HashMap<>();
@@ -200,5 +190,22 @@ public class DoctorProfileController {
                 .orElseThrow(() -> new DomainException("Profesional no encontrado"));
         permisoService.actualizarPermisos(medico.getId(), asistenteId, permisos);
         return ResponseEntity.ok(Map.of("message", "Permisos actualizados"));
+    }
+
+    @PostMapping("/perfil/avatar")
+    public String subirAvatar(@RequestParam("avatar") MultipartFile file,
+                              RedirectAttributes redirectAttributes) {
+        try {
+            User user = getCurrentUser();
+            Professional professional = professionalRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new DomainException("Profesional no encontrado"));
+            String avatarUrl = avatarService.guardarAvatar(professional.getId(), file);
+            professional.setAvatarUrl(avatarUrl);
+            professionalRepository.save(professional);
+            redirectAttributes.addFlashAttribute("successMessage", "Foto de perfil actualizada");
+        } catch (DomainException | IOException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Error: " + e.getMessage());
+        }
+        return "redirect:/doctor/perfil";
     }
 }

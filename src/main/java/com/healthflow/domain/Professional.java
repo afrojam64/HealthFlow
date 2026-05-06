@@ -66,6 +66,9 @@ public class Professional extends BaseEntity {
         return specialty; // fallback al campo antiguo
     }
 
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
     // Getters y setters (incluir el nuevo)
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
@@ -99,5 +102,13 @@ public class Professional extends BaseEntity {
     }
     public void setEspecialidades(Set<Especialidad> especialidades) {
         this.especialidades = especialidades;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 }

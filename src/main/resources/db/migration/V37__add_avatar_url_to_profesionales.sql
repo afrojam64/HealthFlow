@@ -1,0 +1,1 @@
+ALTER TABLE profesionales ADD COLUMN avatar_url VARCHAR(255);
