@@ -62,19 +62,14 @@ public class DocumentoController {
 
     private User getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        System.out.println("DEBUG getCurrentUser - username: " + username);
-        User user = userRepository.findByUsername(username)
+        return userRepository.findByUsername(username)
                 .orElseThrow(() -> new DomainException("Usuario no encontrado"));
-        System.out.println("DEBUG getCurrentUser - user.id: " + user.getId() + ", role: " + user.getRole());
-        return user;
     }
 
     private UUID getCurrentProfessionalId() {
         User user = getCurrentUser();
-        System.out.println("DEBUG getCurrentProfessionalId - user role: " + user.getRole());
         if ("ASISTENTE".equals(user.getRole())) {
             UUID medicoId = permisoService.getMedicoIdByAsistente(user.getId());
-            System.out.println("DEBUG getCurrentProfessionalId - medicoId: " + medicoId);
             if (medicoId == null) {
                 throw new AccessDeniedException("No tienes un médico asociado");
             }
@@ -97,15 +92,11 @@ public class DocumentoController {
 
     private void checkSubirDocumentosPermission() {
         User user = getCurrentUser();
-        System.out.println("DEBUG checkSubirDocumentosPermission - user role: " + user.getRole());
         if ("ASISTENTE".equals(user.getRole())) {
             List<String> permisos = permisoService.getPermisosDeAsistente(user.getId());
-            System.out.println("DEBUG checkSubirDocumentosPermission - permisos: " + permisos);
             if (permisos == null || !permisos.contains("SUBIR_DOCUMENTOS")) {
-                System.out.println("DEBUG checkSubirDocumentosPermission - PERMISO DENEGADO");
                 throw new AccessDeniedException("No tienes permiso para subir documentos");
             }
-            System.out.println("DEBUG checkSubirDocumentosPermission - PERMISO CONCEDIDO");
         }
     }
 

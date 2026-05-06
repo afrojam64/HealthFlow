@@ -2,12 +2,13 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Subir Documento</title>
+    <title>Nueva Cita</title>
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 </head>
 <body>
 <div class="container mt-4">
+    <!-- Mensajes flash -->
     <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
         <i class="bi bi-check-circle"></i> <span th:text="${successMessage}"></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -16,12 +17,13 @@
         <i class="bi bi-exclamation-triangle"></i> <span th:text="${errorMessage}"></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
+
     <div class="card shadow-sm">
         <div class="card-header bg-white">
-            <h3 class="mb-0"><i class="bi bi-upload"></i> Subir Documento</h3>
+            <h3 class="mb-0"><i class="bi bi-plus-circle"></i> Nueva Cita</h3>
         </div>
         <div class="card-body">
-            <form th:action="@{/doctor/documentos/subir}" method="post" enctype="multipart/form-data">
+            <form id="citaForm" th:action="@{/doctor/citas/crear}" method="post">
                 <!-- Buscador de paciente -->
                 <div class="mb-3">
                     <label for="paciente" class="form-label">Paciente *</label>
@@ -29,30 +31,22 @@
                     <div class="form-text">Busque por nombre o número de documento</div>
                 </div>
 
-                <!-- Tipo de documento -->
+                <!-- Fecha -->
                 <div class="mb-3">
-                    <label for="tipoDocumento" class="form-label">Tipo de documento *</label>
-                    <select id="tipoDocumento" name="tipoDocumento" class="form-select" required>
-                        <option value="">Seleccione...</option>
-                        <option th:each="tipo : ${tiposDocumento}" th:value="${tipo}" th:text="${tipo}"></option>
+                    <label for="fecha" class="form-label">Fecha *</label>
+                    <input type="date" id="fecha" name="fecha" class="form-control" required>
+                </div>
+
+                <!-- Hora -->
+                <div class="mb-3">
+                    <label for="hora" class="form-label">Hora *</label>
+                    <select id="hora" name="hora" class="form-select" required disabled>
+                        <option value="">Primero seleccione fecha y paciente</option>
                     </select>
                 </div>
 
-                <!-- Descripción -->
-                <div class="mb-3">
-                    <label for="descripcion" class="form-label">Descripción</label>
-                    <textarea id="descripcion" name="descripcion" rows="2" class="form-control"></textarea>
-                </div>
-
-                <!-- Archivos -->
-                <div class="mb-3">
-                    <label for="files" class="form-label">Archivos *</label>
-                    <input type="file" id="files" name="files" multiple class="form-control" accept=".pdf,.jpg,.jpeg,.png,.gif" required>
-                    <div class="form-text">Formatos permitidos: PDF, JPG, PNG, GIF</div>
-                </div>
-
                 <button type="submit" class="btn btn-health">
-                    <i class="bi bi-cloud-upload"></i> Subir documentos
+                    <i class="bi bi-calendar-check"></i> Agendar Cita
                 </button>
                 <a href="/dashboard" class="btn btn-secondary">Cancelar</a>
             </form>
@@ -62,7 +56,8 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        new TomSelect('#paciente', {
+        // TomSelect para pacientes (idéntico al de subir documentos)
+        const pacienteSelect = new TomSelect('#paciente', {
             valueField: 'id',
             labelField: 'nombre',
             searchField: ['nombre', 'documento'],
@@ -90,6 +85,48 @@
             create: false,
             maxOptions: 20
         });
+
+        const fechaInput = document.getElementById('fecha');
+        const horaSelect = document.getElementById('hora');
+
+        // Función para cargar horarios disponibles
+        function cargarHorarios() {
+            const pacienteId = pacienteSelect.getValue();
+            const fecha = fechaInput.value;
+            if (!pacienteId || !fecha) {
+                horaSelect.disabled = true;
+                horaSelect.innerHTML = '<option value="">Seleccione paciente y fecha primero</option>';
+                return;
+            }
+
+            fetch(`/doctor/citas/disponibilidad?fecha=${fecha}&pacienteId=${pacienteId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Error al cargar horarios');
+                    return response.json();
+                })
+                .then(horarios => {
+                    horaSelect.disabled = false;
+                    horaSelect.innerHTML = '<option value="">Seleccione una hora</option>';
+                    if (horarios.length === 0) {
+                        horaSelect.innerHTML += '<option value="" disabled>No hay horarios disponibles</option>';
+                    } else {
+                        horarios.forEach(h => {
+                            const option = document.createElement('option');
+                            option.value = h;
+                            option.textContent = h;
+                            horaSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                    horaSelect.disabled = true;
+                    horaSelect.innerHTML = '<option value="">Error al cargar horarios</option>';
+                });
+        }
+
+        pacienteSelect.on('change', cargarHorarios);
+        fechaInput.addEventListener('change', cargarHorarios);
     });
 </script>
 </body>

@@ -92,6 +92,110 @@
             </div>
         </div>
     </div>
+
+    <h3 class="mt-4">Mis Asistentes</h3>
+    <div id="asistentesList"></div>
 </div>
+
+<script>
+    // Lista de todos los permisos disponibles (debe coincidir con los del backend)
+    const TODOS_PERMISOS = [
+        { valor: "VER_CALENDARIO", label: "Ver Calendario" },
+        { valor: "CONFIGURAR_AGENDA", label: "Configurar Agenda" },
+        { valor: "SUBIR_DOCUMENTOS", label: "Subir Documentos" },
+        { valor: "VER_PACIENTES", label: "Ver Pacientes" },
+        { valor: "CREAR_CITAS", label: "Crear Citas" },
+        { valor: "GENERAR_RIPS", label: "Generar RIPS" }
+    ];
+
+    function cargarAsistentes() {
+        fetch('/doctor/configuracion/asistentes')
+            .then(res => res.json())
+            .then(asistentes => {
+                let html = '<table class="table table-bordered table-striped mt-2">';
+                html += '<thead><tr><th>Usuario</th><th>Permisos</th><th>Acciones</th></tr></thead><tbody>';
+                if (asistentes.length === 0) {
+                    html += '<tr><td colspan="3">No hay asistentes registrados.</td></tr>';
+                } else {
+                    asistentes.forEach(ast => {
+                        // Generar checkboxes para todos los permisos
+                        let checkboxesHtml = '';
+                        TODOS_PERMISOS.forEach(p => {
+                            let checked = ast.permisos && ast.permisos.includes(p.valor) ? 'checked' : '';
+                            checkboxesHtml += `
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input permiso-check" type="checkbox" value="${p.valor}" data-asistente="${ast.id}" ${checked}>
+                                    <label class="form-check-label">${p.label}</label>
+                                </div>
+                            `;
+                        });
+                        html += `
+                            <tr>
+                                <td>${escapeHtml(ast.nombre)}</td>
+                                <td>${checkboxesHtml}</td>
+                                <td><button class="btn btn-sm btn-primary guardar-permisos" data-id="${ast.id}">Guardar cambios</button></td>
+                            </tr>
+                        `;
+                    });
+                }
+                html += '</tbody></table>';
+                document.getElementById('asistentesList').innerHTML = html;
+
+                // Añadir event listeners a todos los botones "Guardar cambios"
+                document.querySelectorAll('.guardar-permisos').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        const asistenteId = this.getAttribute('data-id');
+                        guardarPermisos(asistenteId);
+                    });
+                });
+            })
+            .catch(error => {
+                console.error('Error cargando asistentes:', error);
+                document.getElementById('asistentesList').innerHTML = '<div class="alert alert-danger">Error al cargar los asistentes.</div>';
+            });
+    }
+
+    function guardarPermisos(asistenteId) {
+        // Recolectar los permisos marcados para este asistente
+        const permisosSeleccionados = [];
+        document.querySelectorAll(`.permiso-check[data-asistente="${asistenteId}"]:checked`).forEach(cb => {
+            permisosSeleccionados.push(cb.value);
+        });
+
+        // Obtener token CSRF
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+        fetch(`/doctor/configuracion/asistentes/${asistenteId}/permisos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(permisosSeleccionados)
+        })
+        .then(res => res.json())
+        .then(data => {
+            // Mostrar mensaje de éxito (puede ser un toast o alert temporal)
+            alert(data.message || 'Permisos actualizados correctamente');
+            // Opcional: recargar la lista para reflejar cambios (aunque ya están actualizados)
+            cargarAsistentes();
+        })
+        .catch(error => {
+            console.error('Error guardando permisos:', error);
+            alert('Error al guardar los permisos');
+        });
+    }
+
+    // Función para evitar inyección HTML en el nombre
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    // Ejecutar la carga cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', cargarAsistentes);
+</script>
 </body>
 </html>

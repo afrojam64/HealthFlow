@@ -20,4 +20,8 @@ public interface AsistentePermisoRepository extends JpaRepository<AsistentePermi
     boolean existsByAsistenteIdAndPermiso(UUID asistenteId, String permiso);
 
     void deleteByAsistenteIdAndMedicoId(UUID asistenteId, UUID medicoId);
+
+    // En AsistentePermisoRepository
+    void deleteByAsistenteIdAndPermiso(UUID asistenteId, String permiso);
+    List<AsistentePermiso> findByMedicoId(UUID medicoId);
 }

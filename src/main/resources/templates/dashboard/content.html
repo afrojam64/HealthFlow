@@ -16,8 +16,9 @@
         </div>
     </div>
 
-    <!-- 🔔 ALERTA RIPS PENDIENTE (nuevo) -->
-    <div th:if="${ripsPendiente}" class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+    <!-- 🔔 ALERTA RIPS PENDIENTE (solo si tiene permiso o es médico) -->
+    <div th:if="${ripsPendiente and (permisos == null or permisos.contains('GENERAR_RIPS'))}"
+         class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
         <i class="bi bi-exclamation-triangle-fill me-2"></i>
         <strong>¡Reporte RIPS pendiente!</strong> Aún no has generado el reporte del mes anterior.
         <a href="/doctor/reportes/rips" class="alert-link ms-2">Generar ahora</a>

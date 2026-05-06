@@ -177,7 +177,7 @@ public class PatientController {
                 continue;
             }
 
-            if ("MEDICO".equals(doc.getOrigen())) {
+            if ("MEDICO".equals(doc.getOrigen()) || "ASISTENTE".equals(doc.getOrigen())) {
                 documentosMedico.add(doc);
             } else if ("PACIENTE".equals(doc.getOrigen())) {
                 documentosPaciente.add(doc);

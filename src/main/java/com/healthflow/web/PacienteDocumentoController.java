@@ -75,7 +75,7 @@ public class PacienteDocumentoController {
 
         // Separar por origen
         List<Documento> documentosMedico = filtrados.stream()
-                .filter(d -> "MEDICO".equals(d.getOrigen()))
+                .filter(d -> "MEDICO".equals(d.getOrigen()) || "ASISTENTE".equals(d.getOrigen()))
                 .collect(Collectors.toList());
         List<Documento> documentosPaciente = filtrados.stream()
                 .filter(d -> "PACIENTE".equals(d.getOrigen()))
