@@ -17,6 +17,7 @@
         .sidebar .nav-link.active { background: var(--primary); color: white; }
         .sidebar .nav-link i { margin-right: 10px; }
         .content-card { background: white; border-radius: 24px; padding: 2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .medico-avatar { width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 2px solid var(--primary); }
     </style>
 </head>
 <body>
@@ -27,7 +28,7 @@
             <div class="sidebar">
                 <div class="text-center mb-4">
                     <i class="bi bi-person-circle fs-1" style="color: var(--primary);"></i>
-                    <h5 class="mt-2" th:text="${session.pacienteNombre}">Nombre</h5>
+                    <h5 class="mt-2" th:text="${pacienteNombre}">Nombre</h5>
                 </div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
@@ -61,8 +62,22 @@
         <!-- Contenido principal -->
         <div class="col-md-9 col-lg-10">
             <div class="content-card">
-                <h2>Bienvenido, <span th:text="${session.pacienteNombre}"></span></h2>
+                <h2>Bienvenido, <span th:text="${pacienteNombre}"></span></h2>
                 <p class="text-muted">Desde aquí puedes agendar citas, ver tu historial y subir resultados de laboratorio.</p>
+
+                <!-- Avatar y nombre del médico -->
+                <div class="text-center mb-4">
+                    <div th:if="${medicoAvatar != null}">
+                        <img th:src="@{${medicoAvatar}}" class="medico-avatar" alt="Foto del médico">
+                    </div>
+                    <div th:unless="${medicoAvatar != null}">
+                        <i class="bi bi-person-circle fs-1" style="color: var(--primary);"></i>
+                    </div>
+                    <div class="mt-2">
+                        <strong>Tu médico:</strong> <span th:text="${medicoNombre}"></span>
+                    </div>
+                </div>
+
                 <hr>
                 <div class="row mt-4">
                     <div class="col-md-4 mb-3">
