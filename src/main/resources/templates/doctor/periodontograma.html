@@ -359,17 +359,20 @@
         .subcelda:last-child {
             border-right: none;
         }
-        /* ANCHO FIJO PARA CADA COLUMNA DE DIENTE */
         .columna-diente {
             min-width: 110px;
             flex-shrink: 0;
             flex-grow: 1;
             text-align: center;
         }
-        /* Contenedor con scroll horizontal */
         .tabla-scroll {
             overflow-x: auto;
             width: 100%;
+        }
+        .cal-no-editable {
+            background-color: #f3f4f6;
+            color: #374151;
+            cursor: default;
         }
     </style>
 </head>
@@ -553,11 +556,11 @@
         });
     }
 
-    // Generar tablas con columnas de ancho fijo
+    // Generar tablas con columnas de ancho fijo y CAL no editable
     function generarArcada(titulo, dientes, caras) {
         let html = `<div class="w-full border-2 border-[#1a365d] rounded-sm overflow-hidden mb-6 bg-white">`;
         html += `<div class="w-full text-center py-1.5 border-b-2 border-[#1a365d] bg-white"><h3 class="text-sm font-bold text-[#1a365d] uppercase">${titulo}</h3></div>`;
-        // Números de dientes (columna fija)
+        // Números de dientes
         html += `<div class="flex border-b border-[#1a365d]/20">`;
         html += `<div class="w-56 shrink-0 border-r border-[#1a365d]/20 p-2 flex items-center"><span class="text-xs font-bold text-[#1a365d]">NÚMERO DE DIENTE</span></div>`;
         html += `<div class="flex-1 flex">`;
@@ -565,7 +568,7 @@
             html += `<div class="columna-diente flex items-center justify-center p-1 border-r border-[#1a365d]/20 last:border-0"><span class="text-xs font-bold text-[#1a365d]">${d}</span></div>`;
         }
         html += `</div></div>`;
-        // Caras con SVG (columna fija)
+        // Caras con SVG
         html += `<div class="flex border-b-2 border-[#1a365d]/20 bg-white">`;
         html += `<div class="w-48 shrink-0 border-r border-[#1a365d]/20 p-2 flex items-center"><span class="text-xs font-bold text-[#1a365d]">CARAS</span></div>`;
         html += `<div class="w-8 shrink-0 flex flex-col justify-end pb-1 items-center border-r border-[#1a365d]/20">`;
@@ -582,7 +585,6 @@
         }
         html += `</div></div>`;
 
-        // Filas según orden clínico (con clase columna-diente aplicada)
         const filas = [
             { label: "Movilidad", tipo: "movilidad", carasMostrar: [caras[1]], puntos: false },
             { label: "Furca V", tipo: "furca", carasMostrar: [caras[0]], puntos: false },
@@ -602,11 +604,12 @@
 
         for (let fila of filas) {
             if (fila.separador) {
-                html += `<div class="flex border-b-0">`;
-                html += `<td colspan="${1 + dientes.length}" class="cara-separador text-center">${fila.texto}<td>`;
-                html += `</div>`;
+                html += `<div class="flex border-b-0"><td colspan="${1 + dientes.length}" class="cara-separador text-center">${fila.texto}</td></div>`;
                 continue;
             }
+            const esCal = fila.tipo === 'cal';
+            const claseEditable = esCal ? 'cal-no-editable' : 'celda-medicion';
+            const dataAttrs = esCal ? '' : `data-diente data-cara data-tipo data-posicion`;
             html += `<div class="flex border-b border-[#1a365d]/20">`;
             html += `<div class="w-48 shrink-0 border-r border-[#1a365d]/20 bg-white flex items-center p-2">
                         <div class="mr-2 text-red-700"><iconify-icon icon="lucide:ruler" class="block size-[16px]" style="font-size:16px"></iconify-icon></div>
@@ -634,11 +637,14 @@
                             else if (fila.tipo === 'movilidad' || fila.tipo === 'furca') display = valor === 0 ? '' : valor;
                             else display = (valor !== 0 && valor !== null) ? valor : '';
                             const isBoolean = (fila.tipo === 'sangrado' || fila.tipo === 'placa');
-                            const claseEditable = (fila.tipo === 'cal') ? '' : 'celda-medicion';
                             const estilo = (isBoolean && valor) ? 'background-color:#fee2e2;' : '';
-                            html += `<div class="subcelda ${claseEditable}" data-diente="${diente}" data-cara="${cara}" data-tipo="${fila.tipo}" data-posicion="${pos}" style="${estilo}">
-                                        <span class="text-[9px] leading-tight">${display}</span>
-                                    </div>`;
+                            if (esCal) {
+                                html += `<div class="subcelda ${claseEditable}" style="${estilo}"><span class="text-[9px] leading-tight">${display}</span></div>`;
+                            } else {
+                                html += `<div class="subcelda ${claseEditable}" data-diente="${diente}" data-cara="${cara}" data-tipo="${fila.tipo}" data-posicion="${pos}" style="${estilo}">
+                                            <span class="text-[9px] leading-tight">${display}</span>
+                                        </div>`;
+                            }
                         }
                         html += `</div>`;
                     }
@@ -648,9 +654,13 @@
                     const key = `${diente}_${cara}_${fila.tipo}`;
                     let valor = mediciones[key] !== undefined ? mediciones[key] : 0;
                     let display = valor === 0 ? '' : valor;
-                    html += `<div class="columna-diente flex items-center justify-center celda-medicion" data-diente="${diente}" data-cara="${cara}" data-tipo="${fila.tipo}" data-posicion="unico">
-                                <span class="text-[10px] leading-tight">${display}</span>
-                            </div>`;
+                    if (esCal) {
+                        html += `<div class="columna-diente flex items-center justify-center cal-no-editable"><span class="text-[10px] leading-tight">${display}</span></div>`;
+                    } else {
+                        html += `<div class="columna-diente flex items-center justify-center celda-medicion" data-diente="${diente}" data-cara="${cara}" data-tipo="${fila.tipo}" data-posicion="unico">
+                                    <span class="text-[10px] leading-tight">${display}</span>
+                                </div>`;
+                    }
                 }
             }
             html += `</div></div>`;
@@ -743,7 +753,7 @@
             }
         }
         bootstrap.Modal.getInstance(document.getElementById('edicionModal')).hide();
-        calcularDiagnostico();
+        // No es necesario recalcular aquí, el usuario puede hacer clic en calcular
     }
 
     async function calcularDiagnostico() {
@@ -806,7 +816,10 @@
     async function cargarDatos() {
         try {
             const resp = await fetch(`/api/periodontograma/paciente/${pacienteId}/ultimo`);
-            if (resp.ok) {
+            if (resp.status === 404) {
+                // No hay periodontograma previo, inicializar vacío
+                initMediciones();
+            } else if (resp.ok) {
                 const data = await resp.json();
                 if (data && data.measurementsJson) {
                     const parsed = JSON.parse(data.measurementsJson);
@@ -818,8 +831,10 @@
                 initMediciones();
             }
             renderizarTodo();
-            calcularDiagnostico();
+            // Opcional: calcular diagnóstico automáticamente después de cargar
+            // await calcularDiagnostico();
         } catch(e) {
+            console.error(e);
             initMediciones();
             renderizarTodo();
         }
