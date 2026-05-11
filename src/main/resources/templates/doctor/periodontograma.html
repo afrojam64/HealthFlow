@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <title>Periodontograma</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@100;200;300;400;500;600;700;800;900&family=Geist:wght@100;200;300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@100;200;300;400;500;600;700&family=IBM+Plex+Sans:wght@100;200;300;400;500;600;700&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Nunito:wght@200;300;400;500;600;700;800;900&family=PT+Serif:wght@400;700&family=Roboto+Slab:wght@100;200;300;400;500;600;700;800;900&family=Roboto:wght@100;300;400;500;700;900&family=Shantell+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /*! tailwindcss v4.2.4 | MIT License | https://tailwindcss.com */
+        @layer properties;
+        @layer theme, base, components, utilities;
+        @layer theme {
+            :root,
+            :root {
+                --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+                --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+                --color-red-700: oklch(50.5% 0.213 27.518);
+                --color-gray-600: oklch(44.6% 0.03 256.802);
+                --color-black: #000;
+                --color-white: #fff;
+                --spacing: 0.25rem;
+                --container-sm: 24rem;
+                --text-xs: 12px;
+                --text-xs--line-height: calc(1 / 0.75);
+                --text-sm: 14px;
+                --text-sm--line-height: calc(1.25 / 0.875);
+                --text-xl: 20px;
+                --text-xl--line-height: calc(1.75 / 1.25);
+                --text-3xl: 30px;
+                --text-3xl--line-height: calc(2.25 / 1.875);
+                --text-5xl: 3rem;
+                --text-5xl--line-height: 1;
+                --font-weight-medium: 500;
+                --font-weight-semibold: 600;
+                --font-weight-bold: 700;
+                --font-weight-black: 900;
+                --tracking-tight: -0.025em;
+                --tracking-widest: 0.1em;
+                --leading-tight: 1.25;
+                --leading-relaxed: 1.625;
+                --radius-sm: 4px;
+                --radius-md: 8px;
+                --default-font-family: var(--font-sans);
+                --default-mono-font-family: var(--font-mono);
+                --color-background: #ffffff;
+                --color-foreground: #000000;
+                --color-border: #e8e8e8;
+                --color-primary: #277eff;
+                --color-primary-foreground: #ffffff;
+                --color-muted: #e8e8e8;
+                --color-muted-foreground: #949494;
+            }
+        }
+        @layer base {
+            *,
+            ::after,
+            ::before,
+            ::backdrop,
+            ::file-selector-button {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+                border: 0 solid;
+            }
+            html,
+            :root {
+                line-height: 1.5;
+                -webkit-text-size-adjust: 100%;
+                tab-size: 4;
+                font-family: var(--default-font-family, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji");
+                font-feature-settings: var(--default-font-feature-settings, normal);
+                font-variation-settings: var(--default-font-variation-settings, normal);
+                -webkit-tap-highlight-color: transparent;
+            }
+            hr {
+                height: 0;
+                color: inherit;
+                border-top-width: 1px;
+            }
+            abbr:where([title]) {
+                -webkit-text-decoration: underline dotted;
+                text-decoration: underline dotted;
+            }
+            h1, h2, h3, h4, h5, h6 {
+                font-size: inherit;
+                font-weight: inherit;
+            }
+            a {
+                color: inherit;
+                -webkit-text-decoration: inherit;
+                text-decoration: inherit;
+            }
+            b, strong {
+                font-weight: bolder;
+            }
+            code, kbd, samp, pre {
+                font-family: var(--default-mono-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+                font-feature-settings: var(--default-mono-font-feature-settings, normal);
+                font-variation-settings: var(--default-mono-font-variation-settings, normal);
+                font-size: 1em;
+            }
+            small {
+                font-size: 80%;
+            }
+            sub, sup {
+                font-size: 75%;
+                line-height: 0;
+                position: relative;
+                vertical-align: baseline;
+            }
+            sub { bottom: -0.25em; }
+            sup { top: -0.5em; }
+            table {
+                text-indent: 0;
+                border-color: inherit;
+                border-collapse: collapse;
+            }
+            :-moz-focusring {
+                outline: auto;
+            }
+            progress {
+                vertical-align: baseline;
+            }
+            summary {
+                display: list-item;
+            }
+            ol, ul, menu {
+                list-style: none;
+            }
+            img, svg, video, canvas, audio, iframe, embed, object {
+                display: block;
+                vertical-align: middle;
+            }
+            img, video {
+                max-width: 100%;
+                height: auto;
+            }
+            button, input, select, optgroup, textarea, ::file-selector-button {
+                font: inherit;
+                font-feature-settings: inherit;
+                font-variation-settings: inherit;
+                letter-spacing: inherit;
+                color: inherit;
+                border-radius: 0;
+                background-color: transparent;
+                opacity: 1;
+            }
+            :where(select:is([multiple], [size])) optgroup {
+                font-weight: bolder;
+            }
+            :where(select:is([multiple], [size])) optgroup option {
+                padding-inline-start: 20px;
+            }
+            ::file-selector-button {
+                margin-inline-end: 4px;
+            }
+            ::placeholder {
+                opacity: 1;
+            }
+            @supports (not (-webkit-appearance: -apple-pay-button)) or (contain-intrinsic-size: 1px) {
+                ::placeholder {
+                    color: currentcolor;
+                    @supports (color: color-mix(in lab, red, red)) {
+                        color: color-mix(in oklab, currentcolor 50%, transparent);
+                    }
+                }
+            }
+            textarea {
+                resize: vertical;
+            }
+            ::-webkit-search-decoration {
+                -webkit-appearance: none;
+            }
+            ::-webkit-date-and-time-value {
+                min-height: 1lh;
+                text-align: inherit;
+            }
+            ::-webkit-datetime-edit {
+                display: inline-flex;
+            }
+            ::-webkit-datetime-edit-fields-wrapper {
+                padding: 0;
+            }
+            ::-webkit-datetime-edit, ::-webkit-datetime-edit-year-field, ::-webkit-datetime-edit-month-field, ::-webkit-datetime-edit-day-field, ::-webkit-datetime-edit-hour-field, ::-webkit-datetime-edit-minute-field, ::-webkit-datetime-edit-second-field, ::-webkit-datetime-edit-millisecond-field, ::-webkit-datetime-edit-meridiem-field {
+                padding-block: 0;
+            }
+            ::-webkit-calendar-picker-indicator {
+                line-height: 1;
+            }
+            :-moz-ui-invalid {
+                box-shadow: none;
+            }
+            button, input:where([type="button"], [type="reset"], [type="submit"]), ::file-selector-button {
+                appearance: button;
+            }
+            ::-webkit-inner-spin-button, ::-webkit-outer-spin-button {
+                height: auto;
+            }
+            [hidden]:where(:not([hidden="until-found"])) {
+                display: none !important;
+            }
+        }
+        @layer utilities {
+            .mx-2 { margin-inline: calc(var(--spacing) * 2); }
+            .mx-auto { margin-inline: auto; }
+            .mt-0\.5 { margin-top: calc(var(--spacing) * 0.5); }
+            .mt-4 { margin-top: calc(var(--spacing) * 4); }
+            .mr-2 { margin-right: calc(var(--spacing) * 2); }
+            .mb-4 { margin-bottom: calc(var(--spacing) * 4); }
+            .mb-6 { margin-bottom: calc(var(--spacing) * 6); }
+            .block { display: block; }
+            .flex { display: flex; }
+            .size-\[16px\] { width: 16px; height: 16px; }
+            .size-\[18px\] { width: 18px; height: 18px; }
+            .h-4 { height: calc(var(--spacing) * 4); }
+            .h-8 { height: calc(var(--spacing) * 8); }
+            .h-16 { height: calc(var(--spacing) * 16); }
+            .h-full { height: 100%; }
+            .min-h-\[16px\] { min-height: 16px; }
+            .min-h-\[24px\] { min-height: 24px; }
+            .min-h-screen { min-height: 100vh; }
+            .w-4 { width: calc(var(--spacing) * 4); }
+            .w-8 { width: calc(var(--spacing) * 8); }
+            .w-16 { width: calc(var(--spacing) * 16); }
+            .w-48 { width: calc(var(--spacing) * 48); }
+            .w-56 { width: calc(var(--spacing) * 56); }
+            .w-full { width: 100%; }
+            .w-px { width: 1px; }
+            .max-w-\[1200px\] { max-width: 1200px; }
+            .max-w-sm { max-width: var(--container-sm); }
+            .flex-1 { flex: 1; }
+            .shrink-0 { flex-shrink: 0; }
+            .cursor-default { cursor: default; }
+            .flex-col { flex-direction: column; }
+            .items-center { align-items: center; }
+            .items-end { align-items: flex-end; }
+            .items-start { align-items: flex-start; }
+            .justify-between { justify-content: space-between; }
+            .justify-center { justify-content: center; }
+            .justify-end { justify-content: flex-end; }
+            .justify-start { justify-content: flex-start; }
+            .gap-1 { gap: calc(var(--spacing) * 1); }
+            .gap-1\.5 { gap: calc(var(--spacing) * 1.5); }
+            .gap-2 { gap: calc(var(--spacing) * 2); }
+            .gap-3 { gap: calc(var(--spacing) * 3); }
+            .gap-4 { gap: calc(var(--spacing) * 4); }
+            .gap-6 { gap: calc(var(--spacing) * 6); }
+            .gap-12 { gap: calc(var(--spacing) * 12); }
+            .overflow-hidden { overflow: hidden; }
+            .rounded-full { border-radius: calc(infinity * 1px); }
+            .rounded-md { border-radius: var(--radius-md); }
+            .rounded-sm { border-radius: var(--radius-sm); }
+            .border { border-style: var(--tw-border-style); border-width: 1px; }
+            .border-2 { border-style: var(--tw-border-style); border-width: 2px; }
+            .border-r { border-right-style: var(--tw-border-style); border-right-width: 1px; }
+            .border-r-2 { border-right-style: var(--tw-border-style); border-right-width: 2px; }
+            .border-b { border-bottom-style: var(--tw-border-style); border-bottom-width: 1px; }
+            .border-b-0 { border-bottom-style: var(--tw-border-style); border-bottom-width: 0px; }
+            .border-b-2 { border-bottom-style: var(--tw-border-style); border-bottom-width: 2px; }
+            .border-l { border-left-style: var(--tw-border-style); border-left-width: 1px; }
+            .border-\[\#1a365d\] { border-color: #1a365d; }
+            .border-\[\#1a365d\]\/10 { border-color: color-mix(in oklab, #1a365d 10%, transparent); }
+            .border-\[\#1a365d\]\/20 { border-color: color-mix(in oklab, #1a365d 20%, transparent); }
+            .border-\[\#1a365d\]\/40 { border-color: color-mix(in oklab, #1a365d 40%, transparent); }
+            .border-black { border-color: var(--color-black); }
+            .border-border { border-color: var(--color-border); }
+            .border-r-\[\#1a365d\]\/40 { border-right-color: color-mix(in oklab, #1a365d 40%, transparent); }
+            .bg-\[\#1a365d\] { background-color: #1a365d; }
+            .bg-border { background-color: var(--color-border); }
+            .bg-muted\/50 { background-color: color-mix(in srgb, #e8e8e8 50%, transparent); @supports (color: color-mix(in lab, red, red)) { background-color: color-mix(in oklab, var(--color-muted) 50%, transparent); } }
+            .bg-primary { background-color: var(--color-primary); }
+            .bg-red-700 { background-color: var(--color-red-700); }
+            .bg-white { background-color: var(--color-white); }
+            .p-1 { padding: calc(var(--spacing) * 1); }
+            .p-2 { padding: calc(var(--spacing) * 2); }
+            .p-3 { padding: calc(var(--spacing) * 3); }
+            .p-4 { padding: calc(var(--spacing) * 4); }
+            .px-4 { padding-inline: calc(var(--spacing) * 4); }
+            .py-1\.5 { padding-block: calc(var(--spacing) * 1.5); }
+            .py-2 { padding-block: calc(var(--spacing) * 2); }
+            .py-2\.5 { padding-block: calc(var(--spacing) * 2.5); }
+            .pb-1 { padding-bottom: calc(var(--spacing) * 1); }
+            .pl-6 { padding-left: calc(var(--spacing) * 6); }
+            .text-center { text-align: center; }
+            .font-sans { font-family: var(--font-sans); }
+            .text-3xl { font-size: var(--text-3xl); line-height: var(--tw-leading, var(--text-3xl--line-height)); }
+            .text-sm { font-size: var(--text-sm); line-height: var(--tw-leading, var(--text-sm--line-height)); }
+            .text-xl { font-size: var(--text-xl); line-height: var(--tw-leading, var(--text-xl--line-height)); }
+            .text-xs { font-size: var(--text-xs); line-height: var(--tw-leading, var(--text-xs--line-height)); }
+            .text-\[9px\] { font-size: 9px; }
+            .text-\[10px\] { font-size: 10px; }
+            .leading-relaxed { --tw-leading: var(--leading-relaxed); line-height: var(--leading-relaxed); }
+            .leading-tight { --tw-leading: var(--leading-tight); line-height: var(--leading-tight); }
+            .font-black { --tw-font-weight: var(--font-weight-black); font-weight: var(--font-weight-black); }
+            .font-bold { --tw-font-weight: var(--font-weight-bold); font-weight: var(--font-weight-bold); }
+            .font-medium { --tw-font-weight: var(--font-weight-medium); font-weight: var(--font-weight-medium); }
+            .font-semibold { --tw-font-weight: var(--font-weight-semibold); font-weight: var(--font-weight-semibold); }
+            .tracking-tight { --tw-tracking: var(--tracking-tight); letter-spacing: var(--tracking-tight); }
+            .tracking-widest { --tw-tracking: var(--tracking-widest); letter-spacing: var(--tracking-widest); }
+            .whitespace-nowrap { white-space: nowrap; }
+            .text-\[\#1a365d\] { color: #1a365d; }
+            .text-foreground { color: var(--color-foreground); }
+            .text-gray-600 { color: var(--color-gray-600); }
+            .text-muted-foreground { color: var(--color-muted-foreground); }
+            .text-primary-foreground { color: var(--color-primary-foreground); }
+            .text-red-700 { color: var(--color-red-700); }
+            .uppercase { text-transform: uppercase; }
+            .last\:border-0 { &:last-child { border-style: var(--tw-border-style); border-width: 0px; } }
+            .md\:h-10 { @media (width >= 48rem) { height: calc(var(--spacing) * 10); } }
+            .md\:min-h-\[20px\] { @media (width >= 48rem) { min-height: 20px; } }
+            .md\:w-10 { @media (width >= 48rem) { width: calc(var(--spacing) * 10); } }
+            .md\:w-64 { @media (width >= 48rem) { width: calc(var(--spacing) * 64); } }
+            .md\:flex-row { @media (width >= 48rem) { flex-direction: row; } }
+            .md\:items-center { @media (width >= 48rem) { align-items: center; } }
+            .md\:gap-2 { @media (width >= 48rem) { gap: calc(var(--spacing) * 2); } }
+            .md\:gap-4 { @media (width >= 48rem) { gap: calc(var(--spacing) * 4); } }
+            .md\:p-8 { @media (width >= 48rem) { padding: calc(var(--spacing) * 8); } }
+            .md\:text-5xl { @media (width >= 48rem) { font-size: var(--text-5xl); line-height: var(--tw-leading, var(--text-5xl--line-height)); } }
+            .md\:text-xs { @media (width >= 48rem) { font-size: var(--text-xs); line-height: var(--tw-leading, var(--text-xs--line-height)); } }
+            .md\:text-\[10px\] { @media (width >= 48rem) { font-size: 10px; } }
+        }
+        @property --tw-border-style { syntax: "*"; inherits: false; initial-value: solid; }
+        @property --tw-leading { syntax: "*"; inherits: false; }
+        @property --tw-font-weight { syntax: "*"; inherits: false; }
+        @property --tw-tracking { syntax: "*"; inherits: false; }
+        @layer properties {
+            @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color: rgb(from red r g b)))) {
+                *, ::before, ::after, ::backdrop {
+                    --tw-border-style: solid;
+                    --tw-leading: initial;
+                    --tw-font-weight: initial;
+                    --tw-tracking: initial;
+                }
+            }
+        }
+        /* Estilos adicionales */
+        .celda-medicion {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .celda-medicion:hover {
+            background-color: #e8f5f2 !important;
+        }
+        .celda-booleana.activo {
+            background-color: #dc3545 !important;
+        }
+        .subcelda {
+            border-right: 1px solid #e5e7eb;
+            flex: 1;
+            text-align: center;
+            min-width: 32px;
+            padding: 2px 0;
+            cursor: pointer;
+        }
+        .subcelda:last-child {
+            border-right: none;
+        }
+    </style>
+</head>
+<body>
+<div th:fragment="content" class="min-h-screen w-full bg-white p-4 md:p-8 font-sans flex flex-col items-center">
+    <div class="w-full max-w-[1200px] flex flex-col gap-4">
+        <!-- Cabecera -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+            <div class="flex flex-col gap-2 w-full md:w-64">
+                <div class="flex items-end gap-2 border-b border-black pb-1">
+                    <span class="text-xs font-bold whitespace-nowrap">PACIENTE:</span>
+                    <div class="flex-1 h-4" th:text="${pacienteNombre}"></div>
+                </div>
+                <div class="flex items-end gap-2 border-b border-black pb-1">
+                    <!--<span class="text-xs font-bold whitespace-nowrap">ID / HISTORIA CLÍNICA:</span>-->
+                    <!--<div class="flex-1 h-4" th:text="${pacienteId}"></div>-->
+                </div>
+                <div class="flex items-end gap-2 border-b border-black pb-1">
+                    <span class="text-xs font-bold whitespace-nowrap">FECHA:</span>
+                    <div class="flex-1 h-4 flex items-center gap-2">
+                        <span class="text-xs" th:text="${#dates.format(#dates.createNow(), 'dd / MM / yyyy')}"></span>
+                    </div>
+                </div>
+            </div>
+            <h1 class="text-3xl md:text-5xl font-black text-[#1a365d] tracking-tight text-center flex-1">PERIODONTOGRAMA</h1>
+            <div class="flex flex-col gap-2 w-full md:w-64 border border-black rounded-md p-3">
+                <div class="flex items-end gap-2 border-b border-black pb-1">
+                    <span class="text-xs font-bold whitespace-nowrap">EXAMINADOR:</span>
+                    <div class="flex-1 h-4" th:text="${examinador}"></div>
+                </div>
+                <div class="flex items-end gap-2 border-b border-black pb-1">
+                    <span class="text-xs font-bold whitespace-nowrap">FECHA:</span>
+                    <div class="flex-1 h-4 flex items-center gap-2">
+                        <span class="text-xs" th:text="${#dates.format(#dates.createNow(), 'dd / MM / yyyy')}"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenedores donde se generarán dinámicamente las tablas -->
+        <div id="arcadaMaxilar"></div>
+        <div id="arcadaMandibular"></div>
+
+        <!-- Panel de indicadores y diagnóstico (con botón Guardar) -->
+        <div class="bg-light border rounded p-3 mt-2">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="row text-sm">
+                        <div class="col-6 col-md-3"><strong>BOP%:</strong> <span id="bop">--</span>%</div>
+                        <div class="col-6 col-md-3"><strong>CAL máximo:</strong> <span id="maxCal">--</span> mm</div>
+                        <div class="col-6 col-md-3"><strong>Dientes afectados (CAL≥2):</strong> <span id="affectedTeeth">--</span></div>
+                        <div class="col-6 col-md-3"><strong>Movilidad máxima:</strong> <span id="maxMobility">--</span></div>
+                        <div class="col-6 col-md-3"><strong>Furca máxima:</strong> <span id="maxFurca">--</span></div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end mt-2 mt-md-0">
+                    <button id="calcularDiagnosticoBtn" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="bi bi-calculator"></i> Calcular diagnóstico
+                    </button>
+                    <button id="guardarPeriodontogramaBtn" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-save"></i> Guardar periodontograma
+                    </button>
+                </div>
+            </div>
+            <div class="mt-2 text-sm"><strong>Diagnóstico sugerido:</strong> <span id="suggestedDiagnosisText">--</span></div>
+        </div>
+
+        <!-- Leyenda -->
+        <div class="w-full border-2 border-[#1a365d]/40 rounded-md p-4 flex flex-col md:flex-row items-center justify-between gap-6 bg-white">
+            <div class="font-bold text-[#1a365d]">LEYENDA</div>
+            <div class="flex items-start gap-3"><div class="w-4 h-4 bg-red-700 mt-0.5 shrink-0"></div><div><span class="text-xs font-bold text-red-700">HALLAZGOS / MEDICIONES GINGIVALES</span><br><span class="text-xs text-gray-600">Profundidad de sondaje, Margen gingival, Sangrado al sondaje</span></div></div>
+            <div class="flex items-start gap-3"><div class="w-4 h-4 bg-[#1a365d] mt-0.5 shrink-0"></div><div><span class="text-xs font-bold text-[#1a365d]">MEDICIONES COMPLEMENTARIAS</span><br><span class="text-xs text-gray-600">Placa, Movilidad, Furca</span></div></div>
+            <div class="flex flex-col gap-1 border-l border-[#1a365d]/40 pl-6">
+                <div class="flex gap-4"><span class="text-xs"><span class="font-bold">V</span> = Vestibular</span><span class="text-xs"><span class="font-bold">B</span> = Bucal</span><span class="text-xs"><span class="font-bold">P</span> = Palatina</span><span class="text-xs"><span class="font-bold">L</span> = Lingual</span></div>
+                <div class="flex gap-4"><span class="text-xs"><span class="font-bold">mm</span> = milímetros</span></div>
+            </div>
+        </div>
+
+        <!-- Botón de retorno solo si hay citaId -->
+        <div th:if="${citaId != null}" class="flex justify-end mt-2">
+            <a th:href="@{/doctor/citas/{id}/atender(id=${citaId})}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver a atención
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de edición de medición -->
+<div class="modal fade" id="edicionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Registrar medición</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editTipo">
+                <input type="hidden" id="editDiente">
+                <input type="hidden" id="editCara">
+                <input type="hidden" id="editPosicion">
+                <div id="editCampoNumerico" class="mb-2">
+                    <label class="form-label">Valor (mm):</label>
+                    <input type="number" step="0.5" id="editValor" class="form-control">
+                </div>
+                <div id="editCampoCheckbox" class="form-check" style="display:none;">
+                    <input type="checkbox" id="editCheck" class="form-check-input">
+                    <label class="form-check-label">Presente</label>
+                </div>
+                <div id="editCampoSelect" style="display:none;">
+                    <label class="form-label">Seleccione grado:</label>
+                    <select id="editSelect" class="form-select">
+                        <option value="0">0 (Sin afectación)</option>
+                        <option value="1">Grado I</option>
+                        <option value="2">Grado II</option>
+                        <option value="3">Grado III</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="guardarEdicionBtn" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de mensajes (para reemplazar alert) -->
+<div class="modal fade" id="mensajeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Información</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="mensajeTexto"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.iconify.design/iconify-icon/3.0.0/iconify-icon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const pacienteId = /*[[${pacienteId}]]*/ null;
+    const citaId = /*[[${citaId}]]*/ null;
+    const examinador = /*[[${examinador}]]*/ 'Médico';
+    const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+    // Estructura de almacenamiento (clave compuesta)
+    let mediciones = {};
+
+    // Dientes
+    const maxilarDientes = ["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"];
+    const mandibularDientes = ["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"];
+    const allTeeth = [...maxilarDientes, ...mandibularDientes];
+
+    // Configuración de mediciones
+    const config = {
+        profundidad: { tipo: 'number', carasMax: ['V','B','P'], carasMan: ['V','L','L'], posiciones: ['mesial','central','distal'], defaultValue: 0 },
+        margen: { tipo: 'number', carasMax: ['V','B','P'], carasMan: ['V','L','L'], posiciones: ['mesial','central','distal'], defaultValue: 0 },
+        sangrado: { tipo: 'boolean', carasMax: ['V','B','P'], carasMan: ['V','L','L'], posiciones: ['mesial','central','distal'], defaultValue: false },
+        placa: { tipo: 'boolean', carasMax: ['V','B'], carasMan: ['V','L'], posiciones: ['mesial','central','distal'], defaultValue: false },
+        movilidad: { tipo: 'select', carasMax: ['B'], carasMan: ['L'], posiciones: [''], defaultValue: 0 },
+        furca: { tipo: 'select', carasMax: ['V','P'], carasMan: ['V','L'], posiciones: [''], defaultValue: 0 }
+    };
+
+    // Inicializar estructura vacía
+    function initMediciones() {
+        allTeeth.forEach(diente => {
+            const arcada = maxilarDientes.includes(diente) ? 'max' : 'man';
+            for (let [tipo, cfg] of Object.entries(config)) {
+                const caras = arcada === 'max' ? cfg.carasMax : cfg.carasMan;
+                for (let cara of caras) {
+                    for (let pos of cfg.posiciones) {
+                        const key = pos ? `${diente}_${cara}_${tipo}_${pos}` : `${diente}_${cara}_${tipo}`;
+                        mediciones[key] = cfg.defaultValue;
+                    }
+                }
+            }
+        });
+    }
+
+    // Generar tablas con atributos data-*
+    // FUNCIÓN MODIFICADA: nuevo orden de filas y división en subceldas horizontales
+    function generarArcada(titulo, dientes, caras, arcadaId) {
+        let html = `<div class="w-full border-2 border-[#1a365d] rounded-sm overflow-hidden mb-6 bg-white">`;
+        html += `<div class="w-full text-center py-1.5 border-b-2 border-[#1a365d] bg-white"><h3 class="text-sm font-bold text-[#1a365d] uppercase">${titulo}</h3></div>`;
+        // Números de dientes
+        html += `<div class="flex border-b border-[#1a365d]/20">`;
+        html += `<div class="w-56 shrink-0 border-r border-[#1a365d]/20 p-2 flex items-center"><span class="text-xs font-bold text-[#1a365d]">NÚMERO DE DIENTE</span></div>`;
+        html += `<div class="flex-1 flex">`;
+        dientes.forEach(d => { html += `<div class="flex-1 flex items-center justify-center p-1 border-r border-[#1a365d]/20 last:border-0"><span class="text-xs font-bold text-[#1a365d]">${d}</span></div>`; });
+        html += `</div></div>`;
+        // Caras con SVG
+        html += `<div class="flex border-b-2 border-[#1a365d]/20 bg-white">`;
+        html += `<div class="w-48 shrink-0 border-r border-[#1a365d]/20 p-2 flex items-center"><span class="text-xs font-bold text-[#1a365d]">CARAS</span></div>`;
+        html += `<div class="w-8 shrink-0 flex flex-col justify-end pb-1 items-center border-r border-[#1a365d]/20">`;
+        caras.forEach(c => { html += `<span class="text-[9px] font-bold text-[#1a365d]">${c}</span>`; });
+        html += `</div><div class="flex-1 flex">`;
+        for (let i = 0; i < dientes.length; i++) {
+            html += `<div class="flex-1 flex items-center justify-center py-2 border-r border-[#1a365d]/20 last:border-0">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" class="w-8 h-8 md:w-10 md:h-10 text-[#1a365d] mx-auto">
+                            <path d="M4 8C4 5 7 3 12 3C17 3 20 5 20 8C20 12 18 16 16 20C15 22 13 22 12 22C11 22 9 22 8 20C6 16 4 12 4 8Z"></path>
+                            <path d="M8 8C8 10 10 11 12 11C14 11 16 10 16 8"></path>
+                            <path d="M12 11V16"></path>
+                        </svg>
+                    </div>`;
+        }
+        html += `</div></div>`;
+
+        // Nueva definición de filas según el orden clínico
+        const filas = [
+            // Cara vestibular (V) - maxilar: caras[0]='V', caras[1]='B', caras[2]='P'; mandibular: caras[0]='V', caras[1]='L', caras[2]='L'
+            { label: "Movilidad", tipo: "movilidad", carasMostrar: [caras[1]], puntos: false },      // Usamos B o L
+            { label: "Furca V", tipo: "furca", carasMostrar: [caras[0]], puntos: false },          // Cara V (vestibular)
+            { label: "Margen gingival (mm)", tipo: "margen", carasMostrar: [caras[0]], puntos: true },
+            { label: "Profundidad sondaje (mm)", tipo: "profundidad", carasMostrar: [caras[0]], puntos: true },
+            { label: "CAL (mm)", tipo: "cal", carasMostrar: [caras[0]], puntos: true, soloLectura: true },
+            { label: "Sangrado", tipo: "sangrado", carasMostrar: [caras[0]], puntos: true },
+            { label: "Placa", tipo: "placa", carasMostrar: [caras[0]], puntos: true },
+            { separador: true, texto: "◊" },
+            // Cara palatina/lingual (cara interna)
+            { label: "Placa", tipo: "placa", carasMostrar: [caras[2]], puntos: true },
+            { label: "Sangrado", tipo: "sangrado", carasMostrar: [caras[2]], puntos: true },
+            { label: "Profundidad sondaje (mm)", tipo: "profundidad", carasMostrar: [caras[2]], puntos: true },
+            { label: "Margen gingival (mm)", tipo: "margen", carasMostrar: [caras[2]], puntos: true },
+            { label: "CAL (mm)", tipo: "cal", carasMostrar: [caras[2]], puntos: true, soloLectura: true },
+            { label: "Furca P", tipo: "furca", carasMostrar: [caras[2]], puntos: false }
+        ];
+
+        for (let fila of filas) {
+            if (fila.separador) {
+                html += `<div class="flex border-b-0">`;
+                html += `<td colspan="${1 + dientes.length * 3}" class="cara-separador text-center">${fila.texto}</td>`;
+                html += `</div>`;
+                continue;
+            }
+            html += `<div class="flex border-b border-[#1a365d]/20">`;
+            html += `<div class="w-48 shrink-0 flex items-center p-2 border-r border-[#1a365d]/20 bg-white">`;
+            html += `<div class="mr-2 text-red-700"><iconify-icon icon="lucide:ruler" class="block size-[16px]" style="font-size:16px"></iconify-icon></div>`;
+            html += `<span class="text-[10px] md:text-xs font-semibold text-[#1a365d] leading-tight">${fila.label}</span>`;
+            html += `</div>`;
+            html += `<div class="w-8 shrink-0 flex flex-col border-r border-[#1a365d]/20 bg-white">`;
+            // Mostrar la cara correspondiente
+            for (let c of fila.carasMostrar) {
+                html += `<div class="flex-1 flex items-center justify-center text-[9px] md:text-[10px] font-bold text-[#1a365d]" style="border-bottom: 1px solid #dee2e6;">${c}</div>`;
+            }
+            html += `</div>`;
+            html += `<div class="flex-1 flex">`;
+            for (let idxDiente = 0; idxDiente < dientes.length; idxDiente++) {
+                const diente = dientes[idxDiente];
+                if (fila.puntos) {
+                    // Para cada cara, creamos un contenedor con tres subceldas (mesial, central, distal)
+                    const posiciones = config[fila.tipo]?.posiciones || ['mesial','central','distal'];
+                    html += `<div class="flex-1 flex flex-col border-r border-[#1a365d]/20 last:border-0">`;
+                    for (let idxCara = 0; idxCara < fila.carasMostrar.length; idxCara++) {
+                        const cara = fila.carasMostrar[idxCara];
+                        html += `<div class="d-flex" style="border-bottom: 1px solid #dee2e6;">`;
+                        for (let pos of posiciones) {
+                            const key = `${diente}_${cara}_${fila.tipo}_${pos}`;
+                            let valor = mediciones[key] !== undefined ? mediciones[key] : (config[fila.tipo]?.defaultValue ?? 0);
+                            let display = '';
+                            if (fila.tipo === 'sangrado' || fila.tipo === 'placa') display = valor ? '●' : '';
+                            else if (fila.tipo === 'movilidad' || fila.tipo === 'furca') display = valor === 0 ? '' : valor;
+                            else display = (valor !== 0 && valor !== null) ? valor : '';
+                            const isBoolean = (fila.tipo === 'sangrado' || fila.tipo === 'placa');
+                            const claseEditable = (fila.tipo === 'cal') ? '' : 'celda-medicion';
+                            const estilo = (isBoolean && valor) ? 'background-color:#fee2e2;' : '';
+                            html += `<div class="subcelda ${claseEditable}" data-diente="${diente}" data-cara="${cara}" data-tipo="${fila.tipo}" data-posicion="${pos}" style="${estilo}">
+                                        <span class="text-[9px] leading-tight">${display}</span>
+                                    </div>`;
+                        }
+                        html += `</div>`;
+                    }
+                    html += `</div>`;
+                } else {
+                    // Una sola celda (movilidad, furca)
+                    const cara = fila.carasMostrar[0];
+                    const key = `${diente}_${cara}_${fila.tipo}`;
+                    let valor = mediciones[key] !== undefined ? mediciones[key] : 0;
+                    let display = valor === 0 ? '' : valor;
+                    html += `<div class="flex-1 text-center py-1 celda-medicion" data-diente="${diente}" data-cara="${cara}" data-tipo="${fila.tipo}" data-posicion="unico">
+                                <span class="text-[10px] leading-tight">${display}</span>
+                            </div>`;
+                }
+            }
+            html += `</div></div>`;
+        }
+        // Observaciones
+        html += `<div class="flex border-b-0">`;
+        html += `<div class="w-56 shrink-0 flex items-center p-2 border-r border-[#1a365d]/20 bg-white"><span class="text-[10px] md:text-xs font-semibold text-[#1a365d]">Observaciones</span></div>`;
+        html += `<div class="flex-1 flex bg-white">`;
+        for (let i = 0; i < dientes.length; i++) {
+            html += `<div class="flex-1 border-r border-[#1a365d]/20 last:border-0 min-h-[24px]"></div>`;
+        }
+        html += `</div></div>`;
+        html += `</div>`;
+        return html;
+    }
+
+    function renderizarTodo() {
+        const containerMax = document.getElementById("arcadaMaxilar");
+        const containerMand = document.getElementById("arcadaMandibular");
+        if (containerMax) containerMax.innerHTML = generarArcada("ARCADA MAXILAR (SUPERIOR)", maxilarDientes, ["V","B","P"], "maxilar");
+        if (containerMand) containerMand.innerHTML = generarArcada("ARCADA MANDIBULAR (INFERIOR)", mandibularDientes, ["V","L","L"], "mandibular");
+        // Reasignar eventos
+        document.querySelectorAll('.celda-medicion').forEach(celda => {
+            celda.addEventListener('click', (e) => {
+                e.stopPropagation();
+                abrirModal(celda);
+            });
+        });
+    }
+
+    let currentEditCell = null;
+    function abrirModal(cell) {
+        currentEditCell = cell;
+        const diente = cell.dataset.diente;
+        const cara = cell.dataset.cara;
+        const tipo = cell.dataset.tipo;
+        const posicion = cell.dataset.posicion;
+        const key = posicion === 'unico' ? `${diente}_${cara}_${tipo}` : `${diente}_${cara}_${tipo}_${posicion}`;
+        let valorActual = mediciones[key] !== undefined ? mediciones[key] : (tipo === 'sangrado' || tipo === 'placa' ? false : 0);
+        document.getElementById('editDiente').value = diente;
+        document.getElementById('editCara').value = cara;
+        document.getElementById('editTipo').value = tipo;
+        document.getElementById('editPosicion').value = posicion;
+        const tipoCfg = config[tipo];
+        if (!tipoCfg) return;
+        if (tipoCfg.tipo === 'number') {
+            document.getElementById('editCampoNumerico').style.display = 'block';
+            document.getElementById('editCampoCheckbox').style.display = 'none';
+            document.getElementById('editCampoSelect').style.display = 'none';
+            document.getElementById('editValor').value = valorActual;
+        } else if (tipoCfg.tipo === 'boolean') {
+            document.getElementById('editCampoNumerico').style.display = 'none';
+            document.getElementById('editCampoCheckbox').style.display = 'block';
+            document.getElementById('editCampoSelect').style.display = 'none';
+            document.getElementById('editCheck').checked = valorActual;
+        } else {
+            document.getElementById('editCampoNumerico').style.display = 'none';
+            document.getElementById('editCampoCheckbox').style.display = 'none';
+            document.getElementById('editCampoSelect').style.display = 'block';
+            document.getElementById('editSelect').value = valorActual;
+        }
+        const modal = new bootstrap.Modal(document.getElementById('edicionModal'));
+        modal.show();
+    }
+
+    function guardarEdicion() {
+        const diente = document.getElementById('editDiente').value;
+        const cara = document.getElementById('editCara').value;
+        const tipo = document.getElementById('editTipo').value;
+        const posicion = document.getElementById('editPosicion').value;
+        const key = posicion === 'unico' ? `${diente}_${cara}_${tipo}` : `${diente}_${cara}_${tipo}_${posicion}`;
+        const tipoCfg = config[tipo];
+        let nuevoValor;
+        if (tipoCfg.tipo === 'number') {
+            nuevoValor = parseFloat(document.getElementById('editValor').value) || 0;
+        } else if (tipoCfg.tipo === 'boolean') {
+            nuevoValor = document.getElementById('editCheck').checked;
+        } else {
+            nuevoValor = parseInt(document.getElementById('editSelect').value) || 0;
+        }
+        mediciones[key] = nuevoValor;
+        if (currentEditCell) {
+            let display = '';
+            if (tipoCfg.tipo === 'boolean') display = nuevoValor ? '●' : '';
+            else if (tipoCfg.tipo === 'select') display = nuevoValor === 0 ? '' : nuevoValor;
+            else display = (nuevoValor !== 0 && nuevoValor !== null) ? nuevoValor : '';
+            currentEditCell.querySelector('span').innerText = display;
+            if (tipoCfg.tipo === 'boolean') {
+                if (nuevoValor) currentEditCell.style.backgroundColor = '#fee2e2';
+                else currentEditCell.style.backgroundColor = '';
+            }
+        }
+        bootstrap.Modal.getInstance(document.getElementById('edicionModal')).hide();
+        calcularDiagnostico(); // actualizar panel
+    }
+
+    async function calcularDiagnostico() {
+        const json = JSON.stringify(mediciones);
+        try {
+            const resp = await fetch('/api/periodontograma/calcular', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', [csrfHeader]: csrfToken },
+                body: json
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                document.getElementById('bop').innerText = (data.indicators.bopPercent * 100).toFixed(1);
+                document.getElementById('maxCal').innerText = data.indicators.maxCAL;
+                document.getElementById('affectedTeeth').innerText = data.indicators.affectedTeethCAL;
+                document.getElementById('maxMobility').innerText = data.indicators.maxMobility;
+                document.getElementById('maxFurca').innerText = data.indicators.maxFurcation;
+                document.getElementById('suggestedDiagnosisText').innerText = data.fullText;
+            } else {
+                const error = await resp.json();
+                mostrarMensaje('Error al calcular diagnóstico: ' + (error.message || 'Error desconocido'));
+            }
+        } catch (e) {
+            mostrarMensaje('Error de conexión al calcular diagnóstico.');
+        }
+    }
+
+    async function guardarPeriodontograma() {
+        const payload = {
+            patientId: pacienteId,
+            appointmentId: citaId,
+            examDate: new Date().toISOString().slice(0,10),
+            measurementsJson: JSON.stringify(mediciones),
+            finalDiagnosisText: document.getElementById('suggestedDiagnosisText').innerText
+        };
+        try {
+            const resp = await fetch('/api/periodontograma/guardar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', [csrfHeader]: csrfToken },
+                body: JSON.stringify(payload)
+            });
+            if (resp.ok) {
+                mostrarMensaje('Periodontograma guardado correctamente');
+                if (citaId) setTimeout(() => window.location.href = `/doctor/citas/${citaId}/atender`, 1500);
+            } else {
+                const error = await resp.json();
+                mostrarMensaje('Error al guardar: ' + (error.message || 'Error desconocido'));
+            }
+        } catch (e) {
+            mostrarMensaje('Error de conexión al guardar.');
+        }
+    }
+
+    function mostrarMensaje(texto) {
+        const modal = new bootstrap.Modal(document.getElementById('mensajeModal'));
+        document.getElementById('mensajeTexto').innerText = texto;
+        modal.show();
+    }
+
+    async function cargarDatos() {
+        try {
+            const resp = await fetch(`/api/periodontograma/paciente/${pacienteId}/ultimo`);
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data && data.measurementsJson) {
+                    const parsed = JSON.parse(data.measurementsJson);
+                    mediciones = parsed;
+                } else {
+                    initMediciones();
+                }
+            } else {
+                initMediciones();
+            }
+            renderizarTodo();
+            calcularDiagnostico();
+        } catch(e) {
+            console.error(e);
+            initMediciones();
+            renderizarTodo();
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        cargarDatos();
+        document.getElementById('calcularDiagnosticoBtn').addEventListener('click', calcularDiagnostico);
+        document.getElementById('guardarPeriodontogramaBtn').addEventListener('click', guardarPeriodontograma);
+        document.getElementById('guardarEdicionBtn').addEventListener('click', guardarEdicion);
+    });
+    /*]]>*/
+</script>
+</body>
+</html>
