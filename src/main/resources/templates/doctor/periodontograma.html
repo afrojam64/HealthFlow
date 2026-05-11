@@ -204,6 +204,7 @@
             }
         }
         @layer utilities {
+            /* Todas las utilidades de Tailwind (se mantienen) */
             .mx-2 { margin-inline: calc(var(--spacing) * 2); }
             .mx-auto { margin-inline: auto; }
             .mt-0\.5 { margin-top: calc(var(--spacing) * 0.5); }
@@ -374,12 +375,21 @@
             color: #374151;
             cursor: default;
         }
+        .observaciones-textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            resize: vertical;
+            background-color: white;
+        }
     </style>
 </head>
 <body>
 <div th:fragment="content" class="min-h-screen w-full bg-white p-4 md:p-8 font-sans flex flex-col items-center">
     <div class="w-full max-w-full flex flex-col gap-4">
-        <!-- Cabecera -->
+        <!-- Cabecera (igual) -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <div class="flex flex-col gap-2 w-full md:w-64">
                 <div class="flex items-end gap-2 border-b border-black pb-1">
@@ -387,8 +397,7 @@
                     <div class="flex-1 h-4" th:text="${pacienteNombre}"></div>
                 </div>
                 <div class="flex items-end gap-2 border-b border-black pb-1">
-                    <!--<span class="text-xs font-bold whitespace-nowrap">ID / HISTORIA CLÍNICA:</span>-->
-                    <!--<div class="flex-1 h-4" th:text="${pacienteId}"></div>-->
+                    <!-- ID / HISTORIA CLÍNICA opcional -->
                 </div>
                 <div class="flex items-end gap-2 border-b border-black pb-1">
                     <span class="text-xs font-bold whitespace-nowrap">FECHA:</span>
@@ -412,9 +421,15 @@
             </div>
         </div>
 
-        <!-- Contenedores con scroll horizontal -->
+        <!-- Tablas dinámicas -->
         <div id="arcadaMaxilar" class="tabla-scroll"></div>
         <div id="arcadaMandibular" class="tabla-scroll"></div>
+
+        <!-- Observaciones (editable) -->
+        <div class="w-full border border-[#1a365d]/40 rounded-md p-3 bg-white">
+            <label class="text-[10px] md:text-xs font-semibold text-[#1a365d] mb-1 block">Observaciones</label>
+            <textarea id="observaciones" class="observaciones-textarea" rows="3" placeholder="Escriba aquí cualquier observación clínica (opcional)..."></textarea>
+        </div>
 
         <!-- Panel de indicadores y diagnóstico -->
         <div class="bg-light border rounded p-3 mt-2">
@@ -460,7 +475,7 @@
     </div>
 </div>
 
-<!-- Modal de edición de medición -->
+<!-- MODALES (idénticos) -->
 <div class="modal fade" id="edicionModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -499,7 +514,6 @@
     </div>
 </div>
 
-<!-- Modal de mensajes -->
 <div class="modal fade" id="mensajeModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -528,6 +542,8 @@
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
 
     let mediciones = {};
+    let observaciones = ''; // Variable para observaciones
+
     const maxilarDientes = ["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"];
     const mandibularDientes = ["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"];
     const allTeeth = [...maxilarDientes, ...mandibularDientes];
@@ -556,7 +572,6 @@
         });
     }
 
-    // Generar tablas con columnas de ancho fijo y CAL no editable
     function generarArcada(titulo, dientes, caras) {
         let html = `<div class="w-full border-2 border-[#1a365d] rounded-sm overflow-hidden mb-6 bg-white">`;
         html += `<div class="w-full text-center py-1.5 border-b-2 border-[#1a365d] bg-white"><h3 class="text-sm font-bold text-[#1a365d] uppercase">${titulo}</h3></div>`;
@@ -665,15 +680,6 @@
             }
             html += `</div></div>`;
         }
-        // Observaciones
-        html += `<div class="flex border-b-0">`;
-        html += `<div class="w-56 shrink-0 flex items-center p-2 border-r border-[#1a365d]/20 bg-white"><span class="text-[10px] md:text-xs font-semibold text-[#1a365d]">Observaciones</span></div>`;
-        html += `<div class="flex-1 flex bg-white">`;
-        for (let i = 0; i < dientes.length; i++) {
-            html += `<div class="columna-diente border-r border-[#1a365d]/20 last:border-0 min-h-[24px]"></div>`;
-        }
-        html += `</div></div>`;
-        html += `</div>`;
         return html;
     }
 
@@ -753,7 +759,7 @@
             }
         }
         bootstrap.Modal.getInstance(document.getElementById('edicionModal')).hide();
-        // No es necesario recalcular aquí, el usuario puede hacer clic en calcular
+        // No recalcular automáticamente, el usuario presiona "Calcular diagnóstico"
     }
 
     async function calcularDiagnostico() {
@@ -787,6 +793,7 @@
             appointmentId: citaId,
             examDate: new Date().toISOString().slice(0,10),
             measurementsJson: JSON.stringify(mediciones),
+            observations: document.getElementById('observaciones').value,
             finalDiagnosisText: document.getElementById('suggestedDiagnosisText').innerText
         };
         try {
@@ -817,8 +824,8 @@
         try {
             const resp = await fetch(`/api/periodontograma/paciente/${pacienteId}/ultimo`);
             if (resp.status === 404) {
-                // No hay periodontograma previo, inicializar vacío
                 initMediciones();
+                document.getElementById('observaciones').value = '';
             } else if (resp.ok) {
                 const data = await resp.json();
                 if (data && data.measurementsJson) {
@@ -827,12 +834,15 @@
                 } else {
                     initMediciones();
                 }
+                if (data && data.observations) {
+                    document.getElementById('observaciones').value = data.observations;
+                } else {
+                    document.getElementById('observaciones').value = '';
+                }
             } else {
                 initMediciones();
             }
             renderizarTodo();
-            // Opcional: calcular diagnóstico automáticamente después de cargar
-            // await calcularDiagnostico();
         } catch(e) {
             console.error(e);
             initMediciones();
