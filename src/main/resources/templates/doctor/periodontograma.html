@@ -229,7 +229,7 @@
             .w-56 { width: calc(var(--spacing) * 56); }
             .w-full { width: 100%; }
             .w-px { width: 1px; }
-            .max-w-\[1200px\] { max-width: 1200px; }
+            .max-w-full { max-width: 100%; }
             .max-w-sm { max-width: var(--container-sm); }
             .flex-1 { flex: 1; }
             .shrink-0 { flex-shrink: 0; }
@@ -249,6 +249,7 @@
             .gap-4 { gap: calc(var(--spacing) * 4); }
             .gap-6 { gap: calc(var(--spacing) * 6); }
             .gap-12 { gap: calc(var(--spacing) * 12); }
+            .overflow-x-auto { overflow-x: auto; }
             .overflow-hidden { overflow: hidden; }
             .rounded-full { border-radius: calc(infinity * 1px); }
             .rounded-md { border-radius: var(--radius-md); }
@@ -351,18 +352,30 @@
             border-right: 1px solid #e5e7eb;
             flex: 1;
             text-align: center;
-            min-width: 32px;
+            min-width: 30px;
             padding: 2px 0;
             cursor: pointer;
         }
         .subcelda:last-child {
             border-right: none;
         }
+        /* ANCHO FIJO PARA CADA COLUMNA DE DIENTE */
+        .columna-diente {
+            min-width: 110px;
+            flex-shrink: 0;
+            flex-grow: 1;
+            text-align: center;
+        }
+        /* Contenedor con scroll horizontal */
+        .tabla-scroll {
+            overflow-x: auto;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
 <div th:fragment="content" class="min-h-screen w-full bg-white p-4 md:p-8 font-sans flex flex-col items-center">
-    <div class="w-full max-w-[1200px] flex flex-col gap-4">
+    <div class="w-full max-w-full flex flex-col gap-4">
         <!-- Cabecera -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <div class="flex flex-col gap-2 w-full md:w-64">
@@ -396,11 +409,11 @@
             </div>
         </div>
 
-        <!-- Contenedores donde se generarán dinámicamente las tablas -->
-        <div id="arcadaMaxilar"></div>
-        <div id="arcadaMandibular"></div>
+        <!-- Contenedores con scroll horizontal -->
+        <div id="arcadaMaxilar" class="tabla-scroll"></div>
+        <div id="arcadaMandibular" class="tabla-scroll"></div>
 
-        <!-- Panel de indicadores y diagnóstico (con botón Guardar) -->
+        <!-- Panel de indicadores y diagnóstico -->
         <div class="bg-light border rounded p-3 mt-2">
             <div class="row align-items-center">
                 <div class="col-md-8">
@@ -435,7 +448,7 @@
             </div>
         </div>
 
-        <!-- Botón de retorno solo si hay citaId -->
+        <!-- Botón de retorno -->
         <div th:if="${citaId != null}" class="flex justify-end mt-2">
             <a th:href="@{/doctor/citas/{id}/atender(id=${citaId})}" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Volver a atención
@@ -483,7 +496,7 @@
     </div>
 </div>
 
-<!-- Modal de mensajes (para reemplazar alert) -->
+<!-- Modal de mensajes -->
 <div class="modal fade" id="mensajeModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -511,15 +524,11 @@
     const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
 
-    // Estructura de almacenamiento (clave compuesta)
     let mediciones = {};
-
-    // Dientes
     const maxilarDientes = ["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"];
     const mandibularDientes = ["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"];
     const allTeeth = [...maxilarDientes, ...mandibularDientes];
 
-    // Configuración de mediciones
     const config = {
         profundidad: { tipo: 'number', carasMax: ['V','B','P'], carasMan: ['V','L','L'], posiciones: ['mesial','central','distal'], defaultValue: 0 },
         margen: { tipo: 'number', carasMax: ['V','B','P'], carasMan: ['V','L','L'], posiciones: ['mesial','central','distal'], defaultValue: 0 },
@@ -529,7 +538,6 @@
         furca: { tipo: 'select', carasMax: ['V','P'], carasMan: ['V','L'], posiciones: [''], defaultValue: 0 }
     };
 
-    // Inicializar estructura vacía
     function initMediciones() {
         allTeeth.forEach(diente => {
             const arcada = maxilarDientes.includes(diente) ? 'max' : 'man';
@@ -545,25 +553,26 @@
         });
     }
 
-    // Generar tablas con atributos data-*
-    // FUNCIÓN MODIFICADA: nuevo orden de filas y división en subceldas horizontales
-    function generarArcada(titulo, dientes, caras, arcadaId) {
+    // Generar tablas con columnas de ancho fijo
+    function generarArcada(titulo, dientes, caras) {
         let html = `<div class="w-full border-2 border-[#1a365d] rounded-sm overflow-hidden mb-6 bg-white">`;
         html += `<div class="w-full text-center py-1.5 border-b-2 border-[#1a365d] bg-white"><h3 class="text-sm font-bold text-[#1a365d] uppercase">${titulo}</h3></div>`;
-        // Números de dientes
+        // Números de dientes (columna fija)
         html += `<div class="flex border-b border-[#1a365d]/20">`;
         html += `<div class="w-56 shrink-0 border-r border-[#1a365d]/20 p-2 flex items-center"><span class="text-xs font-bold text-[#1a365d]">NÚMERO DE DIENTE</span></div>`;
         html += `<div class="flex-1 flex">`;
-        dientes.forEach(d => { html += `<div class="flex-1 flex items-center justify-center p-1 border-r border-[#1a365d]/20 last:border-0"><span class="text-xs font-bold text-[#1a365d]">${d}</span></div>`; });
+        for (let d of dientes) {
+            html += `<div class="columna-diente flex items-center justify-center p-1 border-r border-[#1a365d]/20 last:border-0"><span class="text-xs font-bold text-[#1a365d]">${d}</span></div>`;
+        }
         html += `</div></div>`;
-        // Caras con SVG
+        // Caras con SVG (columna fija)
         html += `<div class="flex border-b-2 border-[#1a365d]/20 bg-white">`;
         html += `<div class="w-48 shrink-0 border-r border-[#1a365d]/20 p-2 flex items-center"><span class="text-xs font-bold text-[#1a365d]">CARAS</span></div>`;
         html += `<div class="w-8 shrink-0 flex flex-col justify-end pb-1 items-center border-r border-[#1a365d]/20">`;
-        caras.forEach(c => { html += `<span class="text-[9px] font-bold text-[#1a365d]">${c}</span>`; });
+        for (let c of caras) { html += `<span class="text-[9px] font-bold text-[#1a365d]">${c}</span>`; }
         html += `</div><div class="flex-1 flex">`;
         for (let i = 0; i < dientes.length; i++) {
-            html += `<div class="flex-1 flex items-center justify-center py-2 border-r border-[#1a365d]/20 last:border-0">
+            html += `<div class="columna-diente flex items-center justify-center py-2 border-r border-[#1a365d]/20 last:border-0">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" class="w-8 h-8 md:w-10 md:h-10 text-[#1a365d] mx-auto">
                             <path d="M4 8C4 5 7 3 12 3C17 3 20 5 20 8C20 12 18 16 16 20C15 22 13 22 12 22C11 22 9 22 8 20C6 16 4 12 4 8Z"></path>
                             <path d="M8 8C8 10 10 11 12 11C14 11 16 10 16 8"></path>
@@ -573,18 +582,16 @@
         }
         html += `</div></div>`;
 
-        // Nueva definición de filas según el orden clínico
+        // Filas según orden clínico (con clase columna-diente aplicada)
         const filas = [
-            // Cara vestibular (V) - maxilar: caras[0]='V', caras[1]='B', caras[2]='P'; mandibular: caras[0]='V', caras[1]='L', caras[2]='L'
-            { label: "Movilidad", tipo: "movilidad", carasMostrar: [caras[1]], puntos: false },      // Usamos B o L
-            { label: "Furca V", tipo: "furca", carasMostrar: [caras[0]], puntos: false },          // Cara V (vestibular)
+            { label: "Movilidad", tipo: "movilidad", carasMostrar: [caras[1]], puntos: false },
+            { label: "Furca V", tipo: "furca", carasMostrar: [caras[0]], puntos: false },
             { label: "Margen gingival (mm)", tipo: "margen", carasMostrar: [caras[0]], puntos: true },
             { label: "Profundidad sondaje (mm)", tipo: "profundidad", carasMostrar: [caras[0]], puntos: true },
             { label: "CAL (mm)", tipo: "cal", carasMostrar: [caras[0]], puntos: true, soloLectura: true },
             { label: "Sangrado", tipo: "sangrado", carasMostrar: [caras[0]], puntos: true },
             { label: "Placa", tipo: "placa", carasMostrar: [caras[0]], puntos: true },
             { separador: true, texto: "◊" },
-            // Cara palatina/lingual (cara interna)
             { label: "Placa", tipo: "placa", carasMostrar: [caras[2]], puntos: true },
             { label: "Sangrado", tipo: "sangrado", carasMostrar: [caras[2]], puntos: true },
             { label: "Profundidad sondaje (mm)", tipo: "profundidad", carasMostrar: [caras[2]], puntos: true },
@@ -596,17 +603,16 @@
         for (let fila of filas) {
             if (fila.separador) {
                 html += `<div class="flex border-b-0">`;
-                html += `<td colspan="${1 + dientes.length * 3}" class="cara-separador text-center">${fila.texto}</td>`;
+                html += `<td colspan="${1 + dientes.length}" class="cara-separador text-center">${fila.texto}<td>`;
                 html += `</div>`;
                 continue;
             }
             html += `<div class="flex border-b border-[#1a365d]/20">`;
-            html += `<div class="w-48 shrink-0 flex items-center p-2 border-r border-[#1a365d]/20 bg-white">`;
-            html += `<div class="mr-2 text-red-700"><iconify-icon icon="lucide:ruler" class="block size-[16px]" style="font-size:16px"></iconify-icon></div>`;
-            html += `<span class="text-[10px] md:text-xs font-semibold text-[#1a365d] leading-tight">${fila.label}</span>`;
-            html += `</div>`;
+            html += `<div class="w-48 shrink-0 border-r border-[#1a365d]/20 bg-white flex items-center p-2">
+                        <div class="mr-2 text-red-700"><iconify-icon icon="lucide:ruler" class="block size-[16px]" style="font-size:16px"></iconify-icon></div>
+                        <span class="text-[10px] md:text-xs font-semibold text-[#1a365d] leading-tight">${fila.label}</span>
+                    </div>`;
             html += `<div class="w-8 shrink-0 flex flex-col border-r border-[#1a365d]/20 bg-white">`;
-            // Mostrar la cara correspondiente
             for (let c of fila.carasMostrar) {
                 html += `<div class="flex-1 flex items-center justify-center text-[9px] md:text-[10px] font-bold text-[#1a365d]" style="border-bottom: 1px solid #dee2e6;">${c}</div>`;
             }
@@ -615,11 +621,10 @@
             for (let idxDiente = 0; idxDiente < dientes.length; idxDiente++) {
                 const diente = dientes[idxDiente];
                 if (fila.puntos) {
-                    // Para cada cara, creamos un contenedor con tres subceldas (mesial, central, distal)
-                    const posiciones = config[fila.tipo]?.posiciones || ['mesial','central','distal'];
-                    html += `<div class="flex-1 flex flex-col border-r border-[#1a365d]/20 last:border-0">`;
+                    html += `<div class="columna-diente flex flex-col border-r border-[#1a365d]/20 last:border-0">`;
                     for (let idxCara = 0; idxCara < fila.carasMostrar.length; idxCara++) {
                         const cara = fila.carasMostrar[idxCara];
+                        const posiciones = config[fila.tipo]?.posiciones || ['mesial','central','distal'];
                         html += `<div class="d-flex" style="border-bottom: 1px solid #dee2e6;">`;
                         for (let pos of posiciones) {
                             const key = `${diente}_${cara}_${fila.tipo}_${pos}`;
@@ -639,12 +644,11 @@
                     }
                     html += `</div>`;
                 } else {
-                    // Una sola celda (movilidad, furca)
                     const cara = fila.carasMostrar[0];
                     const key = `${diente}_${cara}_${fila.tipo}`;
                     let valor = mediciones[key] !== undefined ? mediciones[key] : 0;
                     let display = valor === 0 ? '' : valor;
-                    html += `<div class="flex-1 text-center py-1 celda-medicion" data-diente="${diente}" data-cara="${cara}" data-tipo="${fila.tipo}" data-posicion="unico">
+                    html += `<div class="columna-diente flex items-center justify-center celda-medicion" data-diente="${diente}" data-cara="${cara}" data-tipo="${fila.tipo}" data-posicion="unico">
                                 <span class="text-[10px] leading-tight">${display}</span>
                             </div>`;
                 }
@@ -656,7 +660,7 @@
         html += `<div class="w-56 shrink-0 flex items-center p-2 border-r border-[#1a365d]/20 bg-white"><span class="text-[10px] md:text-xs font-semibold text-[#1a365d]">Observaciones</span></div>`;
         html += `<div class="flex-1 flex bg-white">`;
         for (let i = 0; i < dientes.length; i++) {
-            html += `<div class="flex-1 border-r border-[#1a365d]/20 last:border-0 min-h-[24px]"></div>`;
+            html += `<div class="columna-diente border-r border-[#1a365d]/20 last:border-0 min-h-[24px]"></div>`;
         }
         html += `</div></div>`;
         html += `</div>`;
@@ -666,9 +670,8 @@
     function renderizarTodo() {
         const containerMax = document.getElementById("arcadaMaxilar");
         const containerMand = document.getElementById("arcadaMandibular");
-        if (containerMax) containerMax.innerHTML = generarArcada("ARCADA MAXILAR (SUPERIOR)", maxilarDientes, ["V","B","P"], "maxilar");
-        if (containerMand) containerMand.innerHTML = generarArcada("ARCADA MANDIBULAR (INFERIOR)", mandibularDientes, ["V","L","L"], "mandibular");
-        // Reasignar eventos
+        if (containerMax) containerMax.innerHTML = generarArcada("ARCADA MAXILAR (SUPERIOR)", maxilarDientes, ["V","B","P"]);
+        if (containerMand) containerMand.innerHTML = generarArcada("ARCADA MANDIBULAR (INFERIOR)", mandibularDientes, ["V","L","L"]);
         document.querySelectorAll('.celda-medicion').forEach(celda => {
             celda.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -740,7 +743,7 @@
             }
         }
         bootstrap.Modal.getInstance(document.getElementById('edicionModal')).hide();
-        calcularDiagnostico(); // actualizar panel
+        calcularDiagnostico();
     }
 
     async function calcularDiagnostico() {
@@ -817,7 +820,6 @@
             renderizarTodo();
             calcularDiagnostico();
         } catch(e) {
-            console.error(e);
             initMediciones();
             renderizarTodo();
         }
