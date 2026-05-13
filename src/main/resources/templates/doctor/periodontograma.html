@@ -389,7 +389,7 @@
 <body>
 <div th:fragment="content" class="min-h-screen w-full bg-white p-4 md:p-8 font-sans flex flex-col items-center">
     <div class="w-full max-w-full flex flex-col gap-4">
-        <!-- Cabecera (igual) -->
+        <!-- Cabecera -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <div class="flex flex-col gap-2 w-full md:w-64">
                 <div class="flex items-end gap-2 border-b border-black pb-1">
@@ -397,7 +397,6 @@
                     <div class="flex-1 h-4" th:text="${pacienteNombre}"></div>
                 </div>
                 <div class="flex items-end gap-2 border-b border-black pb-1">
-                    <!-- ID / HISTORIA CLÍNICA opcional -->
                 </div>
                 <div class="flex items-end gap-2 border-b border-black pb-1">
                     <span class="text-xs font-bold whitespace-nowrap">FECHA:</span>
@@ -475,7 +474,7 @@
     </div>
 </div>
 
-<!-- MODALES (idénticos) -->
+<!-- MODALES -->
 <div class="modal fade" id="edicionModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -542,7 +541,6 @@
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
 
     let mediciones = {};
-    let observaciones = ''; // Variable para observaciones
 
     const maxilarDientes = ["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"];
     const mandibularDientes = ["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"];
@@ -572,6 +570,29 @@
         });
     }
 
+    // ================= FUNCIÓN PARA ACTUALIZAR CAL =================
+    function actualizarCAL(diente, cara, posicion) {
+        const profKey = `${diente}_${cara}_profundidad_${posicion}`;
+        const margKey = `${diente}_${cara}_margen_${posicion}`;
+        const profundidad = mediciones[profKey] !== undefined ? mediciones[profKey] : 0;
+        const margen = mediciones[margKey] !== undefined ? mediciones[margKey] : 0;
+        const nuevoCAL = profundidad + margen;
+        const calKey = `${diente}_${cara}_cal_${posicion}`;
+        mediciones[calKey] = nuevoCAL;
+
+        // Buscar la subcelda CAL correspondiente (debe tener data-diente, data-cara, data-posicion)
+        const celdaCAL = document.querySelector(`.cal-no-editable[data-diente="${diente}"][data-cara="${cara}"][data-posicion="${posicion}"]`);
+        if (celdaCAL) {
+            const span = celdaCAL.querySelector('span');
+            if (span) {
+                span.innerText = nuevoCAL !== 0 ? nuevoCAL : '';
+            } else {
+                celdaCAL.innerText = nuevoCAL !== 0 ? nuevoCAL : '';
+            }
+        }
+    }
+
+    // ================= GENERAR ARCADA (con atributos data para CAL) =================
     function generarArcada(titulo, dientes, caras) {
         let html = `<div class="w-full border-2 border-[#1a365d] rounded-sm overflow-hidden mb-6 bg-white">`;
         html += `<div class="w-full text-center py-1.5 border-b-2 border-[#1a365d] bg-white"><h3 class="text-sm font-bold text-[#1a365d] uppercase">${titulo}</h3></div>`;
@@ -624,7 +645,6 @@
             }
             const esCal = fila.tipo === 'cal';
             const claseEditable = esCal ? 'cal-no-editable' : 'celda-medicion';
-            const dataAttrs = esCal ? '' : `data-diente data-cara data-tipo data-posicion`;
             html += `<div class="flex border-b border-[#1a365d]/20">`;
             html += `<div class="w-48 shrink-0 border-r border-[#1a365d]/20 bg-white flex items-center p-2">
                         <div class="mr-2 text-red-700"><iconify-icon icon="lucide:ruler" class="block size-[16px]" style="font-size:16px"></iconify-icon></div>
@@ -654,7 +674,8 @@
                             const isBoolean = (fila.tipo === 'sangrado' || fila.tipo === 'placa');
                             const estilo = (isBoolean && valor) ? 'background-color:#fee2e2;' : '';
                             if (esCal) {
-                                html += `<div class="subcelda ${claseEditable}" style="${estilo}"><span class="text-[9px] leading-tight">${display}</span></div>`;
+                                // Añadir atributos data para poder localizar la celda CAL
+                                html += `<div class="subcelda ${claseEditable}" data-diente="${diente}" data-cara="${cara}" data-posicion="${pos}" style="${estilo}"><span class="text-[9px] leading-tight">${display}</span></div>`;
                             } else {
                                 html += `<div class="subcelda ${claseEditable}" data-diente="${diente}" data-cara="${cara}" data-tipo="${fila.tipo}" data-posicion="${pos}" style="${estilo}">
                                             <span class="text-[9px] leading-tight">${display}</span>
@@ -670,7 +691,7 @@
                     let valor = mediciones[key] !== undefined ? mediciones[key] : 0;
                     let display = valor === 0 ? '' : valor;
                     if (esCal) {
-                        html += `<div class="columna-diente flex items-center justify-center cal-no-editable"><span class="text-[10px] leading-tight">${display}</span></div>`;
+                        html += `<div class="columna-diente flex items-center justify-center cal-no-editable" data-diente="${diente}" data-cara="${cara}" data-posicion="unico"><span class="text-[10px] leading-tight">${display}</span></div>`;
                     } else {
                         html += `<div class="columna-diente flex items-center justify-center celda-medicion" data-diente="${diente}" data-cara="${cara}" data-tipo="${fila.tipo}" data-posicion="unico">
                                     <span class="text-[10px] leading-tight">${display}</span>
@@ -758,8 +779,11 @@
                 else currentEditCell.style.backgroundColor = '';
             }
         }
+        // Si se editó profundidad o margen, actualizar el CAL correspondiente
+        if (tipo === 'profundidad' || tipo === 'margen') {
+            actualizarCAL(diente, cara, posicion);
+        }
         bootstrap.Modal.getInstance(document.getElementById('edicionModal')).hide();
-        // No recalcular automáticamente, el usuario presiona "Calcular diagnóstico"
     }
 
     async function calcularDiagnostico() {
@@ -839,6 +863,25 @@
                 } else {
                     document.getElementById('observaciones').value = '';
                 }
+                // Recalcular todos los CAL a partir de profundidad+margen
+                const posiciones = ['mesial', 'central', 'distal'];
+                const dientesSet = new Set();
+                Object.keys(mediciones).forEach(key => {
+                    const parts = key.split('_');
+                    if (parts.length >= 1) dientesSet.add(parts[0]);
+                });
+                dientesSet.forEach(diente => {
+                    const carasSet = new Set();
+                    Object.keys(mediciones).forEach(key => {
+                        const parts = key.split('_');
+                        if (parts[0] === diente && parts.length >= 2) carasSet.add(parts[1]);
+                    });
+                    carasSet.forEach(cara => {
+                        posiciones.forEach(pos => {
+                            actualizarCAL(diente, cara, pos);
+                        });
+                    });
+                });
             } else {
                 initMediciones();
             }

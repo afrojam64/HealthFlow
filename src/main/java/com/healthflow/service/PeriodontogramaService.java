@@ -43,50 +43,116 @@ public class PeriodontogramaService {
         return periodontogramaRepository.save(periodontograma);
     }
 
+    /**
+     * Calcula indicadores agregados a partir del JSON plano enviado por el frontend.
+     * Formato esperado: { "18_V_profundidad_mesial": 2, "18_V_profundidad_central": 1, ... }
+     */
     public PeriodontalIndicators calculateIndicators(String measurementsJson) {
         try {
             JsonNode root = objectMapper.readTree(measurementsJson);
-            JsonNode dientesNode = root.path("dientes");
-            List<JsonNode> allDientes = new ArrayList<>();
-            dientesNode.fields().forEachRemaining(entry -> allDientes.add(entry.getValue()));
+            Map<String, Integer> profundidadMap = new HashMap<>();
+            Map<String, Integer> margenMap = new HashMap<>();
+            Map<String, Boolean> sangradoMap = new HashMap<>();
+            Map<String, Boolean> placaMap = new HashMap<>();
+            Map<String, Integer> movilidadMap = new HashMap<>();
+            Map<String, Integer> furcaMap = new HashMap<>();
 
+            Set<String> dientesConDatos = new HashSet<>();
+            Iterator<Map.Entry<String, JsonNode>> fields = root.fields();
+
+            // Primer pase: recolectar valores según el tipo de medición
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> entry = fields.next();
+                String key = entry.getKey();
+                JsonNode valueNode = entry.getValue();
+                String[] parts = key.split("_");
+                if (parts.length < 4) continue; // Formato esperado: diente_cara_tipo_posicion
+
+                String diente = parts[0];
+                String cara = parts[1];
+                String tipo = parts[2];
+                String posicion = (parts.length > 3) ? parts[3] : "";
+                String subKey = diente + "_" + cara + (posicion.isEmpty() ? "" : "_" + posicion);
+
+                dientesConDatos.add(diente);
+
+                switch (tipo) {
+                    case "profundidad":
+                        profundidadMap.put(subKey, valueNode.asInt(0));
+                        break;
+                    case "margen":
+                        margenMap.put(subKey, valueNode.asInt(0));
+                        break;
+                    case "sangrado":
+                        sangradoMap.put(subKey, valueNode.asBoolean(false));
+                        break;
+                    case "placa":
+                        placaMap.put(subKey, valueNode.asBoolean(false));
+                        break;
+                    case "movilidad":
+                        movilidadMap.put(diente + "_" + cara, valueNode.asInt(0));
+                        break;
+                    case "furca":
+                        furcaMap.put(diente + "_" + cara, valueNode.asInt(0));
+                        break;
+                    default:
+                        // Ignorar otros tipos (ej. "cal")
+                        break;
+                }
+            }
+
+            // Segundo pase: calcular indicadores
             int totalSites = 0;
             int bleedingSites = 0;
             int maxCAL = 0;
-            int affectedTeethCAL = 0;
+            Set<String> dientesConAfectacion = new HashSet<>();
             int maxMobility = 0;
             int maxFurcation = 0;
-            int totalTeeth = 0;
 
-            for (JsonNode diente : allDientes) {
-                totalTeeth++;
-                boolean toothAffected = false;
-                for (String cara : Arrays.asList("vestibular", "palatino", "lingual")) {
-                    JsonNode caraNode = diente.path(cara);
-                    if (caraNode.isMissingNode()) continue;
-
-                    for (String pos : Arrays.asList("mesial", "central", "distal")) {
-                        int depth = caraNode.path("profundidad_" + pos).asInt(0);
-                        int recession = caraNode.path("recesion_" + pos).asInt(0);
-                        boolean bleeding = caraNode.path("sangrado_" + pos).asBoolean(false);
-                        totalSites++;
-                        if (bleeding) bleedingSites++;
-                        int cal = depth + recession;
-                        if (cal > maxCAL) maxCAL = cal;
-                        if (pos.equals("mesial") || pos.equals("distal")) {
-                            if (cal >= 2) toothAffected = true;
-                        }
-                    }
+            for (String subKey : profundidadMap.keySet()) {
+                // subKey: "18_V_mesial" (o "18_V_central", "18_V_distal")
+                String[] parts = subKey.split("_");
+                if (parts.length < 3) continue;
+                String diente = parts[0];
+                String cara = parts[1];
+                String posicion = (parts.length > 2) ? parts[2] : "";
+                int profundidad = profundidadMap.getOrDefault(subKey, 0);
+                int margen = margenMap.getOrDefault(subKey, 0);
+                int cal = profundidad + margen;
+                if (cal > maxCAL) maxCAL = cal;
+                if ((posicion.equals("mesial") || posicion.equals("distal")) && cal >= 2) {
+                    dientesConAfectacion.add(diente);
                 }
-                if (toothAffected) affectedTeethCAL++;
-                int mobility = diente.path("movilidad").asInt(0);
-                if (mobility > maxMobility) maxMobility = mobility;
-                int furcation = diente.path("furca").asInt(0);
-                if (furcation > maxFurcation) maxFurcation = furcation;
+                totalSites++;
+                if (sangradoMap.getOrDefault(subKey, false)) {
+                    bleedingSites++;
+                }
+            }
+
+            // Incluir también sitios donde solo haya margen (por si el odontólogo solo llenó margen sin profundidad)
+            for (String subKey : margenMap.keySet()) {
+                if (!profundidadMap.containsKey(subKey)) {
+                    totalSites++;
+                    if (sangradoMap.getOrDefault(subKey, false)) bleedingSites++;
+                    int margen = margenMap.get(subKey);
+                    if (margen > maxCAL) maxCAL = margen; // para el caso de recesión sin bolsa
+                }
+            }
+
+            int affectedTeethCAL = dientesConAfectacion.size();
+            int totalTeeth = dientesConDatos.size();
+
+            // Movilidad máxima
+            for (int mov : movilidadMap.values()) {
+                if (mov > maxMobility) maxMobility = mov;
+            }
+            // Furca máxima
+            for (int fur : furcaMap.values()) {
+                if (fur > maxFurcation) maxFurcation = fur;
             }
 
             double bopPercent = totalSites == 0 ? 0 : (double) bleedingSites / totalSites;
-            int lostTeeth = 0;
+            int lostTeeth = 0; // Este valor no se envía desde el frontend, puede ajustarse manualmente
 
             return new PeriodontalIndicators(bopPercent, maxCAL, affectedTeethCAL, maxMobility,
                     maxFurcation, lostTeeth, totalTeeth);
@@ -148,7 +214,7 @@ public class PeriodontogramaService {
         return periodontogramaRepository.findTopByPatientIdOrderByExamDateDesc(patientId);
     }
 
-    // Clases internas con getters públicos
+    // ========== CLASES INTERNAS CON GETTERS PÚBLICOS ==========
     public static class PeriodontalIndicators {
         private final double bopPercent;
         private final int maxCAL;
