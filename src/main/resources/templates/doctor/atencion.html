@@ -137,6 +137,35 @@
                                 <button type="button" id="generarPdfBtn" class="btn btn-outline-primary mt-2">Generar PDF de fórmula</button>
                             </div>
 
+                            <!-- Bloque: Solicitud de exámenes -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <i class="bi bi-file-medical"></i> Solicitar exámenes
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <input type="text" id="buscarExamen" class="form-control" placeholder="Buscar examen o perfil...">
+                                            <div id="resultadosBusqueda" class="list-group mt-2"></div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <textarea id="instruccionesExamen" class="form-control" rows="2" placeholder="Instrucciones específicas"></textarea>
+                                            <button id="agregarExamenBtn" class="btn btn-primary btn-sm mt-2">Agregar</button>
+                                        </div>
+                                    </div>
+                                    <table class="table table-sm mt-3" id="tablaSolicitudes">
+                                        <thead><tr><th>Examen</th><th>Instrucciones</th><th></th></tr></thead>
+                                        <tbody></tbody>
+                                    </table>
+                                    <textarea id="observacionesGenerales" class="form-control mt-2" rows="2" placeholder="Observaciones generales (ayuno, preparación, etc.)"></textarea>
+                                    <button id="generarOrdenBtn" class="btn btn-success mt-3">Generar orden de examen</button>
+                                </div>
+                            </div>
+
+                            <script>
+                                // Lógica de búsqueda, agregar a tabla, y llamada a /doctor/citas/{citaId}/orden-examen
+                            </script>
+
                             <!-- Diagnóstico Principal con autocompletado -->
                             <div class="col-md-6">
                                 <label for="mainDiagnosis" class="form-label">Diagnóstico Principal (CIE-10)</label>
