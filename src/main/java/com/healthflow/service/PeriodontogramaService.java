@@ -139,6 +139,7 @@ public class PeriodontogramaService {
     }
 
     public SuggestedDiagnosis suggestDiagnosis(PeriodontalIndicators indicators) {
+        // 1. Salud gingival
         if (indicators.getBopPercent() < BOP_THRESHOLD_HEALTH && indicators.getMaxCAL() <= 1 && indicators.getAffectedTeethCAL() < 2) {
             String subcategory = "Periodonto intacto";
             if (indicators.getLostTeeth() > 0 || indicators.getMaxCAL() > 1) {
@@ -148,6 +149,7 @@ public class PeriodontogramaService {
                     "Salud periodontal - " + subcategory.toLowerCase());
         }
 
+        // 2. Gingivitis
         if (indicators.getBopPercent() >= BOP_THRESHOLD_HEALTH && indicators.getMaxCAL() <= 1 && indicators.getAffectedTeethCAL() < 2) {
             String subcategory = indicators.getBopPercent() < 0.30 ? "Asociada solo a biofilm" : "Asociada solo a biofilm (generalizada)";
             return new SuggestedDiagnosis("Gingivitis", subcategory, null, null,
@@ -155,21 +157,24 @@ public class PeriodontogramaService {
                     "Gingivitis inducida por biofilm");
         }
 
+        // 3. Periodontitis (criterio: ≥2 dientes con CAL ≥2 mm y maxCAL ≥2)
         if (indicators.getAffectedTeethCAL() >= 2 && indicators.getMaxCAL() >= 2) {
             String stage = determineStage(indicators);
-            String grade = "B";
+            String grade = "B"; // por defecto "B", pero puedes personalizar
             String extent = determineExtent(indicators);
-            String stability = "INESTABLE";
+            String stability = "INESTABLE"; // por defecto, en el primer examen
             String fullText = String.format("Periodontitis Estadio %s Grado %s - %s - %s",
                     stage, grade, extent.equals("GENERALIZADA") ? "Generalizada" : "Localizada", stability);
             return new SuggestedDiagnosis("Periodontitis", null, stage, grade, extent, stability, fullText);
         }
 
+        // 4. Otras condiciones (absceso, trauma oclusal)
         if (indicators.getMaxMobility() >= 2 || indicators.getMaxFurcation() >= 2) {
             return new SuggestedDiagnosis("Otras Condiciones Periodontales", "Abscesos periodontales agudos",
                     null, null, null, null, "Posible absceso periodontal o trauma oclusal");
         }
 
+        // 5. Por defecto (si no se cumple nada)
         return new SuggestedDiagnosis("Salud Gingival", "Periodonto intacto", null, null, null, null,
                 "Sin hallazgos patológicos");
     }
