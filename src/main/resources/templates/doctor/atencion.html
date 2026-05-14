@@ -162,10 +162,6 @@
                                 </div>
                             </div>
 
-                            <script>
-                                // Lógica de búsqueda, agregar a tabla, y llamada a /doctor/citas/{citaId}/orden-examen
-                            </script>
-
                             <!-- Diagnóstico Principal con autocompletado -->
                             <div class="col-md-6">
                                 <label for="mainDiagnosis" class="form-label">Diagnóstico Principal (CIE-10)</label>
@@ -966,6 +962,154 @@
             create: true,
             placeholder: 'Buscar código CUPS...'
         });
+    }
+
+    // ========== SOLICITUD DE EXÁMENES (corregido) ==========
+    let solicitudes = [];
+    let tiempoEsperaBusqueda;
+
+    // Usar la variable citaIdActual ya definida (del odontograma)
+    // Si no existe, obtenerla del modelo
+    const citaIdExamen = citaIdActual || /*[[${appointment.id}]]*/ null;
+
+    function buscarExamenes() {
+        const query = document.getElementById('buscarExamen').value.trim();
+        const resultadosDiv = document.getElementById('resultadosBusqueda');
+        if (query.length < 2) {
+            resultadosDiv.innerHTML = '';
+            return;
+        }
+        clearTimeout(tiempoEsperaBusqueda);
+        tiempoEsperaBusqueda = setTimeout(() => {
+            fetch(`/api/catalogo-examenes/buscar?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.length) {
+                        resultadosDiv.innerHTML = '<div class="list-group-item text-muted">No se encontraron resultados</div>';
+                        return;
+                    }
+                    let html = '';
+                    data.forEach(item => {
+                        html += `<button type="button" class="list-group-item list-group-item-action" data-id="${item.id}" data-nombre="${item.nombre}" data-tipo="examen">
+                                    ${item.nombre} (${item.codigoCups}) - ${item.categoria}
+                                </button>`;
+                    });
+                    // Cargar perfiles
+                    fetch('/api/catalogo-examenes/perfiles')
+                        .then(res => res.json())
+                        .then(perfiles => {
+                            perfiles.forEach(perfil => {
+                                html += `<button type="button" class="list-group-item list-group-item-action" data-id="${perfil.id}" data-nombre="${perfil.nombre}" data-tipo="perfil">
+                                            📋 ${perfil.nombre} (Perfil)
+                                        </button>`;
+                            });
+                            resultadosDiv.innerHTML = html;
+                            resultadosDiv.querySelectorAll('.list-group-item-action').forEach(btn => {
+                                btn.addEventListener('click', () => {
+                                    const id = btn.dataset.id;
+                                    const nombre = btn.dataset.nombre;
+                                    const tipo = btn.dataset.tipo;
+                                    const instrucciones = document.getElementById('instruccionesExamen').value;
+                                    agregarSolicitud(id, nombre, tipo, instrucciones);
+                                    document.getElementById('buscarExamen').value = '';
+                                    resultadosDiv.innerHTML = '';
+                                    document.getElementById('instruccionesExamen').value = '';
+                                });
+                            });
+                        });
+                })
+                .catch(error => console.error('Error en búsqueda:', error));
+        }, 300);
+    }
+
+    function agregarSolicitud(id, nombre, tipo, instrucciones) {
+        solicitudes.push({ id, nombre, tipo, instrucciones });
+        actualizarTablaSolicitudes();
+    }
+
+    function actualizarTablaSolicitudes() {
+        const tbody = document.querySelector('#tablaSolicitudes tbody');
+        tbody.innerHTML = '';
+        solicitudes.forEach((sol, index) => {
+            const row = tbody.insertRow();
+            row.insertCell(0).textContent = sol.nombre;
+            row.insertCell(1).textContent = sol.instrucciones || '';
+            const accionCell = row.insertCell(2);
+            const btnEliminar = document.createElement('button');
+            btnEliminar.textContent = 'Eliminar';
+            btnEliminar.className = 'btn btn-sm btn-danger';
+            btnEliminar.onclick = () => {
+                solicitudes.splice(index, 1);
+                actualizarTablaSolicitudes();
+            };
+            accionCell.appendChild(btnEliminar);
+        });
+    }
+
+    function generarOrdenExamen() {
+        if (solicitudes.length === 0) {
+            alert('Debe agregar al menos un examen o perfil.');
+            return;
+        }
+        const observacionesGenerales = document.getElementById('observacionesGenerales').value;
+        const payload = {
+            solicitudes: solicitudes.map(sol => ({
+                examenId: sol.tipo === 'examen' ? sol.id : null,
+                perfilId: sol.tipo === 'perfil' ? sol.id : null,
+                instrucciones: sol.instrucciones
+            })),
+            observacionesGenerales: observacionesGenerales
+        };
+        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+        fetch(`/doctor/citas/${citaIdExamen}/orden-examen`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                [csrfHeader]: csrfToken
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.blob();
+            } else {
+                return response.json().then(err => { throw new Error(err.message || 'Error al generar orden'); });
+            }
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `orden_examen_${citaIdExamen}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            alert('Orden de exámenes generada correctamente');
+            solicitudes = [];
+            actualizarTablaSolicitudes();
+            document.getElementById('observacionesGenerales').value = '';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al generar la orden: ' + error.message);
+        });
+    }
+
+    // Asignar eventos (sin duplicar DOMContentLoaded)
+    const buscarExamenInput = document.getElementById('buscarExamen');
+    if (buscarExamenInput) {
+        buscarExamenInput.addEventListener('input', buscarExamenes);
+    }
+    const generarOrdenBtn = document.getElementById('generarOrdenBtn');
+    if (generarOrdenBtn) {
+        generarOrdenBtn.addEventListener('click', generarOrdenExamen);
+    }
+    // Eliminar el botón "Agregar" (opcional: puedes ocultarlo o eliminar su función)
+    const agregarExamenBtn = document.getElementById('agregarExamenBtn');
+    if (agregarExamenBtn) {
+        agregarExamenBtn.style.display = 'none'; // ocultar para evitar confusiones
     }
     /*]]>*/
 </script>
