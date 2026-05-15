@@ -20,8 +20,10 @@ import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -31,6 +33,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -40,28 +44,31 @@ public class RemisionService {
     private final RemisionRepository remisionRepository;
     private final AppointmentRepository appointmentRepository;
     private final QrCodeService qrCodeService;
+    private final DocumentoService documentoService;
     private final String publicBaseUrl;
     private final ZoneId zoneId;
 
     public RemisionService(RemisionRepository remisionRepository,
                            AppointmentRepository appointmentRepository,
                            QrCodeService qrCodeService,
+                           DocumentoService documentoService,
                            @Value("${healthflow.publicBaseUrl:http://localhost:8080}") String publicBaseUrl,
                            @Value("${healthflow.timezone:America/Bogota}") String timezone) {
         this.remisionRepository = remisionRepository;
         this.appointmentRepository = appointmentRepository;
         this.qrCodeService = qrCodeService;
+        this.documentoService = documentoService;
         this.publicBaseUrl = publicBaseUrl;
         this.zoneId = ZoneId.of(timezone);
     }
 
     @Transactional
     public byte[] generarRemision(UUID appointmentId, String motivo, String especialidad, String prioridad,
-                                  Map<String, String> snapshotData, String firmaUrl) throws Exception {
+                                  Map<String, String> snapshotData, String firmaUrl, UUID professionalId) throws Exception {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new DomainException("Cita no encontrada"));
         Patient patient = appointment.getPatient();
-        Professional professional = appointment.getProfessional();
+        Professional professional = appointment.getProfessional(); // se puede mantener para datos del PDF, pero el professionalId para el documento es el que viene por parámetro
 
         // Crear token y guardar metadatos
         UUID token = UUID.randomUUID();
@@ -79,9 +86,33 @@ public class RemisionService {
         remisionRepository.save(remision);
 
         // Generar PDF
-        return generarPdfRemision(patient, professional, motivo, especialidad, prioridad, snapshotData, firmaUrl, token);
+        byte[] pdfBytes = generarPdfRemision(patient, professional, motivo, especialidad, prioridad, snapshotData, firmaUrl, token);
+
+        // Guardar el PDF como documento en el sistema
+        String fileName = "remision_" + token + ".pdf";
+        MultipartFile mockFile = new MockMultipartFile("file", fileName, "application/pdf", pdfBytes);
+        try {
+            List<MultipartFile> files = Collections.singletonList(mockFile);
+            String descripcion = "Remisión a " + especialidad + " - " + motivo;
+            int expirationDays = 30;
+            String origen = "MEDICO";
+            String tipoDocumento = "REMISION";
+            // Usar el professionalId recibido (médico autenticado que genera la remisión)
+            List<Documento> docs = documentoService.uploadMultipleDocuments(
+                    patient.getId(), files, descripcion, appointmentId, expirationDays,
+                    origen, tipoDocumento, professionalId);
+            if (docs != null && !docs.isEmpty()) {
+                // Opcional: guardar el documentoId en la entidad Remision si tienes ese campo
+                // remision.setDocumentoId(docs.get(0).getId());
+            }
+        } catch (IOException e) {
+            throw new DomainException("Error al guardar el PDF de la remisión: " + e.getMessage());
+        }
+
+        return pdfBytes;
     }
 
+    // El método generarPdfRemision se mantiene igual (sin cambios)
     private byte[] generarPdfRemision(Patient patient, Professional professional, String motivo,
                                       String especialidad, String prioridad, Map<String, String> snapshotData,
                                       String firmaUrl, UUID token) throws Exception {
@@ -173,10 +204,41 @@ public class RemisionService {
         }
 
         // Medicamentos formulados
-        String medicamentos = snapshotData.get("medicamentos");
-        if (medicamentos != null && !medicamentos.isEmpty() && !medicamentos.equals("[]")) {
+        String medicamentosJson = snapshotData.get("medicamentos");
+        if (medicamentosJson != null && !medicamentosJson.isEmpty() && !medicamentosJson.equals("[]")) {
             document.add(new Paragraph("Medicamentos formulados:").setFont(boldFont));
-            document.add(new Paragraph(medicamentos).setFont(normalFont));
+            document.add(new Paragraph(" "));
+
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                // Se espera un arreglo de objetos con campos: nombre, dosis, frecuencia, cantidad
+                List<Map<String, String>> medicamentos = mapper.readValue(medicamentosJson,
+                        new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, String>>>() {});
+
+                if (!medicamentos.isEmpty()) {
+                    // Opción 1: Tabla (recomendada)
+                    Table medTable = new Table(UnitValue.createPercentArray(new float[]{40, 20, 25, 15}))
+                            .setWidth(UnitValue.createPercentValue(100))
+                            .setBorder(new SolidBorder(new DeviceRgb(229, 231, 235), 1));
+                    medTable.addHeaderCell(new Cell().add(new Paragraph("Medicamento").setFont(boldFont)));
+                    medTable.addHeaderCell(new Cell().add(new Paragraph("Dosis").setFont(boldFont)));
+                    medTable.addHeaderCell(new Cell().add(new Paragraph("Frecuencia").setFont(boldFont)));
+                    medTable.addHeaderCell(new Cell().add(new Paragraph("Cantidad").setFont(boldFont)));
+
+                    for (Map<String, String> med : medicamentos) {
+                        medTable.addCell(new Cell().add(new Paragraph(med.getOrDefault("nombre", "")).setFont(normalFont)));
+                        medTable.addCell(new Cell().add(new Paragraph(med.getOrDefault("dosis", "")).setFont(normalFont)));
+                        medTable.addCell(new Cell().add(new Paragraph(med.getOrDefault("frecuencia", "")).setFont(normalFont)));
+                        medTable.addCell(new Cell().add(new Paragraph(med.getOrDefault("cantidad", "1")).setFont(normalFont)));
+                    }
+                    document.add(medTable);
+                } else {
+                    document.add(new Paragraph("Ninguno").setFont(normalFont));
+                }
+            } catch (IOException e) {
+                // Si falla el parseo, mostrar el JSON crudo como texto (evitar errores)
+                document.add(new Paragraph(medicamentosJson).setFont(normalFont));
+            }
             document.add(new Paragraph(" "));
         }
 

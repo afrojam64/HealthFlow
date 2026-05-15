@@ -29,6 +29,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -100,9 +101,19 @@ public class OrdenExamenService {
         String fileName = "orden_examen_" + orden.getId() + ".pdf";
         MultipartFile mockFile = new MockMultipartFile("file", fileName, "application/pdf", pdfBytes);
         try {
-            Documento documento = documentoService.uploadDocument(paciente.getId(), mockFile,
-                    "Orden de examen - " + orden.getFechaSolicitud().toLocalDate().toString(), null, 30);
-            orden.setDocumentoId(documento.getId());
+            // Usamos uploadMultipleDocuments para poder enviar el professionalId, origen y tipoDocumento
+            List<MultipartFile> files = Collections.singletonList(mockFile);
+            String descripcion = "Orden de examen - " + orden.getFechaSolicitud().toLocalDate().toString();
+            // Días de expiración: 30 (se puede ajustar)
+            int expirationDays = 30;
+            String origen = "MEDICO";
+            String tipoDocumento = "ORDEN_EXAMEN";  // valor consistente, no nulo
+            List<Documento> docs = documentoService.uploadMultipleDocuments(
+                    paciente.getId(), files, descripcion, citaId, expirationDays,
+                    origen, tipoDocumento, profesionalId);
+            if (docs != null && !docs.isEmpty()) {
+                orden.setDocumentoId(docs.get(0).getId());
+            }
         } catch (IOException e) {
             throw new DomainException("Error al guardar el PDF de la orden de exámenes: " + e.getMessage());
         }

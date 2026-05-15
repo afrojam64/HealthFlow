@@ -553,21 +553,21 @@ public class DoctorAppointmentAttentionController {
         }
         Professional professional = getCurrentProfessional();
         String firmaUrl = professional.getFirmaUrl();
-        byte[] pdfBytes = remisionService.generarRemision(appointmentId, motivo, especialidad, prioridad, snapshotData, firmaUrl);
+        // Obtener el ID del profesional autenticado (médico actual)
+        UUID professionalId = professional.getId();
 
-        // Guardar automáticamente como documento (para envío de correo)
-        Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new DomainException("Cita no encontrada"));
-        String fileName = "remision_" + appointmentId + ".pdf";
-        java.nio.file.Path tempFile = java.nio.file.Files.createTempFile("remision_", ".pdf");
-        java.nio.file.Files.write(tempFile, pdfBytes);
-        MultipartFile multipartFile = new MockMultipartFile("file", fileName, "application/pdf", pdfBytes);
-        documentoService.uploadDocument(appointment.getPatient().getId(), multipartFile,
-                "Remisión a " + especialidad + " - " + motivo.substring(0, Math.min(motivo.length(), 50)), null, 30);
+        // Llamar al servicio con los 7 parámetros
+        byte[] pdfBytes = remisionService.generarRemision(appointmentId, motivo, especialidad, prioridad,
+                snapshotData, firmaUrl, professionalId);
+
+        // El servicio ya guarda el documento automáticamente (uploadMultipleDocuments)
+        // Por lo tanto, ELIMINAR las siguientes líneas que hacían uploadDocument:
+        // Appointment appointment = appointmentRepository.findById(appointmentId)...
+        // documentoService.uploadDocument(...)
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", fileName);
+        headers.setContentDispositionFormData("attachment", "remision_" + appointmentId + ".pdf");
         return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }
 }
