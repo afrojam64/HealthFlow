@@ -171,6 +171,7 @@ public class DoctorAppointmentAttentionController {
                                    @RequestParam(name = "relatedDiagnosis1", required = false) String relatedDiagnosis1,
                                    @RequestParam(name = "relatedDiagnosis2", required = false) String relatedDiagnosis2,
                                    @RequestParam(name = "complicationDiagnosis", required = false) String complicationDiagnosis,
+                                   @RequestParam(name = "examenesJson", required = false) String examenesJson,  // NUEVO
                                    @RequestParam(name = "accion", required = false) String accion,
                                    RedirectAttributes redirectAttributes) {
 
@@ -178,11 +179,12 @@ public class DoctorAppointmentAttentionController {
         System.out.println("accion: " + accion);
         System.out.println("reason: " + reason);
         System.out.println("prescriptionJson: " + prescriptionJson);
+        System.out.println("examenesJson: " + examenesJson);  // opcional
 
         try {
             medicalRecordService.saveMedicalRecord(appointmentId, reason, enfermedadActual, examenFisico, concepto,
                     prescription, prescriptionJson, mainDiagnosis, finalidadId, causaExternaId, valorServicio, cuotaModeradora,
-                    copago, codigoCups, relatedDiagnosis1, relatedDiagnosis2, complicationDiagnosis);
+                    copago, codigoCups, relatedDiagnosis1, relatedDiagnosis2, complicationDiagnosis, examenesJson); // NUEVO
 
             if ("finalizar".equals(accion)) {
                 medicalRecordService.markAsAttendedAndLock(appointmentId);

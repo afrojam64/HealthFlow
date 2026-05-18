@@ -39,16 +39,16 @@ public class MedicalRecord extends BaseEntity {
 
     // Campos RIPS adicionales
     @Column(name = "modalidad_consulta", length = 2)
-    private String modalidadConsulta; // Tabla ModalidadAtencion (01=Presencial, 02=Telemedicina, etc.)
+    private String modalidadConsulta;
 
     @Column(name = "grupo_servicios", length = 2)
-    private String grupoServicios; // Tabla GrupoServicios
+    private String grupoServicios;
 
     @Column(name = "via_ingreso", length = 2)
-    private String viaIngreso; // Tabla ViaIngresoUsuario
+    private String viaIngreso;
 
     @Column(name = "tipo_diagnostico", length = 1)
-    private String tipoDiagnostico; // 1=Impresión diagnóstica, 2=Confirmado nuevo, 3=Confirmado repetido
+    private String tipoDiagnostico;
 
     @Column(name = "valor_servicio")
     private BigDecimal valorServicio;
@@ -60,7 +60,7 @@ public class MedicalRecord extends BaseEntity {
     private BigDecimal copago;
 
     @Column(name = "codigo_cups", length = 10)
-    private String codigoCups; // Código CUPS de la consulta
+    private String codigoCups;
 
     @Column(name = "dx_relacionado1", length = 10)
     private String relatedDiagnosis1;
@@ -81,7 +81,11 @@ public class MedicalRecord extends BaseEntity {
     private String concepto;
 
     @Column(name = "prescripcion_json", columnDefinition = "JSONB")
-    private String prescripcionJson;  // Almacena un JSON con la lista de medicamentos
+    private String prescripcionJson;
+
+    // NUEVO CAMPO: Almacena la lista de exámenes solicitados (JSON)
+    @Column(name = "examenes_solicitados_json", columnDefinition = "JSONB")
+    private String examenesSolicitadosJson;
 
     // Getters y setters
     public String getPrescripcionJson() { return prescripcionJson; }
@@ -152,4 +156,7 @@ public class MedicalRecord extends BaseEntity {
 
     public String getComplicationDiagnosis() { return complicationDiagnosis; }
     public void setComplicationDiagnosis(String complicationDiagnosis) { this.complicationDiagnosis = complicationDiagnosis; }
+
+    public String getExamenesSolicitadosJson() { return examenesSolicitadosJson; }
+    public void setExamenesSolicitadosJson(String examenesSolicitadosJson) { this.examenesSolicitadosJson = examenesSolicitadosJson; }
 }

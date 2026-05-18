@@ -70,7 +70,8 @@ public class MedicalRecordService {
                                            String codigoCups,
                                            String relatedDiagnosis1,
                                            String relatedDiagnosis2,
-                                           String complicationDiagnosis) {
+                                           String complicationDiagnosis,
+                                           String examenesJson) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new DomainException("Cita no encontrada con ID: " + appointmentId));
 
@@ -100,6 +101,7 @@ public class MedicalRecordService {
         record.setRelatedDiagnosis1(relatedDiagnosis1);
         record.setRelatedDiagnosis2(relatedDiagnosis2);
         record.setComplicationDiagnosis(complicationDiagnosis);
+        record.setExamenesSolicitadosJson(examenesJson);  // <--- NUEVO
 
         // RIPS: finalidad consulta
         if (finalidadId != null) {
@@ -128,6 +130,7 @@ public class MedicalRecordService {
         System.out.println("prescriptionJson recibido: " + prescriptionJson);
         System.out.println("=== saveMedicalRecord ===");
         System.out.println("prescriptionJson recibido: " + prescriptionJson);
+        System.out.println("examenesJson recibido: " + examenesJson);
 
         MedicalRecord saved = medicalRecordRepository.save(record);
 

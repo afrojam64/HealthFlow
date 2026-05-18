@@ -1033,7 +1033,20 @@
         solicitudes.forEach((sol, index) => {
             const row = tbody.insertRow();
             row.insertCell(0).textContent = sol.nombre;
-            row.insertCell(1).textContent = sol.instrucciones || '';
+
+            // Celda de instrucciones: input editable
+            const celdaInstrucciones = row.insertCell(1);
+            const inputInstrucciones = document.createElement('input');
+            inputInstrucciones.type = 'text';
+            inputInstrucciones.className = 'form-control form-control-sm';
+            inputInstrucciones.value = sol.instrucciones || '';
+            inputInstrucciones.placeholder = 'Instrucciones específicas';
+            inputInstrucciones.addEventListener('change', function() {
+                solicitudes[index].instrucciones = this.value;
+            });
+            celdaInstrucciones.appendChild(inputInstrucciones);
+
+            // Botón eliminar
             const accionCell = row.insertCell(2);
             const btnEliminar = document.createElement('button');
             btnEliminar.textContent = 'Eliminar';
